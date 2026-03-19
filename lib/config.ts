@@ -31,13 +31,17 @@ export const TSP_CONFIG = {
 } as const;
 
 export const DEDUCTION_FIELDS: FieldConfig[] = [
+  { key: 'taxes', label: 'Federal taxes' },
+  { key: 'fica_soc_security', label: 'FICA-Soc Security' },
+  { key: 'fica_medicare', label: 'FICA-Medicare' },
+  { key: 'sgli', label: 'SGLI' },
+  { key: 'afrh', label: 'AFRH' },
+  { key: 'meal_deduction', label: 'Meal deduction' },
   {
     key: 'roth_ira',
     label: 'Roth IRA / month',
     note: 'Fidelity · FZROX 80 / FZILX 20',
   },
-  { key: 'taxes', label: 'Federal taxes (est.)' },
-  { key: 'sgli', label: 'SGLI + other deductions' },
 ];
 
 // ─── Transaction categories ───────────────────────────────────────────────────
@@ -121,9 +125,13 @@ export const SEED_INCOME: Record<string, number> = {
   bah: 0,
   other: 0,
   tsp_rate: 0.2,
+  taxes: 158.72,
+  fica_soc_security: 175.88,
+  fica_medicare: 41.13,
+  sgli: 26.0,
+  afrh: 0.5,
+  meal_deduction: 382.2,
   roth_ira: 583,
-  taxes: 0,
-  sgli: 27,
 };
 
 export const SEED_FIXED_EXPENSES: {

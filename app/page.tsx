@@ -1,6 +1,11 @@
 'use client';
 
-import { APP_CONFIG, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
+import {
+  APP_CONFIG,
+  DEDUCTION_FIELDS,
+  INCOME_FIELDS,
+  TSP_CONFIG,
+} from '@/lib/config';
 import type { Debt, FixedExpense, IncomeConfig } from '@/lib/types';
 import {
   currentMonth,
@@ -54,7 +59,8 @@ function calcSummary(
     .reduce((s, d) => s + d.monthly_payment, 0);
   const committed = fixedExpenses + debtPayments;
   const spending = txs.reduce((s, t) => s + t.amount, 0);
-  const deductions = tsp + roth + (income.taxes || 0) + (income.sgli || 0);
+  const deductions =
+    tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
   return {
     totalIncome,
     tsp,

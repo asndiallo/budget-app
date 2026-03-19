@@ -79,10 +79,21 @@ function initSchema(db: Database.Database) {
     );
   }
 
-  // Ensure tsp_rate exists in income_config (added after initial seed)
-  db.prepare(
+  // Ensure all income_config keys exist (INSERT OR IGNORE is safe for existing rows)
+  const upsertIncome = db.prepare(
     'INSERT OR IGNORE INTO income_config (key, value) VALUES (?, ?)',
-  ).run('tsp_rate', 0.2);
+  );
+  const newIncomeKeys: Record<string, number> = {
+    tsp_rate: 0.2,
+    fica_soc_security: 175.88,
+    fica_medicare: 41.13,
+    afrh: 0.5,
+    meal_deduction: 382.2,
+  };
+  db.transaction(() => {
+    for (const [key, value] of Object.entries(newIncomeKeys))
+      upsertIncome.run(key, value);
+  })();
 
   // Migrate legacy source value
   db.prepare(
