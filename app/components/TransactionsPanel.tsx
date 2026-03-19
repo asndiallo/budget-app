@@ -102,9 +102,9 @@ export default function TransactionsPanel({
       const typeIdx = headers.findIndex((h) => h === 'type');
       const amtIdx = headers.findIndex((h) => h.includes('amount'));
 
-      // Skip payment rows (ACH payments to the card — not spending)
+      // Skip non-purchase rows (payments, returns, credits, reversals)
       const type = (vals[typeIdx] || '').toLowerCase();
-      if (type === 'payment') continue;
+      if (['payment', 'return', 'reversal', 'adjustment'].includes(type)) continue;
 
       const description =
         vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||

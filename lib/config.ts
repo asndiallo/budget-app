@@ -87,20 +87,35 @@ export const CAT_COLORS: Record<string, string> = {
 // ─── CSV import ───────────────────────────────────────────────────────────────
 
 export const CSV_CATEGORY_MAP: Record<string, string> = {
+  // Food
   'food and drink': 'Food',
+  'food & drink': 'Food',
   restaurants: 'Food',
   groceries: 'Food',
   grocery: 'Food',
+  // Transport
   transportation: 'Transport',
   tolls: 'Transport',
   gas: 'Transport',
+  automotive: 'Transport',
+  travel: 'Transport',
+  // Shopping
   shopping: 'Shopping',
   installment: 'Shopping',
+  home: 'Shopping',
+  // Entertainment
   entertainment: 'Entertainment',
+  // Personal care
   health: 'Personal care',
+  'health & wellness': 'Personal care',
+  // Subscriptions
   subscriptions: 'Subscriptions',
   utilities: 'Subscriptions',
+  'bills & utilities': 'Subscriptions',
+  // Other
   services: 'Other',
+  personal: 'Other',
+  'fees & adjustments': 'Other',
 };
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
