@@ -87,28 +87,45 @@ export default function TransactionsPanel({
       .split(',')
       .map((h) => h.replace(/"/g, '').trim().toLowerCase());
 
+    // Detect Navy Federal format by presence of 'credit debit indicator' column
+    const creditDebitIdx = headers.findIndex(
+      (h) => h === 'credit debit indicator',
+    );
+    const isNavyFed =
+      creditDebitIdx >= 0 && headers.some((h) => h === 'type group');
+
+    const dateIdx = headers.findIndex(
+      (h) => h.includes('transaction date') || h === 'date',
+    );
+    // Prefer the clean Merchant column over the full noisy Description
+    const merchantIdx = headers.findIndex((h) => h === 'merchant');
+    const descIdx = headers.findIndex((h) => h === 'description');
+    const catIdx = headers.findIndex((h) => h === 'category');
+    const typeIdx = headers.findIndex((h) => h === 'type');
+    const amtIdx = headers.findIndex((h) => h.includes('amount'));
+
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
       const vals = parseCSVLine(lines[i]);
       if (vals.length < 2) continue;
 
-      const dateIdx = headers.findIndex(
-        (h) => h.includes('transaction date') || h === 'date',
-      );
-      // Prefer the clean Merchant column over the full noisy Description
-      const merchantIdx = headers.findIndex((h) => h === 'merchant');
-      const descIdx = headers.findIndex((h) => h === 'description');
-      const catIdx = headers.findIndex((h) => h === 'category');
-      const typeIdx = headers.findIndex((h) => h === 'type');
-      const amtIdx = headers.findIndex((h) => h.includes('amount'));
-
-      // Skip non-purchase rows (payments, returns, credits, reversals)
-      const type = (vals[typeIdx] || '').toLowerCase();
-      if (['payment', 'return', 'reversal', 'adjustment'].includes(type)) continue;
-
       const description =
         vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||
         'Unknown';
+      const isTaptap = description.toLowerCase().includes('taptap');
+
+      if (isNavyFed) {
+        // Navy Federal: skip credits and all transfers except Taptap Send (family remittances)
+        const indicator = (vals[creditDebitIdx] || '').toLowerCase();
+        if (indicator === 'credit') continue;
+        if (!isTaptap) continue;
+      } else {
+        // Apple Card / Chase: skip non-purchase rows
+        const type = (vals[typeIdx] || '').toLowerCase();
+        if (['payment', 'return', 'reversal', 'adjustment'].includes(type))
+          continue;
+      }
+
       const amount = Math.abs(
         parseFloat(
           (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(
@@ -117,8 +134,14 @@ export default function TransactionsPanel({
           ),
         ),
       );
-      const category = vals[catIdx >= 0 ? catIdx : 4] || DEFAULT_CATEGORY;
       const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
+
+      let category: string;
+      if (isTaptap) {
+        category = 'Family';
+      } else {
+        category = vals[catIdx >= 0 ? catIdx : 4] || DEFAULT_CATEGORY;
+      }
 
       if (amount > 0) rows.push({ description, amount, category, date });
     }

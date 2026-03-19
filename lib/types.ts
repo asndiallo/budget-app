@@ -27,6 +27,25 @@ export interface Goal {
   color: string;
 }
 
+export interface IncomeEntry {
+  id: number;
+  description: string;
+  amount: number;
+  month: string;
+  source: string;
+}
+
+export interface Receivable {
+  id: number;
+  name: string;
+  description: string;
+  amount: number;
+  amount_paid: number;
+  month_created: string;
+  month_paid: string | null;
+  paid: number;
+}
+
 export interface CsvRow {
   description: string;
   amount: number;

@@ -54,6 +54,7 @@ export const CATEGORIES = [
   'Personal care',
   'Entertainment',
   'Wedding',
+  'Family',
   'Other',
 ] as const;
 
@@ -70,6 +71,7 @@ export const CHART_CAT_COLORS: Record<string, string> = {
   'Personal care': '#ec4899',
   Entertainment: '#6366f1',
   Wedding: '#f43f5e',
+  Family: '#f97316',
   Other: '#9ca3af',
 };
 
@@ -81,6 +83,7 @@ export const CAT_COLORS: Record<string, string> = {
   'Personal care': 'bg-pink-50 text-pink-700',
   Entertainment: 'bg-indigo-50 text-indigo-700',
   Wedding: 'bg-rose-50 text-rose-700',
+  Family: 'bg-orange-50 text-orange-700',
   Other: 'bg-gray-50 text-gray-500',
 };
 
@@ -112,6 +115,8 @@ export const CSV_CATEGORY_MAP: Record<string, string> = {
   subscriptions: 'Subscriptions',
   utilities: 'Subscriptions',
   'bills & utilities': 'Subscriptions',
+  // Family
+  family: 'Family',
   // Other
   services: 'Other',
   personal: 'Other',

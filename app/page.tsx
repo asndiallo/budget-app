@@ -6,7 +6,12 @@ import {
   INCOME_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
-import type { Debt, FixedExpense, IncomeConfig } from '@/lib/types';
+import type {
+  Debt,
+  FixedExpense,
+  IncomeConfig,
+  IncomeEntry,
+} from '@/lib/types';
 import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -15,6 +20,7 @@ import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
+import ReceivablesPanel from './components/ReceivablesPanel';
 import TransactionsPanel from './components/TransactionsPanel';
 import { api } from '@/lib/api';
 
@@ -54,15 +60,18 @@ function calcSummary(
   fixed: FixedExpense[],
   txs: { amount: number }[],
   debts: Debt[],
+  incomeEntries: IncomeEntry[],
 ): Summary {
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round(base * tspRate);
   const roth = income.roth_ira || 0;
-  const totalIncome = INCOME_FIELDS.reduce(
+  const militaryIncome = INCOME_FIELDS.reduce(
     (s, f) => s + (income[f.key] || 0),
     0,
   );
+  const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
+  const totalIncome = militaryIncome + extraIncome;
   const fixedExpenses = fixed.reduce(
     (s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount),
     0,
@@ -99,13 +108,14 @@ export default function Home() {
 
   const fetchSummary = useCallback(async () => {
     if (!month) return;
-    const [income, fixed, txs, debts] = await Promise.all([
+    const [income, fixed, txs, debts, entries] = await Promise.all([
       api.income.get(month),
       api.fixedExpenses.list(),
       api.transactions.list(month),
       api.debts.list(),
+      api.incomeEntries.list(month),
     ]);
-    setSummary(calcSummary(income, fixed, txs, debts));
+    setSummary(calcSummary(income, fixed, txs, debts, entries));
   }, [month]);
 
   useEffect(() => {
@@ -195,23 +205,25 @@ export default function Home() {
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex border-b border-gray-200">
-            {(['income', 'transactions', 'goals', 'analytics'] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-5 py-3 text-sm font-medium capitalize transition-colors ${
-                  tab === t
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {t === 'transactions'
+            {(['income', 'transactions', 'goals', 'analytics'] as Tab[]).map(
+              (t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-5 py-3 text-sm font-medium capitalize transition-colors ${
+                    tab === t
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {t === 'transactions'
                     ? APP_CONFIG.transactionsTabLabel
                     : t === 'analytics'
-                    ? 'Analytics'
-                    : t}
-              </button>
-            ))}
+                      ? 'Analytics'
+                      : t}
+                </button>
+              ),
+            )}
           </div>
 
           <div className="p-5">
@@ -220,6 +232,7 @@ export default function Home() {
                 <IncomePanel month={month} onUpdate={fetchSummary} />
                 <FixedExpensesPanel onUpdate={fetchSummary} />
                 <DebtsPanel onUpdate={fetchSummary} />
+                <ReceivablesPanel month={month} onUpdate={fetchSummary} />
               </div>
             )}
             {tab === 'transactions' && (

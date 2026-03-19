@@ -173,13 +173,11 @@ function DebtRow({
               className="text-sm font-medium text-gray-800"
               onSave={(v) => onUpdate(debt, 'label', v)}
             />
-            {debt.lender && (
-              <EditableText
-                value={debt.lender}
-                className="text-xs text-gray-400"
-                onSave={(v) => onUpdate(debt, 'lender', v)}
-              />
-            )}
+            <EditableText
+              value={debt.lender || 'Add lender'}
+              className={`text-xs ${debt.lender ? 'text-gray-400' : 'text-gray-300'}`}
+              onSave={(v) => onUpdate(debt, 'lender', v)}
+            />
             {isPaidOff && (
               <span className="text-xs text-emerald-600 font-medium">
                 Paid off

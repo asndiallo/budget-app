@@ -4,16 +4,24 @@ import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-// Parses MM/DD/YYYY (Apple Card) or YYYY-MM-DD into YYYY-MM.
+// Parses MM/DD/YYYY or YYYY-MM-DD into { month: 'YYYY-MM', date: 'YYYY-MM-DD' }.
 // Returns null if the date string is unrecognizable.
-function parseMonth(dateStr: string): string | null {
+function parseDate(dateStr: string): { month: string; date: string } | null {
   if (!dateStr) return null;
   // MM/DD/YYYY
-  const slash = dateStr.match(/^(\d{1,2})\/\d{1,2}\/(\d{4})$/);
-  if (slash) return `${slash[2]}-${slash[1].padStart(2, '0')}`;
+  const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const [, m, d, y] = slash;
+    const date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    return { month: `${y}-${m.padStart(2, '0')}`, date };
+  }
   // YYYY-MM-DD
-  const iso = dateStr.match(/^(\d{4})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}`;
+  const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso)
+    return {
+      month: `${iso[1]}-${iso[2]}`,
+      date: `${iso[1]}-${iso[2]}-${iso[3]}`,
+    };
   return null;
 }
 
@@ -38,7 +46,7 @@ export async function POST(req: Request) {
   };
 
   const insert = db.prepare(
-    'INSERT INTO transactions (description, amount, category, month, source) VALUES (?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO transactions (description, amount, category, month, source, date) VALUES (?, ?, ?, ?, ?, ?)',
   );
 
   const months = new Set<string>();
@@ -46,16 +54,19 @@ export async function POST(req: Request) {
     let n = 0;
     for (const row of rows) {
       if (!row.description || !row.amount) continue;
-      const month = parseMonth(row.date) ?? fallbackMonth;
+      const parsed = parseDate(row.date);
+      const month = parsed?.month ?? fallbackMonth;
+      const date = parsed?.date ?? null;
       months.add(month);
-      insert.run(
+      const result = insert.run(
         row.description,
         Math.abs(row.amount),
         mapCategory(row.category),
         month,
         source || 'Unknown',
+        date,
       );
-      n++;
+      if (result.changes > 0) n++;
     }
     return n;
   })();

@@ -100,6 +100,25 @@ function initSchema(db: Database.Database) {
       monthly_payment REAL NOT NULL DEFAULT 0,
       interest_rate   REAL NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS income_entries (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      description TEXT NOT NULL,
+      amount      REAL NOT NULL,
+      month       TEXT NOT NULL,
+      source      TEXT NOT NULL DEFAULT 'Other'
+    );
+
+    CREATE TABLE IF NOT EXISTS receivables (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT NOT NULL,
+      description   TEXT NOT NULL DEFAULT '',
+      amount        REAL NOT NULL,
+      amount_paid   REAL NOT NULL DEFAULT 0,
+      month_created TEXT NOT NULL,
+      month_paid    TEXT,
+      paid          INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // ── Column migrations ────────────────────────────────────────────────────────
@@ -110,6 +129,29 @@ function initSchema(db: Database.Database) {
     db.exec(
       "ALTER TABLE fixed_expenses ADD COLUMN period TEXT NOT NULL DEFAULT 'monthly'",
     );
+  }
+
+  const receivableCols = (
+    db.prepare('PRAGMA table_info(receivables)').all() as { name: string }[]
+  ).map((c) => c.name);
+  if (receivableCols.length > 0 && !receivableCols.includes('amount_paid')) {
+    db.exec(
+      'ALTER TABLE receivables ADD COLUMN amount_paid REAL NOT NULL DEFAULT 0',
+    );
+  }
+
+  const txCols = (
+    db.prepare('PRAGMA table_info(transactions)').all() as { name: string }[]
+  ).map((c) => c.name);
+  if (!txCols.includes('date')) {
+    db.exec('ALTER TABLE transactions ADD COLUMN date TEXT');
+    // Unique index for idempotent CSV imports — NULLs are intentionally excluded
+    // (manual transactions have no date and are never deduplicated this way)
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_tx_dedup
+      ON transactions(description, amount, date, source)
+      WHERE date IS NOT NULL
+    `);
   }
 
   // ── Migrate legacy transaction source value ──────────────────────────────────

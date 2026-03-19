@@ -7,7 +7,9 @@ import type {
   FixedExpense,
   Goal,
   IncomeConfig,
+  IncomeEntry,
   PaymentSource,
+  Receivable,
   Transaction,
 } from './types';
 
@@ -105,5 +107,50 @@ export const api = {
       ),
     remove: (id: number) =>
       send('DELETE', '/api/debts', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  incomeEntries: {
+    list: (month: string) =>
+      fetch(`/api/income-entries?month=${month}`).then(asJson<IncomeEntry[]>),
+    add: (description: string, amount: number, month: string, source: string) =>
+      send('POST', '/api/income-entries', {
+        description,
+        amount,
+        month,
+        source,
+      }).then(asJson<IncomeEntry>),
+    remove: (id: number) =>
+      send('DELETE', '/api/income-entries', { id }).then(
+        asJson<{ ok: boolean }>,
+      ),
+  },
+
+  receivables: {
+    list: () => fetch('/api/receivables').then(asJson<Receivable[]>),
+    add: (
+      name: string,
+      description: string,
+      amount: number,
+      month_created: string,
+    ) =>
+      send('POST', '/api/receivables', {
+        name,
+        description,
+        amount,
+        month_created,
+      }).then(asJson<Receivable>),
+    update: (
+      id: number,
+      data: Partial<Pick<Receivable, 'name' | 'description' | 'amount'>>,
+    ) =>
+      send('PATCH', '/api/receivables', { id, ...data }).then(
+        asJson<{ ok: boolean }>,
+      ),
+    recordPayment: (id: number, payment: number, month: string) =>
+      send('PATCH', '/api/receivables', { id, payment, month }).then(
+        asJson<{ ok: boolean; fullyPaid: boolean }>,
+      ),
+    remove: (id: number) =>
+      send('DELETE', '/api/receivables', { id }).then(asJson<{ ok: boolean }>),
   },
 };

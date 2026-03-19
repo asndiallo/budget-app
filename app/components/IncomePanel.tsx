@@ -4,9 +4,9 @@
 // Fixed expenses live in FixedExpensesPanel.
 
 import { DEDUCTION_FIELDS, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
+import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import type { IncomeConfig } from '@/lib/types';
 import { api } from '@/lib/api';
 
 export default function IncomePanel({
@@ -18,6 +18,10 @@ export default function IncomePanel({
 }) {
   const [income, setIncome] = useState<IncomeConfig | null>(null);
   const [tspRateLocal, setTspRateLocal] = useState('');
+  const [entries, setEntries] = useState<IncomeEntry[]>([]);
+  const [newDesc, setNewDesc] = useState('');
+  const [newAmt, setNewAmt] = useState('');
+  const [newSource, setNewSource] = useState('');
 
   useEffect(() => {
     if (!month) return;
@@ -26,7 +30,29 @@ export default function IncomePanel({
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
     });
+    api.incomeEntries.list(month).then(setEntries);
   }, [month]);
+
+  async function addEntry() {
+    if (!newDesc.trim() || !newAmt) return;
+    await api.incomeEntries.add(
+      newDesc.trim(),
+      parseFloat(newAmt),
+      month,
+      newSource || 'Other',
+    );
+    setNewDesc('');
+    setNewAmt('');
+    setNewSource('');
+    api.incomeEntries.list(month).then(setEntries);
+    onUpdate();
+  }
+
+  async function removeEntry(id: number) {
+    await api.incomeEntries.remove(id);
+    api.incomeEntries.list(month).then(setEntries);
+    onUpdate();
+  }
 
   if (!income) return <div className="text-sm text-gray-400">Loading…</div>;
 
@@ -91,6 +117,60 @@ export default function IncomePanel({
             prefix="-"
           />
         ))}
+      </Section>
+      <Section title="Additional income">
+        {entries.map((e) => (
+          <div
+            key={e.id}
+            className="flex items-center py-2.5 border-b border-gray-100 gap-3"
+          >
+            <div className="flex-1">
+              <p className="text-sm text-gray-800">{e.description}</p>
+              {e.source && e.source !== 'Other' && (
+                <p className="text-xs text-gray-400">{e.source}</p>
+              )}
+            </div>
+            <span className="text-sm font-medium text-emerald-700">
+              +${e.amount.toLocaleString()}
+            </span>
+            <button
+              onClick={() => removeEntry(e.id)}
+              className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <div className="flex gap-2 flex-wrap pt-2">
+          <input
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addEntry()}
+            placeholder="Description (e.g. Business revenue)"
+            className="flex-1 min-w-36 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <input
+            value={newAmt}
+            onChange={(e) => setNewAmt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addEntry()}
+            placeholder="$"
+            type="number"
+            className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <input
+            value={newSource}
+            onChange={(e) => setNewSource(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addEntry()}
+            placeholder="Source (optional)"
+            className="flex-1 min-w-28 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            onClick={addEntry}
+            className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            + Add
+          </button>
+        </div>
       </Section>
     </div>
   );
