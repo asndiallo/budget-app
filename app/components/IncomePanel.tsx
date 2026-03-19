@@ -9,17 +9,24 @@ import { useEffect, useState } from 'react';
 import type { IncomeConfig } from '@/lib/types';
 import { api } from '@/lib/api';
 
-export default function IncomePanel({ onUpdate }: { onUpdate: () => void }) {
+export default function IncomePanel({
+  month,
+  onUpdate,
+}: {
+  month: string;
+  onUpdate: () => void;
+}) {
   const [income, setIncome] = useState<IncomeConfig | null>(null);
   const [tspRateLocal, setTspRateLocal] = useState('');
 
   useEffect(() => {
-    api.income.get().then((data) => {
+    if (!month) return;
+    api.income.get(month).then((data) => {
       setIncome(data);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
     });
-  }, []);
+  }, [month]);
 
   if (!income) return <div className="text-sm text-gray-400">Loading…</div>;
 
@@ -28,7 +35,7 @@ export default function IncomePanel({ onUpdate }: { onUpdate: () => void }) {
 
   async function saveIncome(key: string, value: number) {
     setIncome((prev) => (prev ? { ...prev, [key]: value } : prev));
-    await api.income.update({ [key]: value });
+    await api.income.update(month, { [key]: value });
     onUpdate();
   }
 

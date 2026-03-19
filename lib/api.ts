@@ -20,9 +20,12 @@ const send = (method: string, url: string, body: unknown) =>
 
 export const api = {
   income: {
-    get: () => fetch('/api/income').then(asJson<IncomeConfig>),
-    update: (data: Partial<IncomeConfig>) =>
-      send('POST', '/api/income', data).then(asJson<{ ok: boolean }>),
+    get: (month: string) =>
+      fetch(`/api/income?month=${month}`).then(asJson<IncomeConfig>),
+    update: (month: string, data: Partial<IncomeConfig>) =>
+      send('POST', '/api/income', { month, ...data }).then(
+        asJson<{ ok: boolean }>,
+      ),
   },
 
   fixedExpenses: {

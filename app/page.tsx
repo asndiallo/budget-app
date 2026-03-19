@@ -97,8 +97,9 @@ export default function Home() {
   }, []);
 
   const fetchSummary = useCallback(async () => {
+    if (!month) return;
     const [income, fixed, txs, debts] = await Promise.all([
-      api.income.get(),
+      api.income.get(month),
       api.fixedExpenses.list(),
       api.transactions.list(month),
       api.debts.list(),
@@ -211,7 +212,7 @@ export default function Home() {
           <div className="p-5">
             {tab === 'income' && (
               <div className="space-y-6">
-                <IncomePanel onUpdate={fetchSummary} />
+                <IncomePanel month={month} onUpdate={fetchSummary} />
                 <FixedExpensesPanel onUpdate={fetchSummary} />
                 <DebtsPanel onUpdate={fetchSummary} />
               </div>

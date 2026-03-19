@@ -22,12 +22,45 @@ export function getDb(): Database.Database {
 }
 
 function initSchema(db: Database.Database) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS income_config (
-      key   TEXT PRIMARY KEY,
-      value REAL NOT NULL
-    );
+  // ── Migrate income_config from flat (key PK) → monthly (month+key PK) ──────
+  // Detect old schema by checking if 'month' column is missing
+  const incomeColNames = (
+    db.prepare('PRAGMA table_info(income_config)').all() as { name: string }[]
+  ).map((c) => c.name);
 
+  if (!incomeColNames.includes('month')) {
+    // Read existing flat data before dropping the table
+    const existingRows =
+      incomeColNames.length > 0
+        ? (db.prepare('SELECT key, value FROM income_config').all() as {
+            key: string;
+            value: number;
+          }[])
+        : [];
+
+    db.exec(`
+      DROP TABLE IF EXISTS income_config;
+      CREATE TABLE income_config (
+        month TEXT NOT NULL,
+        key   TEXT NOT NULL,
+        value REAL NOT NULL,
+        PRIMARY KEY (month, key)
+      );
+    `);
+
+    // Migrate existing data to sentinel base month '0000-00'
+    if (existingRows.length > 0) {
+      const ins = db.prepare(
+        'INSERT INTO income_config (month, key, value) VALUES (?, ?, ?)',
+      );
+      db.transaction(() => {
+        for (const { key, value } of existingRows)
+          ins.run('0000-00', key, value);
+      })();
+    }
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS fixed_expenses (
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       label     TEXT NOT NULL,
@@ -69,7 +102,7 @@ function initSchema(db: Database.Database) {
     );
   `);
 
-  // Migrations — idempotent column additions
+  // ── Column migrations ────────────────────────────────────────────────────────
   const fixedCols = (
     db.prepare('PRAGMA table_info(fixed_expenses)').all() as { name: string }[]
   ).map((c) => c.name);
@@ -79,37 +112,22 @@ function initSchema(db: Database.Database) {
     );
   }
 
-  // Ensure all income_config keys exist (INSERT OR IGNORE is safe for existing rows)
-  const upsertIncome = db.prepare(
-    'INSERT OR IGNORE INTO income_config (key, value) VALUES (?, ?)',
-  );
-  const newIncomeKeys: Record<string, number> = {
-    tsp_rate: 0.2,
-    fica_soc_security: 175.88,
-    fica_medicare: 41.13,
-    afrh: 0.5,
-    meal_deduction: 382.2,
-  };
-  db.transaction(() => {
-    for (const [key, value] of Object.entries(newIncomeKeys))
-      upsertIncome.run(key, value);
-  })();
-
-  // Migrate legacy source value
+  // ── Migrate legacy transaction source value ──────────────────────────────────
   db.prepare(
     "UPDATE transactions SET source = 'Apple Card' WHERE source = 'apple_card'",
   ).run();
 
+  // ── Seed data (only on fresh DB) ─────────────────────────────────────────────
   const count = (table: string) =>
     (db.prepare(`SELECT count(*) as n FROM ${table}`).get() as { n: number }).n;
 
   if (count('income_config') === 0) {
     const ins = db.prepare(
-      'INSERT INTO income_config (key, value) VALUES (?, ?)',
+      'INSERT INTO income_config (month, key, value) VALUES (?, ?, ?)',
     );
     db.transaction(() => {
       for (const [key, value] of Object.entries(SEED_INCOME))
-        ins.run(key, value);
+        ins.run('0000-00', key, value);
     })();
   }
 
