@@ -61,6 +61,18 @@ export type Category = (typeof CATEGORIES)[number];
 
 export const DEFAULT_CATEGORY: Category = 'Other';
 
+// Hex colors for charts (Recharts doesn't use Tailwind classes)
+export const CHART_CAT_COLORS: Record<string, string> = {
+  Food: '#f59e0b',
+  Transport: '#3b82f6',
+  Shopping: '#a855f7',
+  Subscriptions: '#0ea5e9',
+  'Personal care': '#ec4899',
+  Entertainment: '#6366f1',
+  Wedding: '#f43f5e',
+  Other: '#9ca3af',
+};
+
 export const CAT_COLORS: Record<string, string> = {
   Food: 'bg-amber-50 text-amber-700',
   Transport: 'bg-blue-50 text-blue-700',

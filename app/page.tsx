@@ -10,6 +10,7 @@ import type { Debt, FixedExpense, IncomeConfig } from '@/lib/types';
 import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
+import AnalyticsPanel from './components/AnalyticsPanel';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
@@ -17,7 +18,7 @@ import IncomePanel from './components/IncomePanel';
 import TransactionsPanel from './components/TransactionsPanel';
 import { api } from '@/lib/api';
 
-type Tab = 'income' | 'transactions' | 'goals';
+type Tab = 'income' | 'transactions' | 'goals' | 'analytics';
 
 interface Summary {
   totalIncome: number;
@@ -194,7 +195,7 @@ export default function Home() {
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex border-b border-gray-200">
-            {(['income', 'transactions', 'goals'] as Tab[]).map((t) => (
+            {(['income', 'transactions', 'goals', 'analytics'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -204,7 +205,11 @@ export default function Home() {
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                {t === 'transactions' ? APP_CONFIG.transactionsTabLabel : t}
+                {t === 'transactions'
+                    ? APP_CONFIG.transactionsTabLabel
+                    : t === 'analytics'
+                    ? 'Analytics'
+                    : t}
               </button>
             ))}
           </div>
@@ -221,6 +226,7 @@ export default function Home() {
               <TransactionsPanel month={month} onUpdate={fetchSummary} />
             )}
             {tab === 'goals' && <GoalsPanel />}
+            {tab === 'analytics' && <AnalyticsPanel month={month} />}
           </div>
         </div>
       </main>
