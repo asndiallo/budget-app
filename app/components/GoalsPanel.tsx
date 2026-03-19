@@ -1,121 +1,92 @@
 'use client';
 
+import {
+  DEFAULT_GOAL_COLOR,
+  GOAL_BAR_COLORS,
+  GOAL_COLORS,
+  GOAL_DOT_COLORS,
+} from '@/lib/config';
 import { useEffect, useState } from 'react';
 
-interface Goal {
-  id: number;
-  name: string;
-  target: number;
-  saved: number;
-  color: string;
-}
-
-const COLOR_OPTIONS = ['blue', 'green', 'amber', 'rose', 'purple'];
-
-const BAR_COLORS: Record<string, string> = {
-  blue: 'bg-blue-500',
-  green: 'bg-emerald-500',
-  amber: 'bg-amber-500',
-  rose: 'bg-rose-500',
-  purple: 'bg-purple-500',
-};
-
-const DOT_COLORS: Record<string, string> = {
-  blue: 'bg-blue-100 text-blue-700',
-  green: 'bg-emerald-100 text-emerald-700',
-  amber: 'bg-amber-100 text-amber-700',
-  rose: 'bg-rose-100 text-rose-700',
-  purple: 'bg-purple-100 text-purple-700',
-};
+import type { Goal } from '@/lib/types';
+import { api } from '@/lib/api';
 
 export default function GoalsPanel() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [addAmounts, setAddAmounts] = useState<Record<number, string>>({});
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
-  const [newColor, setNewColor] = useState('blue');
+  const [newColor, setNewColor] = useState<string>(DEFAULT_GOAL_COLOR);
 
-  const fetchGoals = () => {
-    fetch('/api/goals')
-      .then((r) => r.json())
-      .then(setGoals);
-  };
+  const reload = () => api.goals.list().then(setGoals);
 
   useEffect(() => {
-    fetchGoals();
-  }, []);
+    reload();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addSavings(goal: Goal) {
     const add = parseFloat(addAmounts[goal.id] || '0');
     if (!add) return;
     const newSaved = Math.min(goal.target, goal.saved + add);
-    await fetch('/api/goals', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: goal.id, saved: newSaved }),
-    });
+    await api.goals.updateSaved(goal.id, newSaved);
     setAddAmounts((prev) => ({ ...prev, [goal.id]: '' }));
-    fetchGoals();
+    reload();
   }
 
   async function deleteGoal(id: number) {
-    await fetch('/api/goals', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    fetchGoals();
+    await api.goals.remove(id);
+    reload();
   }
 
   async function addGoal() {
     if (!newName.trim() || !newTarget) return;
-    await fetch('/api/goals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newName.trim(),
-        target: parseFloat(newTarget),
-        color: newColor,
-      }),
-    });
+    await api.goals.add(newName.trim(), parseFloat(newTarget), newColor);
     setNewName('');
     setNewTarget('');
-    fetchGoals();
+    reload();
   }
 
   const totalTarget = goals.reduce((s, g) => s + g.target, 0);
   const totalSaved = goals.reduce((s, g) => s + g.saved, 0);
 
+  const summaryCards = [
+    {
+      label: 'Total saved',
+      value: `$${Math.round(totalSaved).toLocaleString()}`,
+      green: false,
+    },
+    {
+      label: 'Total target',
+      value: `$${Math.round(totalTarget).toLocaleString()}`,
+      green: false,
+    },
+    {
+      label: 'Overall',
+      value: `${totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0}%`,
+      green: true,
+    },
+  ];
+
   return (
     <div className="space-y-5">
-      {/* Summary */}
       {goals.length > 0 && (
         <div className="flex gap-3">
-          <div className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-100">
-            <p className="text-xs text-gray-500 mb-1">Total saved</p>
-            <p className="text-lg font-semibold text-gray-900">
-              ${Math.round(totalSaved).toLocaleString()}
-            </p>
-          </div>
-          <div className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-100">
-            <p className="text-xs text-gray-500 mb-1">Total target</p>
-            <p className="text-lg font-semibold text-gray-900">
-              ${Math.round(totalTarget).toLocaleString()}
-            </p>
-          </div>
-          <div className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-100">
-            <p className="text-xs text-gray-500 mb-1">Overall</p>
-            <p className="text-lg font-semibold text-emerald-700">
-              {totalTarget > 0
-                ? Math.round((totalSaved / totalTarget) * 100)
-                : 0}
-              %
-            </p>
-          </div>
+          {summaryCards.map(({ label, value, green }) => (
+            <div
+              key={label}
+              className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-100"
+            >
+              <p className="text-xs text-gray-500 mb-1">{label}</p>
+              <p
+                className={`text-lg font-semibold ${green ? 'text-emerald-700' : 'text-gray-900'}`}
+              >
+                {value}
+              </p>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Goal list */}
       <div className="space-y-3">
         {goals.map((g) => {
           const pct =
@@ -128,7 +99,7 @@ export default function GoalsPanel() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOT_COLORS[g.color] || DOT_COLORS['blue']}`}
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
                     >
                       {pct}%
                     </span>
@@ -149,16 +120,14 @@ export default function GoalsPanel() {
                 </button>
               </div>
 
-              {/* Progress bar */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
                 <div
-                  className={`h-full rounded-full transition-all ${BAR_COLORS[g.color] || BAR_COLORS['blue']}`}
+                  className={`h-full rounded-full transition-all ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
 
-              {/* Add savings */}
-              {pct < 100 && (
+              {pct < 100 ? (
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -180,8 +149,7 @@ export default function GoalsPanel() {
                     Add
                   </button>
                 </div>
-              )}
-              {pct >= 100 && (
+              ) : (
                 <p className="text-xs text-emerald-600 font-medium">
                   Goal reached!
                 </p>
@@ -191,7 +159,6 @@ export default function GoalsPanel() {
         })}
       </div>
 
-      {/* Add goal */}
       <div>
         <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
           New goal
@@ -217,7 +184,7 @@ export default function GoalsPanel() {
             onChange={(e) => setNewColor(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            {COLOR_OPTIONS.map((c) => (
+            {GOAL_COLORS.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>

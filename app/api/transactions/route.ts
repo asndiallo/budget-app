@@ -1,4 +1,6 @@
+import { DEFAULT_CATEGORY } from '@/lib/config';
 import { NextResponse } from 'next/server';
+import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
@@ -21,7 +23,13 @@ export async function POST(req: Request) {
     .prepare(
       'INSERT INTO transactions (description, amount, category, month, source) VALUES (?, ?, ?, ?, ?)',
     )
-    .run(description, amount, category || 'Other', m, source || 'manual');
+    .run(
+      description,
+      amount,
+      category || DEFAULT_CATEGORY,
+      m,
+      source || 'manual',
+    );
   return NextResponse.json({
     id: result.lastInsertRowid,
     description,
@@ -36,9 +44,4 @@ export async function DELETE(req: Request) {
   const { id } = await req.json();
   db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
   return NextResponse.json({ ok: true });
-}
-
-function currentMonth() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }

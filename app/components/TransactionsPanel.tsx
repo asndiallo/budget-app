@@ -1,38 +1,11 @@
 'use client';
 
+import { CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY } from '@/lib/config';
 import { useEffect, useRef, useState } from 'react';
 
-const CATEGORIES = [
-  'Food',
-  'Transport',
-  'Shopping',
-  'Subscriptions',
-  'Personal care',
-  'Entertainment',
-  'Wedding',
-  'Other',
-];
-
-const CAT_COLORS: Record<string, string> = {
-  Food: 'bg-amber-50 text-amber-700',
-  Transport: 'bg-blue-50 text-blue-700',
-  Shopping: 'bg-purple-50 text-purple-700',
-  Subscriptions: 'bg-sky-50 text-sky-700',
-  'Personal care': 'bg-pink-50 text-pink-700',
-  Entertainment: 'bg-indigo-50 text-indigo-700',
-  Wedding: 'bg-rose-50 text-rose-700',
-  Other: 'bg-gray-50 text-gray-500',
-};
-
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  category: string;
-  month: string;
-  source: string;
-  created_at: string;
-}
+import type { Transaction } from '@/lib/types';
+import { api } from '@/lib/api';
+import { parseCSVLine } from '@/lib/utils';
 
 export default function TransactionsPanel({
   month,
@@ -44,47 +17,35 @@ export default function TransactionsPanel({
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [desc, setDesc] = useState('');
   const [amt, setAmt] = useState('');
-  const [cat, setCat] = useState('Food');
+  const [cat, setCat] = useState<string>(CATEGORIES[0]);
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const fetchTxs = () => {
-    fetch(`/api/transactions?month=${month}`)
-      .then((r) => r.json())
-      .then(setTxs);
-  };
+  const reload = () => api.transactions.list(month).then(setTxs);
 
   useEffect(() => {
-    fetchTxs();
-  }, [month]);
+    reload();
+  }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addTx() {
     if (!desc.trim() || !amt) return;
-    await fetch('/api/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        description: desc.trim(),
-        amount: parseFloat(amt),
-        category: cat,
-        month,
-      }),
+    await api.transactions.add({
+      description: desc.trim(),
+      amount: parseFloat(amt),
+      category: cat,
+      month,
     });
     setDesc('');
     setAmt('');
-    fetchTxs();
+    reload();
     onUpdate();
   }
 
   async function deleteTx(id: number) {
-    await fetch('/api/transactions', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    fetchTxs();
+    await api.transactions.remove(id);
+    reload();
     onUpdate();
   }
 
@@ -100,19 +61,11 @@ export default function TransactionsPanel({
       .split(',')
       .map((h) => h.replace(/"/g, '').trim().toLowerCase());
 
-    const rows: {
-      description: string;
-      amount: number;
-      category: string;
-      date: string;
-    }[] = [];
-
+    const rows = [];
     for (let i = 1; i < lines.length; i++) {
       const vals = parseCSVLine(lines[i]);
       if (vals.length < 2) continue;
 
-      // Apple Card CSV: Transaction Date, Clearing Date, Description, Merchant, Category, Type, Amount (USD)
-      // Try to find columns by header name
       const dateIdx = headers.findIndex(
         (h) => h.includes('transaction date') || h === 'date',
       );
@@ -131,26 +84,20 @@ export default function TransactionsPanel({
           ),
         ),
       );
-      const category = vals[catIdx >= 0 ? catIdx : 4] || 'Other';
+      const category = vals[catIdx >= 0 ? catIdx : 4] || DEFAULT_CATEGORY;
       const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
 
       if (amount > 0) rows.push({ description, amount, category, date });
     }
 
-    const res = await fetch('/api/csv-import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rows, month }),
-    });
-    const data = await res.json();
+    const data = await api.transactions.importCsv(rows, month);
     setImportMsg(`Imported ${data.imported} transactions`);
     setImporting(false);
-    fetchTxs();
+    reload();
     onUpdate();
     if (fileRef.current) fileRef.current.value = '';
   }
 
-  // Totals by category
   const catTotals = txs.reduce<Record<string, number>>((acc, t) => {
     acc[t.category] = (acc[t.category] || 0) + t.amount;
     return acc;
@@ -163,7 +110,7 @@ export default function TransactionsPanel({
 
   return (
     <div className="space-y-5">
-      {/* Apple Card import */}
+      {/* CSV import */}
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -194,32 +141,30 @@ export default function TransactionsPanel({
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (
-        <div>
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterCat(null)}
+            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              !filterCat
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'border-gray-200 text-gray-500 hover:border-gray-400'
+            }`}
+          >
+            All · ${Math.round(grandTotal).toLocaleString()}
+          </button>
+          {Object.entries(catTotals).map(([c, total]) => (
             <button
-              onClick={() => setFilterCat(null)}
+              key={c}
+              onClick={() => setFilterCat(filterCat === c ? null : c)}
               className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                !filterCat
+                filterCat === c
                   ? 'bg-gray-900 text-white border-gray-900'
                   : 'border-gray-200 text-gray-500 hover:border-gray-400'
               }`}
             >
-              All · ${Math.round(grandTotal).toLocaleString()}
+              {c} · ${Math.round(total).toLocaleString()}
             </button>
-            {Object.entries(catTotals).map(([c, total]) => (
-              <button
-                key={c}
-                onClick={() => setFilterCat(filterCat === c ? null : c)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                  filterCat === c
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'border-gray-200 text-gray-500 hover:border-gray-400'
-                }`}
-              >
-                {c} · ${Math.round(total).toLocaleString()}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       )}
 
@@ -242,7 +187,7 @@ export default function TransactionsPanel({
               <p className="text-sm text-gray-800 truncate">{t.description}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${CAT_COLORS[t.category] || CAT_COLORS['Other']}`}
+                  className={`text-xs px-2 py-0.5 rounded-full ${CAT_COLORS[t.category] ?? CAT_COLORS[DEFAULT_CATEGORY]}`}
                 >
                   {t.category}
                 </span>
@@ -304,22 +249,4 @@ export default function TransactionsPanel({
       </div>
     </div>
   );
-}
-
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (const char of line) {
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
 }

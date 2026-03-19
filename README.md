@@ -6,31 +6,95 @@ Pre-loaded with your military pay structure, TSP/Roth allocations, and savings g
 ---
 
 ## Stack
-- **Next.js 14** (App Router) — frontend + API routes in one process
+
+- **Next.js 16** (App Router) — frontend + API routes in one process
 - **SQLite** (better-sqlite3) — local persistent database, no server needed
-- **Tailwind CSS** — styling
+- **Tailwind CSS 4** — styling
+- **TypeScript 5** — fully typed
+- **Bun** — package manager
 
 ---
 
 ## Setup
 
 ### Requirements
+
 - Node.js 18+ (check with `node -v`)
 - If using mise: `mise use node@20`
 
 ### Install & run
+
 ```bash
-cd budget-app
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
-Open → http://localhost:3000
+Open → <http://localhost:3000>
 
 ### Your data
+
 All data is stored in `budget.db` in the project root.
+
 - Back it up: just copy `budget.db`
 - Reset: delete `budget.db` and restart (re-seeds defaults)
+
+---
+
+## Project structure
+
+```txt
+app/
+  page.tsx                      # Root layout — tabs, summary cards, month selector
+  components/
+    IncomePanel.tsx              # Military pay + deductions
+    FixedExpensesPanel.tsx       # Recurring monthly expenses
+    TransactionsPanel.tsx        # Apple Card CSV import + manual transactions
+    GoalsPanel.tsx               # Savings goals with progress tracking
+  api/
+    income/route.ts
+    fixed-expenses/route.ts
+    transactions/route.ts
+    goals/route.ts
+    csv-import/route.ts
+
+lib/
+  config.ts   # All app constants — edit here to change categories, colors, rates, seed data
+  types.ts    # Shared TypeScript interfaces
+  utils.ts    # Pure utilities: currentMonth, formatCurrency, parseCSVLine, etc.
+  api.ts      # Typed client-side API layer
+  db.ts       # SQLite singleton + schema init
+```
+
+---
+
+## Configuration
+
+Everything hardcoded is in **`lib/config.ts`**. Edit that file to customize the app without touching components.
+
+| Export                                | What to change                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `APP_CONFIG`                          | App title, subtitle, transactions tab label                                  |
+| `INCOME_FIELDS`                       | Income rows (key, label, note) — add a row here and it appears automatically |
+| `TSP_CONFIG`                          | TSP rate (default 20%), display label, fund allocation note                  |
+| `DEDUCTION_FIELDS`                    | Deduction rows — same pattern as income fields                               |
+| `CATEGORIES`                          | Transaction category list                                                    |
+| `CAT_COLORS`                          | Tailwind badge classes per category                                          |
+| `CSV_CATEGORY_MAP`                    | Apple Card category → internal category mapping                              |
+| `GOAL_COLORS`                         | Available goal color names                                                   |
+| `GOAL_BAR_COLORS` / `GOAL_DOT_COLORS` | Tailwind classes per goal color                                              |
+| `SEED_INCOME`                         | Default income values on first run                                           |
+| `SEED_FIXED_EXPENSES`                 | Default fixed expenses on first run                                          |
+| `SEED_GOALS`                          | Default goals on first run                                                   |
+
+---
+
+## Features
+
+- **Income tab** — Edit base pay, BAS, BAH, other income; TSP auto-calculated at 20% of base; Roth IRA / taxes / SGLI deductions; add/remove fixed monthly expenses
+- **Apple Card tab** — Import CSV from Wallet app or add transactions manually; filter by category; monthly view
+- **Goals tab** — Savings goals with progress bars; add funds incrementally; tracks total saved vs. target
+- **Summary bar** — Total income, invested amount, Apple Card spend, net remaining; updates on every change
+- **Month selector** — Dynamically generated for the current year; defaults to current month
 
 ---
 
@@ -39,36 +103,27 @@ All data is stored in `budget.db` in the project root.
 1. Open **Wallet** app on iPhone
 2. Tap your Apple Card
 3. Scroll to the bottom → **Export Transactions**
-4. AirDrop or save the CSV file to your Mac
+4. AirDrop or save the CSV to your Mac
 5. In the app: Apple Card tab → **Upload CSV**
 
-The app auto-maps Apple Card categories (Food & Drink, Transportation, etc.)
-to your budget categories.
+Apple Card categories are automatically mapped to your budget categories via `CSV_CATEGORY_MAP` in `lib/config.ts`.
 
 ---
 
-## Features
+## Inline editing
 
-- **Income panel** — Edit base pay, BAS, BAH, other income; TSP auto-calculated at 20% of base
-- **Apple Card tab** — CSV import or manual entry; filter by category; monthly view
-- **Goals tracker** — Track VA loan, emergency fund, wedding, car fund, etc.
-- **Month selector** — Switch between months; data is per-month
-
----
-
-## Updating your data
-
-All fields are editable inline. Income changes auto-save on blur (when you click away).
-Transactions and goals are added via the form at the bottom of each section.
+All income and deduction fields save automatically on blur (click away). Transactions and goals are added via the form at the bottom of each section.
 
 ---
 
 ## TSP breakdown (reference)
+
 - C Fund: 70%
 - S Fund: 20%
 - I Fund: 10%
-- Contribution: 20% of base pay (auto-calculated)
+- Contribution: 20% of base pay (auto-calculated, configurable via `TSP_CONFIG.rate`)
 
 ## Roth IRA (reference)
+
 - Max annual: $7,000 → $583/month
 - Fidelity: 80% FZROX / 20% FZILX

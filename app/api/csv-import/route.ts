@@ -1,3 +1,6 @@
+import { CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '@/lib/config';
+
+import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
@@ -5,36 +8,18 @@ import { getDb } from '@/lib/db';
 // Transaction Date,Clearing Date,Description,Merchant,Category,Type,Amount (USD)
 // or simpler: Date,Description,Amount,Category
 
-const CATEGORY_MAP: Record<string, string> = {
-  'food and drink': 'Food',
-  restaurants: 'Food',
-  groceries: 'Food',
-  transportation: 'Transport',
-  gas: 'Transport',
-  shopping: 'Shopping',
-  entertainment: 'Entertainment',
-  health: 'Personal care',
-  subscriptions: 'Subscriptions',
-  services: 'Other',
-};
-
 function mapCategory(raw: string): string {
   const lower = (raw || '').toLowerCase();
-  for (const [key, val] of Object.entries(CATEGORY_MAP)) {
+  for (const [key, val] of Object.entries(CSV_CATEGORY_MAP)) {
     if (lower.includes(key)) return val;
   }
-  return 'Other';
+  return DEFAULT_CATEGORY;
 }
 
 export async function POST(req: Request) {
   const db = getDb();
   const { rows, month } = (await req.json()) as {
-    rows: {
-      description: string;
-      amount: number;
-      category: string;
-      date: string;
-    }[];
+    rows: CsvRow[];
     month: string;
   };
 
@@ -42,23 +27,21 @@ export async function POST(req: Request) {
     'INSERT INTO transactions (description, amount, category, month, source) VALUES (?, ?, ?, ?, ?)',
   );
 
-  const insertAll = db.transaction(() => {
-    let count = 0;
+  const count = db.transaction(() => {
+    let n = 0;
     for (const row of rows) {
       if (!row.description || !row.amount) continue;
-      const cat = mapCategory(row.category);
       insert.run(
         row.description,
         Math.abs(row.amount),
-        cat,
+        mapCategory(row.category),
         month,
         'apple_card',
       );
-      count++;
+      n++;
     }
-    return count;
-  });
+    return n;
+  })();
 
-  const count = insertAll();
   return NextResponse.json({ ok: true, imported: count });
 }

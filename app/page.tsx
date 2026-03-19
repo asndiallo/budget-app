@@ -1,10 +1,20 @@
 'use client';
 
+import { APP_CONFIG, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
+import {
+  currentMonth,
+  formatCurrency,
+  formatMonthLabel,
+  generateYearMonths,
+} from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
+import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
+import type { IncomeConfig } from '@/lib/types';
 import IncomePanel from './components/IncomePanel';
 import TransactionsPanel from './components/TransactionsPanel';
+import { api } from '@/lib/api';
 
 type Tab = 'income' | 'transactions' | 'goals';
 
@@ -17,82 +27,45 @@ interface Summary {
   net: number;
 }
 
-const MONTHS = [
-  '2026-01',
-  '2026-02',
-  '2026-03',
-  '2026-04',
-  '2026-05',
-  '2026-06',
-  '2026-07',
-  '2026-08',
-  '2026-09',
-  '2026-10',
-  '2026-11',
-  '2026-12',
-];
+const MONTHS = generateYearMonths();
 
-const MONTH_LABELS: Record<string, string> = {
-  '2026-01': 'Jan 2026',
-  '2026-02': 'Feb 2026',
-  '2026-03': 'Mar 2026',
-  '2026-04': 'Apr 2026',
-  '2026-05': 'May 2026',
-  '2026-06': 'Jun 2026',
-  '2026-07': 'Jul 2026',
-  '2026-08': 'Aug 2026',
-  '2026-09': 'Sep 2026',
-  '2026-10': 'Oct 2026',
-  '2026-11': 'Nov 2026',
-  '2026-12': 'Dec 2026',
-};
-
-function currentMonth() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function fmt(n: number) {
-  return '$' + Math.abs(Math.round(n)).toLocaleString();
+function calcSummary(
+  income: IncomeConfig,
+  fixed: { amount: number }[],
+  txs: { amount: number }[],
+): Summary {
+  const base = income.base_pay || 0;
+  const tsp = Math.round(base * TSP_CONFIG.rate);
+  const roth = income.roth_ira || 0;
+  const totalIncome = INCOME_FIELDS.reduce(
+    (s, f) => s + (income[f.key] || 0),
+    0,
+  );
+  const fixedExpenses = fixed.reduce((s, f) => s + f.amount, 0);
+  const appleCard = txs.reduce((s, t) => s + t.amount, 0);
+  const deductions = tsp + roth + (income.taxes || 0) + (income.sgli || 0);
+  return {
+    totalIncome,
+    tsp,
+    roth,
+    fixedExpenses,
+    appleCard,
+    net: totalIncome - deductions - fixedExpenses - appleCard,
+  };
 }
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('income');
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useState(currentMonth);
   const [summary, setSummary] = useState<Summary | null>(null);
 
   const fetchSummary = useCallback(async () => {
-    const [incRes, fixedRes, txRes] = await Promise.all([
-      fetch('/api/income').then((r) => r.json()),
-      fetch('/api/fixed-expenses').then((r) => r.json()),
-      fetch(`/api/transactions?month=${month}`).then((r) => r.json()),
+    const [income, fixed, txs] = await Promise.all([
+      api.income.get(),
+      api.fixedExpenses.list(),
+      api.transactions.list(month),
     ]);
-
-    const income = incRes as Record<string, number>;
-    const fixed = fixedRes as { amount: number }[];
-    const txs = txRes as { amount: number }[];
-
-    const base = income.base_pay || 0;
-    const tsp = Math.round(base * 0.2);
-    const roth = income.roth_ira || 0;
-    const totalIncome =
-      (income.base_pay || 0) +
-      (income.bas || 0) +
-      (income.bah || 0) +
-      (income.other || 0);
-    const fixedTotal = fixed.reduce((s, f) => s + f.amount, 0);
-    const appleTotal = txs.reduce((s, t) => s + t.amount, 0);
-    const deductions = tsp + roth + (income.taxes || 0) + (income.sgli || 0);
-    const net = totalIncome - deductions - fixedTotal - appleTotal;
-
-    setSummary({
-      totalIncome,
-      tsp,
-      roth,
-      fixedExpenses: fixedTotal,
-      appleCard: appleTotal,
-      net,
-    });
+    setSummary(calcSummary(income, fixed, txs));
   }, [month]);
 
   useEffect(() => {
@@ -101,15 +74,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f8f8f6]">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-gray-900">
-              Budget tracker
+              {APP_CONFIG.title}
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">
-              E-3 · 4N0 · JBSA Fort Sam Houston
+              {APP_CONFIG.subtitle}
             </p>
           </div>
           <select
@@ -119,7 +91,7 @@ export default function Home() {
           >
             {MONTHS.map((m) => (
               <option key={m} value={m}>
-                {MONTH_LABELS[m]}
+                {formatMonthLabel(m)}
               </option>
             ))}
           </select>
@@ -127,29 +99,32 @@ export default function Home() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-6">
-        {/* Summary cards */}
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <MetricCard label="Total income" value={fmt(summary.totalIncome)} />
+            <MetricCard
+              label="Total income"
+              value={formatCurrency(summary.totalIncome)}
+            />
             <MetricCard
               label="Invested"
-              value={fmt(summary.tsp + summary.roth)}
+              value={formatCurrency(summary.tsp + summary.roth)}
               color="green"
             />
             <MetricCard
-              label="Apple Card"
-              value={fmt(summary.appleCard)}
+              label={APP_CONFIG.transactionsTabLabel}
+              value={formatCurrency(summary.appleCard)}
               color="red"
             />
             <MetricCard
               label="Net remaining"
-              value={(summary.net >= 0 ? '+' : '-') + fmt(summary.net)}
+              value={
+                (summary.net >= 0 ? '+' : '-') + formatCurrency(summary.net)
+              }
               color={summary.net >= 0 ? 'green' : 'red'}
             />
           </div>
         )}
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex border-b border-gray-200">
             {(['income', 'transactions', 'goals'] as Tab[]).map((t) => (
@@ -162,13 +137,18 @@ export default function Home() {
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                {t === 'transactions' ? 'Apple Card' : t}
+                {t === 'transactions' ? APP_CONFIG.transactionsTabLabel : t}
               </button>
             ))}
           </div>
 
           <div className="p-5">
-            {tab === 'income' && <IncomePanel onUpdate={fetchSummary} />}
+            {tab === 'income' && (
+              <div className="space-y-6">
+                <IncomePanel onUpdate={fetchSummary} />
+                <FixedExpensesPanel onUpdate={fetchSummary} />
+              </div>
+            )}
             {tab === 'transactions' && (
               <TransactionsPanel month={month} onUpdate={fetchSummary} />
             )}
@@ -199,7 +179,11 @@ function MetricCard({
       <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">
         {label}
       </p>
-      <p className={`text-xl font-semibold ${colorMap[color]}`}>{value}</p>
+      <p
+        className={`text-xl font-semibold ${colorMap[color] ?? colorMap.default}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
