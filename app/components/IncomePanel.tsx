@@ -11,19 +11,32 @@ import { api } from '@/lib/api';
 
 export default function IncomePanel({ onUpdate }: { onUpdate: () => void }) {
   const [income, setIncome] = useState<IncomeConfig | null>(null);
+  const [tspRateLocal, setTspRateLocal] = useState('');
 
   useEffect(() => {
-    api.income.get().then(setIncome);
+    api.income.get().then((data) => {
+      setIncome(data);
+      const rate = data.tsp_rate ?? TSP_CONFIG.rate;
+      setTspRateLocal(String(Math.round(rate * 100)));
+    });
   }, []);
 
   if (!income) return <div className="text-sm text-gray-400">Loading…</div>;
 
-  const tsp = Math.round((income.base_pay || 0) * TSP_CONFIG.rate);
+  const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
+  const tsp = Math.round((income.base_pay || 0) * tspRate);
 
   async function saveIncome(key: string, value: number) {
     setIncome((prev) => (prev ? { ...prev, [key]: value } : prev));
     await api.income.update({ [key]: value });
     onUpdate();
+  }
+
+  async function saveTspRate() {
+    const pct = parseFloat(tspRateLocal);
+    if (isNaN(pct)) return;
+    const decimal = pct / 100;
+    await saveIncome('tsp_rate', decimal);
   }
 
   return (
@@ -41,14 +54,22 @@ export default function IncomePanel({ onUpdate }: { onUpdate: () => void }) {
       </Section>
 
       <Section title="Deductions">
+        {/* TSP — rate-editable row */}
         <div className="flex items-center py-2.5 border-b border-gray-100">
           <div className="flex-1">
-            <p className="text-sm text-gray-800">{TSP_CONFIG.label}</p>
+            <p className="text-sm text-gray-800">TSP</p>
             <p className="text-xs text-gray-400">{TSP_CONFIG.note}</p>
           </div>
-          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded mr-3">
-            auto
-          </span>
+          <div className="flex items-center gap-1 mr-3">
+            <input
+              type="number"
+              value={tspRateLocal}
+              onChange={(e) => setTspRateLocal(e.target.value)}
+              onBlur={saveTspRate}
+              className="w-14 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-400">% of base</span>
+          </div>
           <span className="text-sm font-medium text-gray-500 w-24 text-right">
             −${tsp.toLocaleString()}
           </span>

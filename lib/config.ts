@@ -6,7 +6,7 @@
 export const APP_CONFIG = {
   title: 'Budget tracker',
   subtitle: 'E-3 · 4N0 · JBSA Fort Sam Houston',
-  transactionsTabLabel: 'Apple Card',
+  transactionsTabLabel: 'Spending',
 } as const;
 
 // ─── Income fields ─────────────────────────────────────────────────────────────
@@ -120,15 +120,31 @@ export const SEED_INCOME: Record<string, number> = {
   bas: 460,
   bah: 0,
   other: 0,
+  tsp_rate: 0.2,
   roth_ira: 583,
   taxes: 0,
   sgli: 27,
 };
 
-export const SEED_FIXED_EXPENSES = [
-  { label: 'Phone bill', amount: 50 },
-  { label: 'WGU tuition (monthly)', amount: 0 },
-  { label: 'Streaming / subscriptions', amount: 30 },
+export const SEED_FIXED_EXPENSES: {
+  label: string;
+  amount: number;
+  period: 'monthly' | 'annual';
+}[] = [{ label: 'Phone bill', amount: 250, period: 'annual' }];
+
+export const SEED_PAYMENT_SOURCES = [
+  { label: 'Apple Card' },
+  { label: 'Cash / Other' },
+];
+
+export const SEED_DEBTS = [
+  {
+    label: 'Car Loan',
+    lender: 'Westlake Financial',
+    balance: 0,
+    monthly_payment: 0,
+    interest_rate: 0,
+  },
 ];
 
 export const SEED_GOALS = [

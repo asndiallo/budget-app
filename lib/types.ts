@@ -6,6 +6,7 @@ export interface FixedExpense {
   id: number;
   label: string;
   amount: number;
+  period: 'monthly' | 'annual';
 }
 
 export interface Transaction {
@@ -31,4 +32,18 @@ export interface CsvRow {
   amount: number;
   category: string;
   date: string;
+}
+
+export interface PaymentSource {
+  id: number;
+  label: string;
+}
+
+export interface Debt {
+  id: number;
+  label: string;
+  lender: string;
+  balance: number;
+  monthly_payment: number;
+  interest_rate: number;
 }

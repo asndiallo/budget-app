@@ -18,9 +18,10 @@ function mapCategory(raw: string): string {
 
 export async function POST(req: Request) {
   const db = getDb();
-  const { rows, month } = (await req.json()) as {
+  const { rows, month, source } = (await req.json()) as {
     rows: CsvRow[];
     month: string;
+    source: string;
   };
 
   const insert = db.prepare(
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
         Math.abs(row.amount),
         mapCategory(row.category),
         month,
-        'apple_card',
+        source || 'Unknown',
       );
       n++;
     }

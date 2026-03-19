@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_CONFIG, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
+import type { Debt, FixedExpense, IncomeConfig } from '@/lib/types';
 import {
   currentMonth,
   formatCurrency,
@@ -9,9 +10,9 @@ import {
 } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
+import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
-import type { IncomeConfig } from '@/lib/types';
 import IncomePanel from './components/IncomePanel';
 import TransactionsPanel from './components/TransactionsPanel';
 import { api } from '@/lib/api';
@@ -22,8 +23,8 @@ interface Summary {
   totalIncome: number;
   tsp: number;
   roth: number;
-  fixedExpenses: number;
-  appleCard: number;
+  committed: number;
+  spending: number;
   net: number;
 }
 
@@ -31,26 +32,36 @@ const MONTHS = generateYearMonths();
 
 function calcSummary(
   income: IncomeConfig,
-  fixed: { amount: number }[],
+  fixed: FixedExpense[],
   txs: { amount: number }[],
+  debts: Debt[],
 ): Summary {
   const base = income.base_pay || 0;
-  const tsp = Math.round(base * TSP_CONFIG.rate);
+  const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
+  const tsp = Math.round(base * tspRate);
   const roth = income.roth_ira || 0;
   const totalIncome = INCOME_FIELDS.reduce(
     (s, f) => s + (income[f.key] || 0),
     0,
   );
-  const fixedExpenses = fixed.reduce((s, f) => s + f.amount, 0);
-  const appleCard = txs.reduce((s, t) => s + t.amount, 0);
+  const fixedExpenses = fixed.reduce(
+    (s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+    0,
+  );
+  // Only count debts that still have a balance (not yet paid off)
+  const debtPayments = debts
+    .filter((d) => d.balance > 0)
+    .reduce((s, d) => s + d.monthly_payment, 0);
+  const committed = fixedExpenses + debtPayments;
+  const spending = txs.reduce((s, t) => s + t.amount, 0);
   const deductions = tsp + roth + (income.taxes || 0) + (income.sgli || 0);
   return {
     totalIncome,
     tsp,
     roth,
-    fixedExpenses,
-    appleCard,
-    net: totalIncome - deductions - fixedExpenses - appleCard,
+    committed,
+    spending,
+    net: totalIncome - deductions - committed - spending,
   };
 }
 
@@ -60,12 +71,13 @@ export default function Home() {
   const [summary, setSummary] = useState<Summary | null>(null);
 
   const fetchSummary = useCallback(async () => {
-    const [income, fixed, txs] = await Promise.all([
+    const [income, fixed, txs, debts] = await Promise.all([
       api.income.get(),
       api.fixedExpenses.list(),
       api.transactions.list(month),
+      api.debts.list(),
     ]);
-    setSummary(calcSummary(income, fixed, txs));
+    setSummary(calcSummary(income, fixed, txs, debts));
   }, [month]);
 
   useEffect(() => {
@@ -100,7 +112,7 @@ export default function Home() {
 
       <main className="max-w-4xl mx-auto px-6 py-6">
         {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             <MetricCard
               label="Total income"
               value={formatCurrency(summary.totalIncome)}
@@ -111,14 +123,20 @@ export default function Home() {
               color="green"
             />
             <MetricCard
+              label="Committed"
+              value={formatCurrency(summary.committed)}
+              color="amber"
+            />
+            <MetricCard
               label={APP_CONFIG.transactionsTabLabel}
-              value={formatCurrency(summary.appleCard)}
+              value={formatCurrency(summary.spending)}
               color="red"
             />
             <MetricCard
               label="Net remaining"
               value={
-                (summary.net >= 0 ? '+' : '-') + formatCurrency(summary.net)
+                (summary.net >= 0 ? '+' : '-') +
+                formatCurrency(Math.abs(summary.net))
               }
               color={summary.net >= 0 ? 'green' : 'red'}
             />
@@ -147,6 +165,7 @@ export default function Home() {
               <div className="space-y-6">
                 <IncomePanel onUpdate={fetchSummary} />
                 <FixedExpensesPanel onUpdate={fetchSummary} />
+                <DebtsPanel onUpdate={fetchSummary} />
               </div>
             )}
             {tab === 'transactions' && (
@@ -172,6 +191,7 @@ function MetricCard({
   const colorMap: Record<string, string> = {
     green: 'text-emerald-700',
     red: 'text-red-700',
+    amber: 'text-amber-700',
     default: 'text-gray-900',
   };
   return (

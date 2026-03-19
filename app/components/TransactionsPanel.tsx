@@ -1,9 +1,9 @@
 'use client';
 
 import { CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY } from '@/lib/config';
+import type { PaymentSource, Transaction } from '@/lib/types';
 import { useEffect, useRef, useState } from 'react';
 
-import type { Transaction } from '@/lib/types';
 import { api } from '@/lib/api';
 import { parseCSVLine } from '@/lib/utils';
 
@@ -15,19 +15,35 @@ export default function TransactionsPanel({
   onUpdate: () => void;
 }) {
   const [txs, setTxs] = useState<Transaction[]>([]);
+  const [sources, setSources] = useState<PaymentSource[]>([]);
   const [desc, setDesc] = useState('');
   const [amt, setAmt] = useState('');
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
+  const [source, setSource] = useState('manual');
+  const [csvSource, setCsvSource] = useState('');
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [managingCards, setManagingCards] = useState(false);
+  const [newCard, setNewCard] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reload = () => api.transactions.list(month).then(setTxs);
+  const reloadTxs = () => api.transactions.list(month).then(setTxs);
+  const reloadSources = () =>
+    api.paymentSources.list().then((s) => {
+      setSources(s);
+      if (s.length > 0) {
+        setCsvSource((prev) => prev || s[0].label);
+      }
+    });
 
   useEffect(() => {
-    reload();
+    reloadTxs();
   }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    reloadSources();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addTx() {
     if (!desc.trim() || !amt) return;
@@ -36,16 +52,17 @@ export default function TransactionsPanel({
       amount: parseFloat(amt),
       category: cat,
       month,
+      source,
     });
     setDesc('');
     setAmt('');
-    reload();
+    reloadTxs();
     onUpdate();
   }
 
   async function deleteTx(id: number) {
     await api.transactions.remove(id);
-    reload();
+    reloadTxs();
     onUpdate();
   }
 
@@ -90,12 +107,24 @@ export default function TransactionsPanel({
       if (amount > 0) rows.push({ description, amount, category, date });
     }
 
-    const data = await api.transactions.importCsv(rows, month);
+    const data = await api.transactions.importCsv(rows, month, csvSource);
     setImportMsg(`Imported ${data.imported} transactions`);
     setImporting(false);
-    reload();
+    reloadTxs();
     onUpdate();
     if (fileRef.current) fileRef.current.value = '';
+  }
+
+  async function addCard() {
+    if (!newCard.trim()) return;
+    await api.paymentSources.add(newCard.trim());
+    setNewCard('');
+    reloadSources();
+  }
+
+  async function removeCard(id: number) {
+    await api.paymentSources.remove(id);
+    reloadSources();
   }
 
   const catTotals = txs.reduce<Record<string, number>>((acc, t) => {
@@ -113,15 +142,26 @@ export default function TransactionsPanel({
       {/* CSV import */}
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-gray-800">
-              Import Apple Card CSV
-            </p>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-800">Import CSV</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Wallet → tap card → scroll down → Export Transactions
+              Apple Card: Wallet → tap card → Export Transactions
             </p>
+            {sources.length > 0 && (
+              <select
+                value={csvSource}
+                onChange={(e) => setCsvSource(e.target.value)}
+                className="mt-2 text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {sources.map((s) => (
+                  <option key={s.id} value={s.label}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <label className="cursor-pointer">
+          <label className="cursor-pointer shrink-0">
             <span className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors whitespace-nowrap">
               {importing ? 'Importing…' : 'Upload CSV'}
             </span>
@@ -136,6 +176,46 @@ export default function TransactionsPanel({
         </div>
         {importMsg && (
           <p className="text-xs text-emerald-600 mt-2">{importMsg}</p>
+        )}
+      </div>
+
+      {/* Manage cards */}
+      <div>
+        <button
+          onClick={() => setManagingCards((v) => !v)}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {managingCards ? '▾ Hide cards' : '▸ Manage cards'}
+        </button>
+        {managingCards && (
+          <div className="mt-2 border border-gray-200 rounded-lg p-3 space-y-2">
+            {sources.map((s) => (
+              <div key={s.id} className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">{s.label}</span>
+                <button
+                  onClick={() => removeCard(s.id)}
+                  className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2 mt-2">
+              <input
+                value={newCard}
+                onChange={(e) => setNewCard(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addCard()}
+                placeholder="Card name"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <button
+                onClick={addCard}
+                className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                + Add
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -191,8 +271,8 @@ export default function TransactionsPanel({
                 >
                   {t.category}
                 </span>
-                {t.source === 'apple_card' && (
-                  <span className="text-xs text-gray-400">Apple Card</span>
+                {t.source !== 'manual' && (
+                  <span className="text-xs text-gray-400">{t.source}</span>
                 )}
               </div>
             </div>
@@ -237,6 +317,18 @@ export default function TransactionsPanel({
           >
             {CATEGORIES.map((c) => (
               <option key={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="manual">Manual</option>
+            {sources.map((s) => (
+              <option key={s.id} value={s.label}>
+                {s.label}
+              </option>
             ))}
           </select>
           <button

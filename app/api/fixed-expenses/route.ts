@@ -11,14 +11,18 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const db = getDb();
-  const { label, amount } = await req.json();
+  const { label, amount, period } = await req.json();
+  const p = period === 'annual' ? 'annual' : 'monthly';
   const result = db
-    .prepare('INSERT INTO fixed_expenses (label, amount) VALUES (?, ?)')
-    .run(label, amount);
+    .prepare(
+      'INSERT INTO fixed_expenses (label, amount, period) VALUES (?, ?, ?)',
+    )
+    .run(label, amount, p);
   return NextResponse.json({
     id: result.lastInsertRowid,
     label,
     amount,
+    period: p,
     active: 1,
   });
 }
@@ -32,9 +36,9 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   const db = getDb();
-  const { id, label, amount } = await req.json();
+  const { id, label, amount, period } = await req.json();
   db.prepare(
-    'UPDATE fixed_expenses SET label = ?, amount = ? WHERE id = ?',
-  ).run(label, amount, id);
+    'UPDATE fixed_expenses SET label = ?, amount = ?, period = ? WHERE id = ?',
+  ).run(label, amount, period ?? 'monthly', id);
   return NextResponse.json({ ok: true });
 }

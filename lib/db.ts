@@ -1,4 +1,10 @@
-import { SEED_FIXED_EXPENSES, SEED_GOALS, SEED_INCOME } from './config';
+import {
+  SEED_DEBTS,
+  SEED_FIXED_EXPENSES,
+  SEED_GOALS,
+  SEED_INCOME,
+  SEED_PAYMENT_SOURCES,
+} from './config';
 
 import Database from 'better-sqlite3';
 import path from 'path';
@@ -47,7 +53,41 @@ function initSchema(db: Database.Database) {
       color    TEXT NOT NULL DEFAULT 'blue',
       active   INTEGER NOT NULL DEFAULT 1
     );
+
+    CREATE TABLE IF NOT EXISTS payment_sources (
+      id    INTEGER PRIMARY KEY AUTOINCREMENT,
+      label TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS debts (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      label           TEXT NOT NULL,
+      lender          TEXT NOT NULL DEFAULT '',
+      balance         REAL NOT NULL DEFAULT 0,
+      monthly_payment REAL NOT NULL DEFAULT 0,
+      interest_rate   REAL NOT NULL DEFAULT 0
+    );
   `);
+
+  // Migrations — idempotent column additions
+  const fixedCols = (
+    db.prepare('PRAGMA table_info(fixed_expenses)').all() as { name: string }[]
+  ).map((c) => c.name);
+  if (!fixedCols.includes('period')) {
+    db.exec(
+      "ALTER TABLE fixed_expenses ADD COLUMN period TEXT NOT NULL DEFAULT 'monthly'",
+    );
+  }
+
+  // Ensure tsp_rate exists in income_config (added after initial seed)
+  db.prepare(
+    'INSERT OR IGNORE INTO income_config (key, value) VALUES (?, ?)',
+  ).run('tsp_rate', 0.2);
+
+  // Migrate legacy source value
+  db.prepare(
+    "UPDATE transactions SET source = 'Apple Card' WHERE source = 'apple_card'",
+  ).run();
 
   const count = (table: string) =>
     (db.prepare(`SELECT count(*) as n FROM ${table}`).get() as { n: number }).n;
@@ -64,11 +104,34 @@ function initSchema(db: Database.Database) {
 
   if (count('fixed_expenses') === 0) {
     const ins = db.prepare(
-      'INSERT INTO fixed_expenses (label, amount) VALUES (?, ?)',
+      'INSERT INTO fixed_expenses (label, amount, period) VALUES (?, ?, ?)',
     );
     db.transaction(() => {
-      for (const { label, amount } of SEED_FIXED_EXPENSES)
-        ins.run(label, amount);
+      for (const { label, amount, period } of SEED_FIXED_EXPENSES)
+        ins.run(label, amount, period);
+    })();
+  }
+
+  if (count('payment_sources') === 0) {
+    const ins = db.prepare('INSERT INTO payment_sources (label) VALUES (?)');
+    db.transaction(() => {
+      for (const { label } of SEED_PAYMENT_SOURCES) ins.run(label);
+    })();
+  }
+
+  if (count('debts') === 0) {
+    const ins = db.prepare(
+      'INSERT INTO debts (label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?)',
+    );
+    db.transaction(() => {
+      for (const {
+        label,
+        lender,
+        balance,
+        monthly_payment,
+        interest_rate,
+      } of SEED_DEBTS)
+        ins.run(label, lender, balance, monthly_payment, interest_rate);
     })();
   }
 

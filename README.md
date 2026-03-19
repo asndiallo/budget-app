@@ -48,14 +48,17 @@ app/
   components/
     IncomePanel.tsx              # Military pay + deductions
     FixedExpensesPanel.tsx       # Recurring monthly expenses
-    TransactionsPanel.tsx        # Apple Card CSV import + manual transactions
+    TransactionsPanel.tsx        # CSV import + manual transactions, card management
     GoalsPanel.tsx               # Savings goals with progress tracking
+    DebtsPanel.tsx               # Loans / debts with inline editing
   api/
     income/route.ts
     fixed-expenses/route.ts
     transactions/route.ts
     goals/route.ts
     csv-import/route.ts
+    payment-sources/route.ts    # Card/source management
+    debts/route.ts              # Loan tracking
 
 lib/
   config.ts   # All app constants — edit here to change categories, colors, rates, seed data
@@ -85,15 +88,18 @@ Everything hardcoded is in **`lib/config.ts`**. Edit that file to customize the 
 | `SEED_INCOME`                         | Default income values on first run                                           |
 | `SEED_FIXED_EXPENSES`                 | Default fixed expenses on first run                                          |
 | `SEED_GOALS`                          | Default goals on first run                                                   |
+| `SEED_PAYMENT_SOURCES`                | Default card/source list on first run                                        |
+| `SEED_DEBTS`                          | Default debt entries on first run (includes Westlake Financial car loan)     |
 
 ---
 
 ## Features
 
-- **Income tab** — Edit base pay, BAS, BAH, other income; TSP auto-calculated at 20% of base; Roth IRA / taxes / SGLI deductions; add/remove fixed monthly expenses
-- **Apple Card tab** — Import CSV from Wallet app or add transactions manually; filter by category; monthly view
+- **Income tab** — Edit base pay, BAS, BAH, other income; TSP auto-calculated at 20% of base; Roth IRA / taxes / SGLI deductions; fixed monthly expenses; debts & loans
+- **Spending tab** — Import CSV from any card, select the source card before uploading; add transactions manually with card selector; manage card list; filter by category; monthly view
 - **Goals tab** — Savings goals with progress bars; add funds incrementally; tracks total saved vs. target
-- **Summary bar** — Total income, invested amount, Apple Card spend, net remaining; updates on every change
+- **Summary bar** — 5 cards: Total income · Invested · Committed (fixed + active debt payments) · Spending · Net remaining; updates on every change
+- **Debt tracking** — Inline-editable balance, monthly payment, interest rate; paid-off debts (balance = 0) are excluded from the Committed total automatically
 - **Month selector** — Dynamically generated for the current year; defaults to current month
 
 ---
