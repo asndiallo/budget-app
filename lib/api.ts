@@ -55,11 +55,18 @@ export const api = {
       fetch(`/api/transactions?month=${month}`).then(asJson<Transaction[]>),
     add: (data: Omit<Transaction, 'id' | 'created_at'> & { source?: string }) =>
       send('POST', '/api/transactions', data).then(asJson<Transaction>),
+    update: (
+      id: number,
+      data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
+    ) =>
+      send('PATCH', '/api/transactions', { id, ...data }).then(
+        asJson<{ ok: boolean }>,
+      ),
     remove: (id: number) =>
       send('DELETE', '/api/transactions', { id }).then(asJson<{ ok: boolean }>),
     importCsv: (rows: CsvRow[], month: string, source: string) =>
       send('POST', '/api/csv-import', { rows, month, source }).then(
-        asJson<{ ok: boolean; imported: number }>,
+        asJson<{ ok: boolean; imported: number; months: string[] }>,
       ),
   },
 

@@ -39,6 +39,15 @@ export async function POST(req: Request) {
   });
 }
 
+export async function PATCH(req: Request) {
+  const db = getDb();
+  const { id, description, amount, category } = await req.json();
+  db.prepare(
+    'UPDATE transactions SET description = COALESCE(?, description), amount = COALESCE(?, amount), category = COALESCE(?, category) WHERE id = ?',
+  ).run(description ?? null, amount ?? null, category ?? null, id);
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(req: Request) {
   const db = getDb();
   const { id } = await req.json();

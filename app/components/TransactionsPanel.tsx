@@ -2,7 +2,7 @@
 
 import { CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY } from '@/lib/config';
 import type { PaymentSource, Transaction } from '@/lib/types';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { parseCSVLine } from '@/lib/utils';
@@ -60,6 +60,15 @@ export default function TransactionsPanel({
     onUpdate();
   }
 
+  async function updateTx(
+    id: number,
+    data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
+  ) {
+    await api.transactions.update(id, data);
+    reloadTxs();
+    onUpdate();
+  }
+
   async function deleteTx(id: number) {
     await api.transactions.remove(id);
     reloadTxs();
@@ -86,13 +95,20 @@ export default function TransactionsPanel({
       const dateIdx = headers.findIndex(
         (h) => h.includes('transaction date') || h === 'date',
       );
-      const descIdx = headers.findIndex(
-        (h) => h === 'description' || h === 'merchant',
-      );
+      // Prefer the clean Merchant column over the full noisy Description
+      const merchantIdx = headers.findIndex((h) => h === 'merchant');
+      const descIdx = headers.findIndex((h) => h === 'description');
       const catIdx = headers.findIndex((h) => h === 'category');
+      const typeIdx = headers.findIndex((h) => h === 'type');
       const amtIdx = headers.findIndex((h) => h.includes('amount'));
 
-      const description = vals[descIdx >= 0 ? descIdx : 2] || 'Unknown';
+      // Skip payment rows (ACH payments to the card — not spending)
+      const type = (vals[typeIdx] || '').toLowerCase();
+      if (type === 'payment') continue;
+
+      const description =
+        vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||
+        'Unknown';
       const amount = Math.abs(
         parseFloat(
           (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(
@@ -108,7 +124,20 @@ export default function TransactionsPanel({
     }
 
     const data = await api.transactions.importCsv(rows, month, csvSource);
-    setImportMsg(`Imported ${data.imported} transactions`);
+    const monthLabels = (data.months ?? [])
+      .sort()
+      .map((m) => {
+        const [y, mo] = m.split('-');
+        return new Date(+y, +mo - 1).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+        });
+      })
+      .join(', ');
+    setImportMsg(
+      `Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}` +
+        (monthLabels ? ` · ${monthLabels}` : ''),
+    );
     setImporting(false);
     reloadTxs();
     onUpdate();
@@ -259,33 +288,12 @@ export default function TransactionsPanel({
           </p>
         )}
         {filtered.map((t) => (
-          <div
+          <TxRow
             key={t.id}
-            className="flex items-center py-2.5 border-b border-gray-100 gap-3"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-800 truncate">{t.description}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${CAT_COLORS[t.category] ?? CAT_COLORS[DEFAULT_CATEGORY]}`}
-                >
-                  {t.category}
-                </span>
-                {t.source !== 'manual' && (
-                  <span className="text-xs text-gray-400">{t.source}</span>
-                )}
-              </div>
-            </div>
-            <span className="text-sm font-medium text-gray-800">
-              −${t.amount.toLocaleString()}
-            </span>
-            <button
-              onClick={() => deleteTx(t.id)}
-              className="text-gray-300 hover:text-red-400 text-xs transition-colors"
-            >
-              ✕
-            </button>
-          </div>
+            tx={t}
+            onUpdate={(data) => updateTx(t.id, data)}
+            onDelete={() => deleteTx(t.id)}
+          />
         ))}
       </div>
 
@@ -339,6 +347,123 @@ export default function TransactionsPanel({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TxRow({
+  tx,
+  onUpdate,
+  onDelete,
+}: {
+  tx: Transaction;
+  onUpdate: (
+    data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
+  ) => void;
+  onDelete: () => void;
+}) {
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [editingAmt, setEditingAmt] = useState(false);
+  const [desc, setDesc] = useState(tx.description);
+  const [amt, setAmt] = useState(String(tx.amount));
+
+  // Keep local state in sync if parent reloads
+  useEffect(() => {
+    setDesc(tx.description);
+  }, [tx.description]);
+  useEffect(() => {
+    setAmt(String(tx.amount));
+  }, [tx.amount]);
+
+  const saveDesc = useCallback(() => {
+    setEditingDesc(false);
+    if (desc.trim() && desc !== tx.description)
+      onUpdate({ description: desc.trim() });
+  }, [desc, tx.description, onUpdate]);
+
+  const saveAmt = useCallback(() => {
+    setEditingAmt(false);
+    const n = parseFloat(amt);
+    if (!isNaN(n) && n !== tx.amount) onUpdate({ amount: n });
+  }, [amt, tx.amount, onUpdate]);
+
+  return (
+    <div className="flex items-center py-2.5 border-b border-gray-100 gap-3">
+      <div className="flex-1 min-w-0">
+        {editingDesc ? (
+          <input
+            autoFocus
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            onBlur={saveDesc}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveDesc();
+              if (e.key === 'Escape') {
+                setDesc(tx.description);
+                setEditingDesc(false);
+              }
+            }}
+            className="w-full text-sm border-b border-blue-400 bg-transparent outline-none text-gray-800"
+          />
+        ) : (
+          <p
+            className="text-sm text-gray-800 truncate cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => setEditingDesc(true)}
+            title="Click to edit"
+          >
+            {tx.description}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mt-0.5">
+          <select
+            value={tx.category}
+            onChange={(e) => onUpdate({ category: e.target.value })}
+            className={`text-xs px-2 py-0.5 rounded-full border-0 cursor-pointer ${CAT_COLORS[tx.category] ?? CAT_COLORS[DEFAULT_CATEGORY]}`}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          {tx.source !== 'manual' && (
+            <span className="text-xs text-gray-400">{tx.source}</span>
+          )}
+        </div>
+      </div>
+
+      {editingAmt ? (
+        <input
+          autoFocus
+          type="number"
+          value={amt}
+          onChange={(e) => setAmt(e.target.value)}
+          onBlur={saveAmt}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveAmt();
+            if (e.key === 'Escape') {
+              setAmt(String(tx.amount));
+              setEditingAmt(false);
+            }
+          }}
+          className="w-20 text-sm text-right border-b border-blue-400 bg-transparent outline-none text-gray-800"
+        />
+      ) : (
+        <span
+          className="text-sm font-medium text-gray-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap"
+          onClick={() => setEditingAmt(true)}
+          title="Click to edit"
+        >
+          −${tx.amount.toLocaleString()}
+        </span>
+      )}
+
+      <button
+        onClick={onDelete}
+        className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+      >
+        ✕
+      </button>
     </div>
   );
 }

@@ -78,12 +78,16 @@ export const CSV_CATEGORY_MAP: Record<string, string> = {
   'food and drink': 'Food',
   restaurants: 'Food',
   groceries: 'Food',
+  grocery: 'Food',
   transportation: 'Transport',
+  tolls: 'Transport',
   gas: 'Transport',
   shopping: 'Shopping',
+  installment: 'Shopping',
   entertainment: 'Entertainment',
   health: 'Personal care',
   subscriptions: 'Subscriptions',
+  utilities: 'Subscriptions',
   services: 'Other',
 };
 

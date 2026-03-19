@@ -7,12 +7,7 @@ import {
   TSP_CONFIG,
 } from '@/lib/config';
 import type { Debt, FixedExpense, IncomeConfig } from '@/lib/types';
-import {
-  currentMonth,
-  formatCurrency,
-  formatMonthLabel,
-  generateYearMonths,
-} from '@/lib/utils';
+import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
 import DebtsPanel from './components/DebtsPanel';
@@ -33,7 +28,25 @@ interface Summary {
   net: number;
 }
 
-const MONTHS = generateYearMonths();
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+function getYearRange() {
+  const y = new Date().getFullYear();
+  return Array.from({ length: 4 }, (_, i) => y - 2 + i); // 2 back → 1 ahead
+}
 
 function calcSummary(
   income: IncomeConfig,
@@ -73,8 +86,15 @@ function calcSummary(
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('income');
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState('');
+  const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+
+  // Initialise date-dependent state client-side only to avoid SSR/client mismatch
+  useEffect(() => {
+    setMonth(currentMonth());
+    setYearRange(getYearRange());
+  }, []);
 
   const fetchSummary = useCallback(async () => {
     const [income, fixed, txs, debts] = await Promise.all([
@@ -102,17 +122,39 @@ export default function Home() {
               {APP_CONFIG.subtitle}
             </p>
           </div>
-          <select
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>
-                {formatMonthLabel(m)}
-              </option>
-            ))}
-          </select>
+          {month && (
+            <div className="flex gap-2">
+              <select
+                value={month.slice(0, 4)}
+                onChange={(e) =>
+                  setMonth(`${e.target.value}-${month.slice(5)}`)
+                }
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {yearRange.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={month.slice(5)}
+                onChange={(e) =>
+                  setMonth(`${month.slice(0, 4)}-${e.target.value}`)
+                }
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {MONTH_NAMES.map((name, i) => {
+                  const val = String(i + 1).padStart(2, '0');
+                  return (
+                    <option key={val} value={val}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
         </div>
       </header>
 
