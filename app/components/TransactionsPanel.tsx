@@ -87,7 +87,6 @@ export default function TransactionsPanel({
       .split(',')
       .map((h) => h.replace(/"/g, '').trim().toLowerCase());
 
-    // Detect Navy Federal format by presence of 'credit debit indicator' column
     const creditDebitIdx = headers.findIndex(
       (h) => h === 'credit debit indicator',
     );
@@ -97,7 +96,6 @@ export default function TransactionsPanel({
     const dateIdx = headers.findIndex(
       (h) => h.includes('transaction date') || h === 'date',
     );
-    // Prefer the clean Merchant column over the full noisy Description
     const merchantIdx = headers.findIndex((h) => h === 'merchant');
     const descIdx = headers.findIndex((h) => h === 'description');
     const catIdx = headers.findIndex((h) => h === 'category');
@@ -115,12 +113,10 @@ export default function TransactionsPanel({
       const isTaptap = description.toLowerCase().includes('taptap');
 
       if (isNavyFed) {
-        // Navy Federal: skip credits and all transfers except Taptap Send (family remittances)
         const indicator = (vals[creditDebitIdx] || '').toLowerCase();
         if (indicator === 'credit') continue;
         if (!isTaptap) continue;
       } else {
-        // Apple Card / Chase: skip non-purchase rows
         const type = (vals[typeIdx] || '').toLowerCase();
         if (['payment', 'return', 'reversal', 'adjustment'].includes(type))
           continue;
@@ -192,18 +188,18 @@ export default function TransactionsPanel({
   return (
     <div className="space-y-5">
       {/* CSV import */}
-      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <div className="bg-[#06080f] rounded-xl border border-[#1b2236] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800">Import CSV</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Apple Card: Wallet → tap card → Export Transactions
+            <p className="text-sm font-semibold text-[#dce4f8]">Import CSV</p>
+            <p className="text-xs text-[#353d55] mt-0.5">
+              Apple Card · Chase · Navy Federal
             </p>
             {sources.length > 0 && (
               <select
                 value={csvSource}
                 onChange={(e) => setCsvSource(e.target.value)}
-                className="mt-2 text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-2 text-xs bg-[#0b0e19] border border-[#1b2236] rounded-lg px-2 py-1 text-[#6b7494] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
               >
                 {sources.map((s) => (
                   <option key={s.id} value={s.label}>
@@ -214,7 +210,7 @@ export default function TransactionsPanel({
             )}
           </div>
           <label className="cursor-pointer shrink-0">
-            <span className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors whitespace-nowrap">
+            <span className="inline-block text-sm px-3 py-1.5 rounded-lg border border-[#1b2236] text-[#6b7494] hover:border-[#2d4080] hover:text-[#dce4f8] transition-colors whitespace-nowrap">
               {importing ? 'Importing…' : 'Upload CSV'}
             </span>
             <input
@@ -227,7 +223,7 @@ export default function TransactionsPanel({
           </label>
         </div>
         {importMsg && (
-          <p className="text-xs text-emerald-600 mt-2">{importMsg}</p>
+          <p className="text-xs text-[#00d98a] mt-2 font-mono">{importMsg}</p>
         )}
       </div>
 
@@ -235,18 +231,18 @@ export default function TransactionsPanel({
       <div>
         <button
           onClick={() => setManagingCards((v) => !v)}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-xs text-[#353d55] hover:text-[#6b7494] transition-colors"
         >
           {managingCards ? '▾ Hide cards' : '▸ Manage cards'}
         </button>
         {managingCards && (
-          <div className="mt-2 border border-gray-200 rounded-lg p-3 space-y-2">
+          <div className="mt-2 bg-[#06080f] border border-[#1b2236] rounded-xl p-3 space-y-2">
             {sources.map((s) => (
               <div key={s.id} className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">{s.label}</span>
+                <span className="text-sm text-[#dce4f8]">{s.label}</span>
                 <button
                   onClick={() => removeCard(s.id)}
-                  className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+                  className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
                 >
                   ✕
                 </button>
@@ -258,11 +254,11 @@ export default function TransactionsPanel({
                 onChange={(e) => setNewCard(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 placeholder="Card name"
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 text-sm bg-[#0b0e19] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
               />
               <button
                 onClick={addCard}
-                className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
               >
                 + Add
               </button>
@@ -273,13 +269,13 @@ export default function TransactionsPanel({
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           <button
             onClick={() => setFilterCat(null)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            className={`text-xs px-3 py-1 rounded-full border transition-all ${
               !filterCat
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                ? 'bg-[#dce4f8] text-[#06080f] border-[#dce4f8] font-medium'
+                : 'border-[#1b2236] text-[#353d55] hover:border-[#2d4080] hover:text-[#6b7494]'
             }`}
           >
             All · ${Math.round(grandTotal).toLocaleString()}
@@ -288,10 +284,10 @@ export default function TransactionsPanel({
             <button
               key={c}
               onClick={() => setFilterCat(filterCat === c ? null : c)}
-              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              className={`text-xs px-3 py-1 rounded-full border transition-all ${
                 filterCat === c
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                  ? 'bg-[#dce4f8] text-[#06080f] border-[#dce4f8] font-medium'
+                  : 'border-[#1b2236] text-[#353d55] hover:border-[#2d4080] hover:text-[#6b7494]'
               }`}
             >
               {c} · ${Math.round(total).toLocaleString()}
@@ -302,11 +298,11 @@ export default function TransactionsPanel({
 
       {/* Transaction list */}
       <div>
-        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
           Transactions
         </h3>
         {filtered.length === 0 && (
-          <p className="text-sm text-gray-400 py-4">
+          <p className="text-sm text-[#353d55] py-4">
             No transactions yet for this month.
           </p>
         )}
@@ -322,7 +318,7 @@ export default function TransactionsPanel({
 
       {/* Add transaction */}
       <div>
-        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
           Add manually
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -331,7 +327,7 @@ export default function TransactionsPanel({
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="Description"
-            className="flex-1 min-w-40 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 min-w-40 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={amt}
@@ -339,12 +335,12 @@ export default function TransactionsPanel({
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-20 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <select
             value={cat}
             onChange={(e) => setCat(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
           >
             {CATEGORIES.map((c) => (
               <option key={c}>{c}</option>
@@ -353,7 +349,7 @@ export default function TransactionsPanel({
           <select
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
           >
             <option value="manual">Manual</option>
             {sources.map((s) => (
@@ -364,7 +360,7 @@ export default function TransactionsPanel({
           </select>
           <button
             onClick={addTx}
-            className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
           >
             + Add
           </button>
@@ -390,7 +386,6 @@ function TxRow({
   const [desc, setDesc] = useState(tx.description);
   const [amt, setAmt] = useState(String(tx.amount));
 
-  // Keep local state in sync if parent reloads
   useEffect(() => {
     setDesc(tx.description);
   }, [tx.description]);
@@ -411,7 +406,7 @@ function TxRow({
   }, [amt, tx.amount, onUpdate]);
 
   return (
-    <div className="flex items-center py-2.5 border-b border-gray-100 gap-3">
+    <div className="flex items-center py-2.5 border-b border-[#131929] gap-3 group">
       <div className="flex-1 min-w-0">
         {editingDesc ? (
           <input
@@ -426,11 +421,11 @@ function TxRow({
                 setEditingDesc(false);
               }
             }}
-            className="w-full text-sm border-b border-blue-400 bg-transparent outline-none text-gray-800"
+            className="w-full text-sm border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#dce4f8]"
           />
         ) : (
           <p
-            className="text-sm text-gray-800 truncate cursor-pointer hover:text-blue-600 transition-colors"
+            className="text-sm text-[#dce4f8] truncate cursor-pointer hover:text-[#6b7494] transition-colors"
             onClick={() => setEditingDesc(true)}
             title="Click to edit"
           >
@@ -450,7 +445,7 @@ function TxRow({
             ))}
           </select>
           {tx.source !== 'manual' && (
-            <span className="text-xs text-gray-400">{tx.source}</span>
+            <span className="text-xs text-[#353d55]">{tx.source}</span>
           )}
         </div>
       </div>
@@ -469,11 +464,11 @@ function TxRow({
               setEditingAmt(false);
             }
           }}
-          className="w-20 text-sm text-right border-b border-blue-400 bg-transparent outline-none text-gray-800"
+          className="w-20 text-sm text-right font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#dce4f8]"
         />
       ) : (
         <span
-          className="text-sm font-medium text-gray-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap"
+          className="font-mono text-sm text-[#ff4560] cursor-pointer hover:text-[#6b7494] transition-colors whitespace-nowrap"
           onClick={() => setEditingAmt(true)}
           title="Click to edit"
         >
@@ -483,7 +478,7 @@ function TxRow({
 
       <button
         onClick={onDelete}
-        className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+        className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100"
       >
         ✕
       </button>

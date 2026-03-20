@@ -1,11 +1,58 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
 
-body {
-  background: #f8f8f6;
-  color: #1a1a1a;
+@theme {
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+:root {
+  --bg: #06080f;
+  --surface: #0b0e19;
+  --surface-raised: #111525;
+  --border: #1b2236;
+  --border-subtle: #131929;
+  --text: #dce4f8;
+  --text-2: #6b7494;
+  --text-3: #353d55;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* Remove number input spinners */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+
+/* Dark option dropdowns (Chrome/Firefox) */
+option {
+  background: #0b0e19;
+  color: #dce4f8;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1b2236;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #252f48;
+}
+
+/* Text selection */
+::selection {
+  background: rgba(74, 140, 255, 0.2);
+  color: #dce4f8;
 }

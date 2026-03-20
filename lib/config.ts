@@ -76,15 +76,15 @@ export const CHART_CAT_COLORS: Record<string, string> = {
 };
 
 export const CAT_COLORS: Record<string, string> = {
-  Food: 'bg-amber-50 text-amber-700',
-  Transport: 'bg-blue-50 text-blue-700',
-  Shopping: 'bg-purple-50 text-purple-700',
-  Subscriptions: 'bg-sky-50 text-sky-700',
-  'Personal care': 'bg-pink-50 text-pink-700',
-  Entertainment: 'bg-indigo-50 text-indigo-700',
-  Wedding: 'bg-rose-50 text-rose-700',
-  Family: 'bg-orange-50 text-orange-700',
-  Other: 'bg-gray-50 text-gray-500',
+  Food: 'bg-amber-500/10 text-amber-400',
+  Transport: 'bg-blue-500/10 text-blue-400',
+  Shopping: 'bg-purple-500/10 text-purple-400',
+  Subscriptions: 'bg-sky-500/10 text-sky-400',
+  'Personal care': 'bg-pink-500/10 text-pink-400',
+  Entertainment: 'bg-indigo-500/10 text-indigo-400',
+  Wedding: 'bg-rose-500/10 text-rose-400',
+  Family: 'bg-orange-500/10 text-orange-400',
+  Other: 'bg-gray-500/10 text-gray-500',
 };
 
 // ─── CSV import ───────────────────────────────────────────────────────────────
@@ -139,18 +139,18 @@ export const DEFAULT_GOAL_COLOR: GoalColor = 'blue';
 
 export const GOAL_BAR_COLORS: Record<string, string> = {
   blue: 'bg-blue-500',
-  green: 'bg-emerald-500',
-  amber: 'bg-amber-500',
-  rose: 'bg-rose-500',
-  purple: 'bg-purple-500',
+  green: 'bg-emerald-400',
+  amber: 'bg-amber-400',
+  rose: 'bg-rose-400',
+  purple: 'bg-purple-400',
 };
 
 export const GOAL_DOT_COLORS: Record<string, string> = {
-  blue: 'bg-blue-100 text-blue-700',
-  green: 'bg-emerald-100 text-emerald-700',
-  amber: 'bg-amber-100 text-amber-700',
-  rose: 'bg-rose-100 text-rose-700',
-  purple: 'bg-purple-100 text-purple-700',
+  blue: 'bg-blue-500/10 text-blue-400',
+  green: 'bg-emerald-500/10 text-emerald-400',
+  amber: 'bg-amber-500/10 text-amber-400',
+  rose: 'bg-rose-500/10 text-rose-400',
+  purple: 'bg-purple-500/10 text-purple-400',
 };
 
 // ─── Database seed data ───────────────────────────────────────────────────────

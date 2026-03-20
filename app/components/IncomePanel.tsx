@@ -1,8 +1,5 @@
 'use client';
 
-// SRP: This component manages income sources and deductions only.
-// Fixed expenses live in FixedExpensesPanel.
-
 import { DEDUCTION_FIELDS, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
 import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
@@ -54,7 +51,7 @@ export default function IncomePanel({
     onUpdate();
   }
 
-  if (!income) return <div className="text-sm text-gray-400">Loading…</div>;
+  if (!income) return <p className="text-sm text-[#353d55] py-4">Loading…</p>;
 
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round((income.base_pay || 0) * tspRate);
@@ -68,8 +65,7 @@ export default function IncomePanel({
   async function saveTspRate() {
     const pct = parseFloat(tspRateLocal);
     if (isNaN(pct)) return;
-    const decimal = pct / 100;
-    await saveIncome('tsp_rate', decimal);
+    await saveIncome('tsp_rate', pct / 100);
   }
 
   return (
@@ -88,25 +84,28 @@ export default function IncomePanel({
 
       <Section title="Deductions">
         {/* TSP — rate-editable row */}
-        <div className="flex items-center py-2.5 border-b border-gray-100">
+        <div className="flex items-center py-3 border-b border-[#131929]">
           <div className="flex-1">
-            <p className="text-sm text-gray-800">TSP</p>
-            <p className="text-xs text-gray-400">{TSP_CONFIG.note}</p>
+            <p className="text-sm text-[#dce4f8]">TSP</p>
+            <p className="text-[11px] text-[#353d55] mt-0.5">
+              {TSP_CONFIG.note}
+            </p>
           </div>
-          <div className="flex items-center gap-1 mr-3">
+          <div className="flex items-center gap-1.5 mr-4">
             <input
               type="number"
               value={tspRateLocal}
               onChange={(e) => setTspRateLocal(e.target.value)}
               onBlur={saveTspRate}
-              className="w-14 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-14 text-sm text-right font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1 text-[#4a8cff] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
-            <span className="text-sm text-gray-400">% of base</span>
+            <span className="text-xs text-[#353d55]">% of base</span>
           </div>
-          <span className="text-sm font-medium text-gray-500 w-24 text-right">
+          <span className="font-mono text-sm text-[#ff4560] w-24 text-right">
             −${tsp.toLocaleString()}
           </span>
         </div>
+
         {DEDUCTION_FIELDS.map((f) => (
           <Row
             key={f.key}
@@ -114,40 +113,45 @@ export default function IncomePanel({
             note={f.note}
             value={income[f.key] ?? 0}
             onChange={(v) => saveIncome(f.key, v)}
-            prefix="-"
+            prefix="−"
+            valueColor="text-[#ff4560]"
           />
         ))}
       </Section>
+
       <Section title="Additional income">
         {entries.map((e) => (
           <div
             key={e.id}
-            className="flex items-center py-2.5 border-b border-gray-100 gap-3"
+            className="flex items-center py-3 border-b border-[#131929] gap-3"
           >
             <div className="flex-1">
-              <p className="text-sm text-gray-800">{e.description}</p>
+              <p className="text-sm text-[#dce4f8]">{e.description}</p>
               {e.source && e.source !== 'Other' && (
-                <p className="text-xs text-gray-400">{e.source}</p>
+                <span className="inline-block text-[11px] px-2 py-0.5 rounded-full bg-[#111525] text-[#6b7494] mt-0.5">
+                  {e.source}
+                </span>
               )}
             </div>
-            <span className="text-sm font-medium text-emerald-700">
+            <span className="font-mono text-sm text-[#00d98a]">
               +${e.amount.toLocaleString()}
             </span>
             <button
               onClick={() => removeEntry(e.id)}
-              className="text-gray-300 hover:text-red-400 text-xs transition-colors"
+              className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
             >
               ✕
             </button>
           </div>
         ))}
-        <div className="flex gap-2 flex-wrap pt-2">
+
+        <div className="flex gap-2 flex-wrap pt-3">
           <input
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
-            placeholder="Description (e.g. Business revenue)"
-            className="flex-1 min-w-36 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Description"
+            className="flex-1 min-w-36 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={newAmt}
@@ -155,18 +159,18 @@ export default function IncomePanel({
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-20 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={newSource}
             onChange={(e) => setNewSource(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Source (optional)"
-            className="flex-1 min-w-28 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 min-w-28 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <button
             onClick={addEntry}
-            className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
           >
             + Add
           </button>
@@ -185,7 +189,7 @@ function Section({
 }) {
   return (
     <div>
-      <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
         {title}
       </h3>
       {children}
@@ -199,12 +203,14 @@ function Row({
   value,
   onChange,
   prefix = '',
+  valueColor = 'text-[#dce4f8]',
 }: {
   label: string;
   note?: string;
   value: number;
   onChange: (v: number) => void;
   prefix?: string;
+  valueColor?: string;
 }) {
   const [local, setLocal] = useState(String(value));
 
@@ -213,20 +219,20 @@ function Row({
   }, [value]);
 
   return (
-    <div className="flex items-center py-2.5 border-b border-gray-100">
+    <div className="flex items-center py-3 border-b border-[#131929]">
       <div className="flex-1">
-        <p className="text-sm text-gray-800">{label}</p>
-        {note && <p className="text-xs text-gray-400">{note}</p>}
+        <p className="text-sm text-[#dce4f8]">{label}</p>
+        {note && <p className="text-[11px] text-[#353d55] mt-0.5">{note}</p>}
       </div>
-      <div className="flex items-center gap-1">
-        {prefix && <span className="text-sm text-gray-400">{prefix}</span>}
-        <span className="text-sm text-gray-400">$</span>
+      <div className="flex items-center gap-1.5">
+        {prefix && <span className="text-sm text-[#353d55]">{prefix}</span>}
+        <span className="text-sm text-[#353d55]">$</span>
         <input
           type="number"
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           onBlur={() => onChange(parseFloat(local) || 0)}
-          className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className={`w-24 text-sm text-right font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1 focus:outline-none focus:border-[#2d4080] transition-colors ${valueColor}`}
         />
       </div>
     </div>

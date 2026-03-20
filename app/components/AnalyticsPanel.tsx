@@ -42,20 +42,17 @@ export default function AnalyticsPanel({ month }: { month: string }) {
   }, [month]);
 
   if (data.length === 0)
-    return <p className="text-sm text-gray-400 py-8 text-center">Loading…</p>;
+    return <p className="text-sm text-[#353d55] py-10 text-center">Loading…</p>;
 
   const current = data[data.length - 1];
 
-  // Donut data — current month categories only (skip zeros)
   const donutData = Object.entries(current.categories)
     .filter(([, v]) => v > 0)
     .sort(([, a], [, b]) => b - a)
     .map(([name, value]) => ({ name, value }));
 
-  // Bar data — stacked categories per month
   const barData = data.map((d) => ({ label: d.label, ...d.categories }));
 
-  // Area data — income vs spending vs net
   const areaData = data.map((d) => ({
     label: d.label,
     Income: d.totalIncome,
@@ -63,7 +60,6 @@ export default function AnalyticsPanel({ month }: { month: string }) {
     Net: d.net,
   }));
 
-  // Categories that actually appear in the dataset
   const activeCats = CATEGORIES.filter((c) =>
     data.some((d) => (d.categories[c] ?? 0) > 0),
   );
@@ -72,9 +68,9 @@ export default function AnalyticsPanel({ month }: { month: string }) {
     <div className="space-y-8">
       {/* Row 1: Donut + Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Current month spending donut */}
+        {/* Donut — current month spending */}
         <div>
-          <SectionTitle>{current.label} — spending by category</SectionTitle>
+          <SectionTitle>{current.label} — by category</SectionTitle>
           {donutData.length === 0 ? (
             <Empty />
           ) : (
@@ -92,7 +88,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                   {donutData.map((entry) => (
                     <Cell
                       key={entry.name}
-                      fill={CHART_CAT_COLORS[entry.name] ?? '#9ca3af'}
+                      fill={CHART_CAT_COLORS[entry.name] ?? '#3d4560'}
                     />
                   ))}
                 </Pie>
@@ -102,7 +98,9 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                 />
                 <Legend
                   formatter={(value) => (
-                    <span className="text-xs text-gray-600">{value}</span>
+                    <span style={{ fontSize: 11, color: '#6b7494' }}>
+                      {value}
+                    </span>
                   )}
                 />
               </PieChart>
@@ -110,9 +108,9 @@ export default function AnalyticsPanel({ month }: { month: string }) {
           )}
         </div>
 
-        {/* Income vs Spending vs Net — area chart */}
+        {/* Area — income vs spending vs net */}
         <div>
-          <SectionTitle>Income · Spending · Net (6 months)</SectionTitle>
+          <SectionTitle>Income · Spending · Net (6 mo)</SectionTitle>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart
               data={areaData}
@@ -120,19 +118,19 @@ export default function AnalyticsPanel({ month }: { month: string }) {
             >
               <defs>
                 <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#00d98a" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#00d98a" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gSpending" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#ff4560" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#ff4560" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gNet" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#4a8cff" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#4a8cff" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#131929" />
               <XAxis
                 dataKey="label"
                 tick={axisStyle}
@@ -144,7 +142,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                 tick={axisStyle}
                 axisLine={false}
                 tickLine={false}
-                width={48}
+                width={44}
               />
               <Tooltip
                 formatter={(v) => fmt(v as number)}
@@ -152,13 +150,13 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               />
               <Legend
                 formatter={(v) => (
-                  <span style={{ fontSize: 11, color: '#6b7280' }}>{v}</span>
+                  <span style={{ fontSize: 11, color: '#6b7494' }}>{v}</span>
                 )}
               />
               <Area
                 type="monotone"
                 dataKey="Income"
-                stroke="#10b981"
+                stroke="#00d98a"
                 strokeWidth={2}
                 fill="url(#gIncome)"
                 dot={false}
@@ -166,7 +164,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               <Area
                 type="monotone"
                 dataKey="Spending"
-                stroke="#ef4444"
+                stroke="#ff4560"
                 strokeWidth={2}
                 fill="url(#gSpending)"
                 dot={false}
@@ -174,7 +172,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               <Area
                 type="monotone"
                 dataKey="Net"
-                stroke="#3b82f6"
+                stroke="#4a8cff"
                 strokeWidth={2}
                 fill="url(#gNet)"
                 dot={false}
@@ -198,7 +196,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#f0f0f0"
+                stroke="#131929"
                 vertical={false}
               />
               <XAxis
@@ -220,7 +218,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               />
               <Legend
                 formatter={(v) => (
-                  <span style={{ fontSize: 11, color: '#6b7280' }}>{v}</span>
+                  <span style={{ fontSize: 11, color: '#6b7494' }}>{v}</span>
                 )}
               />
               {activeCats.map((cat) => (
@@ -228,7 +226,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                   key={cat}
                   dataKey={cat}
                   stackId="a"
-                  fill={CHART_CAT_COLORS[cat] ?? '#9ca3af'}
+                  fill={CHART_CAT_COLORS[cat] ?? '#3d4560'}
                   radius={
                     activeCats.indexOf(cat) === activeCats.length - 1
                       ? [3, 3, 0, 0]
@@ -246,7 +244,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
+    <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
       {children}
     </h3>
   );
@@ -254,17 +252,19 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Empty() {
   return (
-    <p className="text-sm text-gray-400 py-10 text-center">
+    <p className="text-sm text-[#353d55] py-10 text-center">
       No data yet for this period.
     </p>
   );
 }
 
 const tooltipStyle = {
-  border: '1px solid #e5e7eb',
-  borderRadius: 8,
+  backgroundColor: '#0b0e19',
+  border: '1px solid #1b2236',
+  borderRadius: 10,
   fontSize: 12,
-  boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+  color: '#dce4f8',
+  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
 };
 
-const axisStyle = { fontSize: 11, fill: '#9ca3af' };
+const axisStyle = { fontSize: 11, fill: '#353d55' };
