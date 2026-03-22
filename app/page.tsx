@@ -116,11 +116,28 @@ export default function Home() {
   const [month, setMonth] = useState('');
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     setMonth(currentMonth());
     setYearRange(getYearRange());
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      setIsDark(false);
+    }
   }, []);
+
+  function toggleTheme() {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.add('light');
+      localStorage.setItem('theme', 'light');
+    }
+  }
 
   const fetchSummary = useCallback(async () => {
     if (!month) return;
@@ -139,64 +156,74 @@ export default function Home() {
   }, [fetchSummary]);
 
   return (
-    <div className="min-h-screen bg-[#06080f]">
+    <div className="min-h-screen bg-bg">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#1f2d46] bg-[#06080f]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-sm font-semibold text-[#dce4f8] tracking-tight">
+            <h1 className="text-sm font-semibold text-text tracking-tight">
               {APP_CONFIG.title}
             </h1>
-            <p className="text-[11px] text-[#7c88a4] mt-0.5 tracking-wide">
+            <p className="text-[11px] text-text-3 mt-0.5 tracking-wide">
               {APP_CONFIG.subtitle}
             </p>
           </div>
 
-          {month && (
-            <div className="flex items-center gap-0.5">
-              <button
-                onClick={() => setMonth(prevMonth(month))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#7c88a4] hover:text-[#9da8c2] hover:bg-[#141b2e] transition-all text-base leading-none"
-              >
-                ‹
-              </button>
-              <select
-                value={month.slice(5)}
-                onChange={(e) =>
-                  setMonth(`${month.slice(0, 4)}-${e.target.value}`)
-                }
-                className="bg-transparent text-sm text-[#dce4f8] focus:outline-none cursor-pointer px-1"
-              >
-                {MONTH_NAMES.map((name, i) => {
-                  const val = String(i + 1).padStart(2, '0');
-                  return (
-                    <option key={val} value={val}>
-                      {name}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-sm"
+            >
+              {isDark ? '☀' : '🌙'}
+            </button>
+
+            {month && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setMonth(prevMonth(month))}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
+                >
+                  ‹
+                </button>
+                <select
+                  value={month.slice(5)}
+                  onChange={(e) =>
+                    setMonth(`${month.slice(0, 4)}-${e.target.value}`)
+                  }
+                  className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1"
+                >
+                  {MONTH_NAMES.map((name, i) => {
+                    const val = String(i + 1).padStart(2, '0');
+                    return (
+                      <option key={val} value={val}>
+                        {name}
+                      </option>
+                    );
+                  })}
+                </select>
+                <select
+                  value={month.slice(0, 4)}
+                  onChange={(e) =>
+                    setMonth(`${e.target.value}-${month.slice(5)}`)
+                  }
+                  className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1"
+                >
+                  {yearRange.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
                     </option>
-                  );
-                })}
-              </select>
-              <select
-                value={month.slice(0, 4)}
-                onChange={(e) =>
-                  setMonth(`${e.target.value}-${month.slice(5)}`)
-                }
-                className="bg-transparent text-sm text-[#dce4f8] focus:outline-none cursor-pointer px-1"
-              >
-                {yearRange.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => setMonth(nextMonth(month))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#7c88a4] hover:text-[#9da8c2] hover:bg-[#141b2e] transition-all text-base leading-none"
-              >
-                ›
-              </button>
-            </div>
-          )}
+                  ))}
+                </select>
+                <button
+                  onClick={() => setMonth(nextMonth(month))}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -250,17 +277,17 @@ export default function Home() {
         )}
 
         {/* Tab panel */}
-        <div className="bg-[#0b0e19] rounded-2xl border border-[#1f2d46] overflow-hidden">
+        <div className="bg-surface rounded-2xl border border-border overflow-hidden">
           {/* Tab navigation */}
-          <div className="flex gap-1 p-1.5 border-b border-[#1f2d46]">
+          <div className="flex gap-1 p-1.5 border-b border-border">
             {TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                   tab === key
-                    ? 'bg-[#141b2e] text-[#dce4f8] shadow-sm'
-                    : 'text-[#7c88a4] hover:text-[#9da8c2]'
+                    ? 'bg-surface-raised text-text shadow-sm'
+                    : 'text-text-3 hover:text-text-2'
                 }`}
               >
                 {label}
@@ -285,7 +312,7 @@ export default function Home() {
               <div className="space-y-8">
                 <GoalsPanel />
                 <div>
-                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
                     Budget suggestions
                   </h3>
                   <BudgetSuggestionsPanel />
@@ -312,7 +339,7 @@ const ACCENT_TEXT: Record<string, string> = {
   red: 'text-[#ff4560]',
   amber: 'text-[#f5aa2a]',
   blue: 'text-[#4a8cff]',
-  default: 'text-[#dce4f8]',
+  default: 'text-text',
 };
 
 const ACCENT_LINE: Record<string, string> = {
@@ -335,7 +362,7 @@ function MetricCard({
   const color = ACCENT_LINE[accent] ?? 'transparent';
   const textClass = ACCENT_TEXT[accent] ?? ACCENT_TEXT.default;
   return (
-    <div className="bg-[#0b0e19] rounded-xl border border-[#1f2d46] p-4 relative overflow-hidden">
+    <div className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden">
       {accent !== 'default' && (
         <div
           className="absolute top-0 left-0 right-0 h-px"
@@ -344,7 +371,7 @@ function MetricCard({
           }}
         />
       )}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
         {label}
       </p>
       <p
@@ -393,11 +420,11 @@ function BudgetBar({ summary }: { summary: Summary }) {
   ];
 
   return (
-    <div className="bg-[#0b0e19] rounded-xl border border-[#1f2d46] px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-2.5">
+    <div className="bg-surface rounded-xl border border-border px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2.5">
         Allocation
       </p>
-      <div className="h-1.5 bg-[#06080f] rounded-full flex gap-px overflow-hidden">
+      <div className="h-1.5 bg-bg rounded-full flex gap-px overflow-hidden">
         {segments.map(({ label, pct: p, color }) => (
           <div
             key={label}
@@ -414,7 +441,7 @@ function BudgetBar({ summary }: { summary: Summary }) {
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: color }}
             />
-            <span className="text-[11px] text-[#9da8c2]">
+            <span className="text-[11px] text-text-2">
               {label}{' '}
               <span style={{ color }} className="font-mono">
                 {Math.round(p)}%

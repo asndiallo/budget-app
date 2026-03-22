@@ -6,15 +6,49 @@
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+/* ── Design tokens (dark mode default) ───────────────────────────── */
 :root {
   --bg: #06080f;
   --surface: #0b0e19;
-  --surface-raised: #111525;
-  --border: #1b2236;
-  --border-subtle: #131929;
+  --surface-raised: #141b2e;
+  --surface-blue: #1a2650;
+  --surface-blue-dark: #1f2f63;
+  --border: #1f2d46;
+  --border-dim: #1c2840;
   --text: #dce4f8;
-  --text-2: #6b7494;
-  --text-3: #353d55;
+  --text-2: #9da8c2;
+  --text-3: #7c88a4;
+  --text-4: #4a5575;
+}
+
+/* ── Light mode overrides ─────────────────────────────────────────── */
+.light {
+  --bg: #f4f7ff;
+  --surface: #ffffff;
+  --surface-raised: #eef2ff;
+  --surface-blue: #eff6ff;
+  --surface-blue-dark: #dbeafe;
+  --border: #dde3f2;
+  --border-dim: #e8eef8;
+  --text: #0f172a;
+  --text-2: #334155;
+  --text-3: #64748b;
+  --text-4: #94a3b8;
+}
+
+/* ── Expose tokens as Tailwind utilities ─────────────────────────── */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-blue: var(--surface-blue);
+  --color-surface-blue-dark: var(--surface-blue-dark);
+  --color-border: var(--border);
+  --color-border-dim: var(--border-dim);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-4: var(--text-4);
 }
 
 body {
@@ -29,10 +63,10 @@ input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 
-/* Dark option dropdowns (Chrome/Firefox) */
+/* Dropdowns inherit theme */
 option {
-  background: #0b0e19;
-  color: #dce4f8;
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* Scrollbar */
@@ -44,15 +78,15 @@ option {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1b2236;
+  background: var(--border);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #252f48;
+  background: var(--surface-raised);
 }
 
 /* Text selection */
 ::selection {
   background: rgba(74, 140, 255, 0.2);
-  color: #dce4f8;
+  color: var(--text);
 }
