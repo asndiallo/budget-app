@@ -61,6 +61,10 @@ export const api = {
   transactions: {
     list: (month: string) =>
       fetch(`/api/transactions?month=${month}`).then(asJson<Transaction[]>),
+    search: (q: string) =>
+      fetch(`/api/transactions?q=${encodeURIComponent(q)}`).then(
+        asJson<Transaction[]>,
+      ),
     add: (data: Omit<Transaction, 'id' | 'created_at'> & { source?: string }) =>
       send('POST', '/api/transactions', data).then(asJson<Transaction>),
     update: (

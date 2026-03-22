@@ -6,6 +6,21 @@ import { getDb } from '@/lib/db';
 export async function GET(req: Request) {
   const db = getDb();
   const { searchParams } = new URL(req.url);
+  const q = searchParams.get('q');
+
+  if (q && q.trim()) {
+    const like = `%${q.trim()}%`;
+    const rows = db
+      .prepare(
+        `SELECT * FROM transactions
+         WHERE description LIKE ? OR category LIKE ?
+         ORDER BY month DESC, created_at DESC
+         LIMIT 200`,
+      )
+      .all(like, like);
+    return NextResponse.json(rows);
+  }
+
   const month = searchParams.get('month') || currentMonth();
   const rows = db
     .prepare(

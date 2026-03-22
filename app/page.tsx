@@ -117,6 +117,7 @@ export default function Home() {
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [isDark, setIsDark] = useState(true);
+  const [drillCategory, setDrillCategory] = useState<string | null>(null);
 
   useEffect(() => {
     setMonth(currentMonth());
@@ -126,6 +127,11 @@ export default function Home() {
       setIsDark(false);
     }
   }, []);
+
+  function handleCategoryDrill(category: string) {
+    setDrillCategory(category);
+    setTab('transactions');
+  }
 
   function toggleTheme() {
     const next = !isDark;
@@ -249,6 +255,7 @@ export default function Home() {
               <MetricCard
                 label={APP_CONFIG.transactionsTabLabel}
                 value={formatCurrency(summary.spending)}
+                sub={projectedSpending(month, summary.spending)}
                 accent="red"
               />
               <MetricCard
@@ -306,7 +313,11 @@ export default function Home() {
               </div>
             )}
             {tab === 'transactions' && (
-              <TransactionsPanel month={month} onUpdate={fetchSummary} />
+              <TransactionsPanel
+                month={month}
+                onUpdate={fetchSummary}
+                initialCategory={drillCategory}
+              />
             )}
             {tab === 'goals' && (
               <div className="space-y-8">
@@ -322,7 +333,10 @@ export default function Home() {
             {tab === 'analytics' && (
               <div className="space-y-8">
                 <YtdPanel month={month} />
-                <AnalyticsPanel month={month} />
+                <AnalyticsPanel
+                  month={month}
+                  onCategoryClick={handleCategoryDrill}
+                />
               </div>
             )}
           </div>
@@ -330,6 +344,23 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+/* ── Projected spending helper ────────────────────────────────────── */
+
+function projectedSpending(month: string, spending: number): string | null {
+  const today = new Date();
+  const cm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  if (month !== cm) return null;
+  const day = today.getDate();
+  const totalDays = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+  if (day < 3 || day >= totalDays) return null; // too early or month is done
+  const projected = Math.round((spending / day) * totalDays);
+  return `→ ${formatCurrency(projected)} projected`;
 }
 
 /* ── Metric Card ──────────────────────────────────────────────────── */
@@ -353,10 +384,12 @@ const ACCENT_LINE: Record<string, string> = {
 function MetricCard({
   label,
   value,
+  sub,
   accent = 'default',
 }: {
   label: string;
   value: string;
+  sub?: string | null;
   accent?: string;
 }) {
   const color = ACCENT_LINE[accent] ?? 'transparent';
@@ -379,6 +412,7 @@ function MetricCard({
       >
         {value}
       </p>
+      {sub && <p className="text-[10px] font-mono text-text-4 mt-1.5">{sub}</p>}
     </div>
   );
 }

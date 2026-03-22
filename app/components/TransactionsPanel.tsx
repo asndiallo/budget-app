@@ -11,9 +11,11 @@ import { parseCSVLine } from '@/lib/utils';
 export default function TransactionsPanel({
   month,
   onUpdate,
+  initialCategory,
 }: {
   month: string;
   onUpdate: () => void;
+  initialCategory?: string | null;
 }) {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [sources, setSources] = useState<PaymentSource[]>([]);
@@ -22,12 +24,24 @@ export default function TransactionsPanel({
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
   const [source, setSource] = useState('manual');
   const [csvSource, setCsvSource] = useState('');
-  const [filterCat, setFilterCat] = useState<string | null>(null);
+  const [filterCat, setFilterCat] = useState<string | null>(
+    initialCategory ?? null,
+  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Transaction[] | null>(
+    null,
+  );
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [managingCards, setManagingCards] = useState(false);
   const [newCard, setNewCard] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync initialCategory when drill-through arrives
+  useEffect(() => {
+    if (initialCategory) setFilterCat(initialCategory);
+  }, [initialCategory]);
 
   const reloadTxs = () => api.transactions.list(month).then(setTxs);
   const reloadSources = () =>
@@ -176,14 +190,28 @@ export default function TransactionsPanel({
     reloadSources();
   }
 
+  function handleSearch(q: string) {
+    setSearchQuery(q);
+    if (searchRef.current) clearTimeout(searchRef.current);
+    if (!q.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    searchRef.current = setTimeout(() => {
+      api.transactions.search(q).then(setSearchResults);
+    }, 300);
+  }
+
   const catTotals = txs.reduce<Record<string, number>>((acc, t) => {
     acc[t.category] = (acc[t.category] || 0) + t.amount;
     return acc;
   }, {});
 
+  const isSearching = searchResults !== null;
+  const displayTxs = isSearching ? searchResults : txs;
   const filtered = filterCat
-    ? txs.filter((t) => t.category === filterCat)
-    : txs;
+    ? displayTxs.filter((t) => t.category === filterCat)
+    : displayTxs;
   const grandTotal = txs.reduce((s, t) => s + t.amount, 0);
 
   return (
@@ -268,8 +296,26 @@ export default function TransactionsPanel({
         )}
       </div>
 
-      {/* Budget vs actual */}
-      <MonthlyBudgetStatus month={month} />
+      {/* Search */}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-4 text-xs pointer-events-none">
+          ⌕
+        </span>
+        <input
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search all transactions…"
+          className="w-full text-sm bg-bg border border-border rounded-xl pl-7 pr-4 py-2 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+        />
+        {isSearching && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-4">
+            {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Budget vs actual (hidden in search mode) */}
+      {!isSearching && <MonthlyBudgetStatus month={month} />}
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (
@@ -303,17 +349,20 @@ export default function TransactionsPanel({
       {/* Transaction list */}
       <div>
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-          Transactions
+          {isSearching ? `Search results` : 'Transactions'}
         </h3>
         {filtered.length === 0 && (
           <p className="text-sm text-text-3 py-4">
-            No transactions yet for this month.
+            {isSearching
+              ? 'No transactions match your search.'
+              : 'No transactions yet for this month.'}
           </p>
         )}
         {filtered.map((t) => (
           <TxRow
             key={t.id}
             tx={t}
+            showMonth={isSearching}
             onUpdate={(data) => updateTx(t.id, data)}
             onDelete={() => deleteTx(t.id)}
           />
@@ -376,10 +425,12 @@ export default function TransactionsPanel({
 
 function TxRow({
   tx,
+  showMonth,
   onUpdate,
   onDelete,
 }: {
   tx: Transaction;
+  showMonth?: boolean;
   onUpdate: (
     data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
   ) => void;
@@ -450,6 +501,9 @@ function TxRow({
           </select>
           {tx.source !== 'manual' && (
             <span className="text-xs text-text-3">{tx.source}</span>
+          )}
+          {showMonth && (
+            <span className="text-xs font-mono text-text-4">{tx.month}</span>
           )}
         </div>
       </div>

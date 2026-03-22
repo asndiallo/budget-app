@@ -31,7 +31,13 @@ interface MonthData {
   categories: Record<string, number>;
 }
 
-export default function AnalyticsPanel({ month }: { month: string }) {
+export default function AnalyticsPanel({
+  month,
+  onCategoryClick,
+}: {
+  month: string;
+  onCategoryClick?: (category: string) => void;
+}) {
   const [data, setData] = useState<MonthData[]>([]);
 
   useEffect(() => {
@@ -84,6 +90,10 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                   outerRadius={95}
                   paddingAngle={2}
                   dataKey="value"
+                  onClick={(entry) =>
+                    entry.name && onCategoryClick?.(entry.name)
+                  }
+                  style={{ cursor: onCategoryClick ? 'pointer' : 'default' }}
                 >
                   {donutData.map((entry) => (
                     <Cell
@@ -236,6 +246,8 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                       ? [3, 3, 0, 0]
                       : undefined
                   }
+                  onClick={() => onCategoryClick?.(cat)}
+                  style={{ cursor: onCategoryClick ? 'pointer' : 'default' }}
                 />
               ))}
             </BarChart>
