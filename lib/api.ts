@@ -2,6 +2,7 @@
 // Only call these functions from 'use client' components.
 
 import type {
+  CategoryBudget,
   CsvRow,
   Debt,
   FixedExpense,
@@ -10,6 +11,7 @@ import type {
   IncomeEntry,
   PaymentSource,
   Receivable,
+  SpendingInsights,
   Transaction,
 } from './types';
 
@@ -79,10 +81,26 @@ export const api = {
     list: () => fetch('/api/goals').then(asJson<Goal[]>),
     add: (name: string, target: number, color: string) =>
       send('POST', '/api/goals', { name, target, color }).then(asJson<Goal>),
-    updateSaved: (id: number, saved: number) =>
-      send('PATCH', '/api/goals', { id, saved }).then(asJson<{ ok: boolean }>),
+    update: (id: number, fields: Partial<Pick<Goal, 'name' | 'target' | 'saved' | 'color'>>) =>
+      send('PATCH', '/api/goals', { id, ...fields }).then(asJson<{ ok: boolean }>),
     remove: (id: number) =>
       send('DELETE', '/api/goals', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  insights: {
+    get: () => fetch('/api/insights').then(asJson<SpendingInsights>),
+  },
+
+  categoryBudgets: {
+    list: () => fetch('/api/category-budgets').then(asJson<CategoryBudget[]>),
+    set: (category: string, budget: number) =>
+      send('PUT', '/api/category-budgets', { category, budget }).then(
+        asJson<{ ok: boolean }>,
+      ),
+    remove: (category: string) =>
+      send('DELETE', '/api/category-budgets', { category }).then(
+        asJson<{ ok: boolean }>,
+      ),
   },
 
   paymentSources: {

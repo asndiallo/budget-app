@@ -66,3 +66,33 @@ export interface Debt {
   monthly_payment: number;
   interest_rate: number;
 }
+
+export interface CategoryBudget {
+  category: string;
+  budget: number;
+}
+
+export interface CategoryInsight {
+  category: string;
+  /** Average spending over the last 3 complete months. */
+  avg3m: number;
+  /** Average spending over the last 6 complete months. */
+  avg6m: number;
+  /** Spending in the most-recent analysed month. */
+  lastMonth: number;
+  /** Trend direction: spending going up, down, or stable vs 6-month baseline. */
+  trend: 'up' | 'down' | 'stable';
+  /** Suggested monthly budget (rounded to nearest $5). */
+  suggestedBudget: number;
+}
+
+export interface SpendingInsights {
+  /** Average total monthly spending across analysed months. */
+  avgMonthlyExpenses: number;
+  /** Suggested emergency fund target (3× avgMonthlyExpenses). */
+  suggestedEmergencyFund: number;
+  /** Number of months with transaction data that were used. */
+  monthsAnalyzed: number;
+  /** Per-category breakdown. */
+  categoryInsights: CategoryInsight[];
+}
