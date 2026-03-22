@@ -16,6 +16,14 @@ const EMERGENCY_MONTHS = 3;
 
 const isEmergencyFund = (name: string) => EMERGENCY_PATTERN.test(name);
 
+function formatMonthsToGoal(months: number): string {
+  if (months <= 0) return '';
+  if (months < 12) return `~${months} mo`;
+  const yrs = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem === 0 ? `~${yrs} yr` : `~${yrs} yr ${rem} mo`;
+}
+
 interface EditDraft {
   name: string;
   target: string;
@@ -291,6 +299,18 @@ export default function GoalsPanel() {
                             · ${Math.round(remaining).toLocaleString()} left
                           </span>
                         )}
+                        {pct < 100 &&
+                          insights &&
+                          insights.avgMonthlyNet > 0 && (
+                            <span className="text-[#4a5575]">
+                              {' '}
+                              ·{' '}
+                              {formatMonthsToGoal(
+                                Math.ceil(remaining / insights.avgMonthlyNet),
+                              )}{' '}
+                              at current rate
+                            </span>
+                          )}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

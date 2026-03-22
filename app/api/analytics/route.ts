@@ -1,6 +1,5 @@
-import { INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
-
 import { NextResponse } from 'next/server';
+import { computeMonthlyFinancials } from '@/lib/income';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 
@@ -21,23 +20,6 @@ function shortLabel(month: string): string {
   });
 }
 
-// Nearest-prior snapshot query for income
-function incomeForMonth(
-  db: ReturnType<typeof getDb>,
-  month: string,
-): Record<string, number> {
-  const rows = db
-    .prepare(
-      `SELECT key, value FROM income_config i1
-       WHERE month <= ?
-         AND month = (
-           SELECT MAX(month) FROM income_config i2
-           WHERE i2.key = i1.key AND i2.month <= ?
-         )`,
-    )
-    .all(month, month) as { key: string; value: number }[];
-  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
-}
 
 export async function GET(req: Request) {
   const db = getDb();
@@ -66,11 +48,7 @@ export async function GET(req: Request) {
 
   // Income + deductions per month
   const result = months.map((m) => {
-    const income = incomeForMonth(db, m);
-    const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
-    const totalIncome = INCOME_FIELDS.reduce((s, f) => s + (income[f.key] ?? 0), 0);
-    const tsp = Math.round((income.base_pay ?? 0) * tspRate);
-    const roth = income.roth_ira ?? 0;
+    const { totalIncome, tsp, roth } = computeMonthlyFinancials(db, m);
     const categories = spendingMap.get(m) ?? {};
     const spending = Object.values(categories).reduce((s, v) => s + v, 0);
 

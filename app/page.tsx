@@ -23,6 +23,7 @@ import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import TransactionsPanel from './components/TransactionsPanel';
+import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
 
 type Tab = 'income' | 'transactions' | 'goals' | 'analytics';
@@ -34,6 +35,7 @@ interface Summary {
   committed: number;
   spending: number;
   net: number;
+  savingsRate: number;
 }
 
 const MONTH_NAMES = [
@@ -94,14 +96,12 @@ function calcSummary(
   const spending = txs.reduce((s, t) => s + t.amount, 0);
   const deductions =
     tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
-  return {
-    totalIncome,
-    tsp,
-    roth,
-    committed,
-    spending,
-    net: totalIncome - deductions - committed - spending,
-  };
+  const net = totalIncome - deductions - committed - spending;
+  const savingsRate =
+    totalIncome > 0
+      ? Math.round(((tsp + roth + Math.max(0, net)) / totalIncome) * 100)
+      : 0;
+  return { totalIncome, tsp, roth, committed, spending, net, savingsRate };
 }
 
 const TABS: { key: Tab; label: string }[] = [
@@ -204,7 +204,7 @@ export default function Home() {
         {/* Summary metrics */}
         {summary && (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
               <MetricCard
                 label="Total income"
                 value={formatCurrency(summary.totalIncome)}
@@ -230,6 +230,17 @@ export default function Home() {
                   (summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)
                 }
                 accent={summary.net >= 0 ? 'green' : 'red'}
+              />
+              <MetricCard
+                label="Savings rate"
+                value={`${summary.savingsRate}%`}
+                accent={
+                  summary.savingsRate >= 20
+                    ? 'green'
+                    : summary.savingsRate >= 10
+                      ? 'amber'
+                      : 'red'
+                }
               />
             </div>
 
@@ -281,7 +292,12 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {tab === 'analytics' && <AnalyticsPanel month={month} />}
+            {tab === 'analytics' && (
+              <div className="space-y-8">
+                <YtdPanel month={month} />
+                <AnalyticsPanel month={month} />
+              </div>
+            )}
           </div>
         </div>
       </main>

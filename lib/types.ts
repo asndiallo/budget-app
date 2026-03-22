@@ -87,12 +87,20 @@ export interface CategoryInsight {
 }
 
 export interface SpendingInsights {
-  /** Average total monthly spending across analysed months. */
   avgMonthlyExpenses: number;
-  /** Suggested emergency fund target (3× avgMonthlyExpenses). */
+  /** Average (income − TSP − Roth − spending) across analysed months. */
+  avgMonthlyNet: number;
   suggestedEmergencyFund: number;
-  /** Number of months with transaction data that were used. */
   monthsAnalyzed: number;
-  /** Per-category breakdown. */
   categoryInsights: CategoryInsight[];
+}
+
+export interface YtdSummary {
+  year: number;
+  monthsRecorded: number;
+  totalIncome: number;
+  totalInvested: number;
+  totalSpending: number;
+  /** totalIncome − totalInvested − totalSpending */
+  netSaved: number;
 }

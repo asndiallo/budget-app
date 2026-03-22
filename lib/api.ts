@@ -13,6 +13,7 @@ import type {
   Receivable,
   SpendingInsights,
   Transaction,
+  YtdSummary,
 } from './types';
 
 const H = { 'Content-Type': 'application/json' };
@@ -81,14 +82,24 @@ export const api = {
     list: () => fetch('/api/goals').then(asJson<Goal[]>),
     add: (name: string, target: number, color: string) =>
       send('POST', '/api/goals', { name, target, color }).then(asJson<Goal>),
-    update: (id: number, fields: Partial<Pick<Goal, 'name' | 'target' | 'saved' | 'color'>>) =>
-      send('PATCH', '/api/goals', { id, ...fields }).then(asJson<{ ok: boolean }>),
+    update: (
+      id: number,
+      fields: Partial<Pick<Goal, 'name' | 'target' | 'saved' | 'color'>>,
+    ) =>
+      send('PATCH', '/api/goals', { id, ...fields }).then(
+        asJson<{ ok: boolean }>,
+      ),
     remove: (id: number) =>
       send('DELETE', '/api/goals', { id }).then(asJson<{ ok: boolean }>),
   },
 
   insights: {
     get: () => fetch('/api/insights').then(asJson<SpendingInsights>),
+  },
+
+  ytd: {
+    get: (month: string) =>
+      fetch(`/api/ytd?month=${month}`).then(asJson<YtdSummary>),
   },
 
   categoryBudgets: {
