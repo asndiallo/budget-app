@@ -152,6 +152,36 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   );
 }
 
+interface PayoffInfo {
+  months: number;
+  totalInterest: number;
+}
+
+function calcPayoff(debt: Debt): PayoffInfo | null {
+  if (debt.balance <= 0 || debt.monthly_payment <= 0) return null;
+  if (debt.interest_rate === 0) {
+    return {
+      months: Math.ceil(debt.balance / debt.monthly_payment),
+      totalInterest: 0,
+    };
+  }
+  const r = debt.interest_rate / 100 / 12;
+  if (debt.monthly_payment <= debt.balance * r) return null; // payment can't cover interest
+  const n =
+    -Math.log(1 - (r * debt.balance) / debt.monthly_payment) / Math.log(1 + r);
+  const months = Math.ceil(n);
+  return {
+    months,
+    totalInterest: Math.round(debt.monthly_payment * months - debt.balance),
+  };
+}
+
+function payoffDate(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
 function DebtRow({
   debt,
   onUpdate,
@@ -210,6 +240,30 @@ function DebtRow({
               onSave={(v) => onUpdate(debt, 'interest_rate', v)}
             />
           </div>
+          {!isPaidOff &&
+            (() => {
+              const info = calcPayoff(debt);
+              if (!info) return null;
+              return (
+                <div className="flex gap-4 mt-2 pt-2 border-t border-[#1c2840] flex-wrap">
+                  <span className="text-[11px] text-[#7c88a4]">
+                    Paid off{' '}
+                    <span className="text-[#dce4f8] font-mono">
+                      ~{payoffDate(info.months)}
+                    </span>{' '}
+                    <span className="text-[#4a5575]">({info.months} mo)</span>
+                  </span>
+                  {info.totalInterest > 0 && (
+                    <span className="text-[11px] text-[#7c88a4]">
+                      Total interest{' '}
+                      <span className="text-[#ff4560] font-mono">
+                        ${info.totalInterest.toLocaleString()}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
         </div>
         <button
           onClick={() => onRemove(debt.id)}

@@ -4,6 +4,7 @@ import { CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY } from '@/lib/config';
 import type { PaymentSource, Transaction } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import MonthlyBudgetStatus from './MonthlyBudgetStatus';
 import { api } from '@/lib/api';
 import { parseCSVLine } from '@/lib/utils';
 
@@ -266,6 +267,9 @@ export default function TransactionsPanel({
           </div>
         )}
       </div>
+
+      {/* Budget vs actual */}
+      <MonthlyBudgetStatus month={month} />
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (

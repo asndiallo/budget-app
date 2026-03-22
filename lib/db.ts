@@ -124,6 +124,7 @@ function initSchema(db: Database.Database) {
       category TEXT PRIMARY KEY,
       budget   REAL NOT NULL
     );
+
   `);
 
   // ── Column migrations ────────────────────────────────────────────────────────
