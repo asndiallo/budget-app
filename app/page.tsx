@@ -16,6 +16,7 @@ import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
+import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
@@ -140,13 +141,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#06080f]">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#1b2236] bg-[#06080f]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-[#1f2d46] bg-[#06080f]/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-sm font-semibold text-[#dce4f8] tracking-tight">
               {APP_CONFIG.title}
             </h1>
-            <p className="text-[11px] text-[#353d55] mt-0.5 tracking-wide">
+            <p className="text-[11px] text-[#7c88a4] mt-0.5 tracking-wide">
               {APP_CONFIG.subtitle}
             </p>
           </div>
@@ -155,7 +156,7 @@ export default function Home() {
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setMonth(prevMonth(month))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#353d55] hover:text-[#6b7494] hover:bg-[#111525] transition-all text-base leading-none"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#7c88a4] hover:text-[#9da8c2] hover:bg-[#141b2e] transition-all text-base leading-none"
               >
                 ‹
               </button>
@@ -190,7 +191,7 @@ export default function Home() {
               </select>
               <button
                 onClick={() => setMonth(nextMonth(month))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#353d55] hover:text-[#6b7494] hover:bg-[#111525] transition-all text-base leading-none"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-[#7c88a4] hover:text-[#9da8c2] hover:bg-[#141b2e] transition-all text-base leading-none"
               >
                 ›
               </button>
@@ -238,17 +239,17 @@ export default function Home() {
         )}
 
         {/* Tab panel */}
-        <div className="bg-[#0b0e19] rounded-2xl border border-[#1b2236] overflow-hidden">
+        <div className="bg-[#0b0e19] rounded-2xl border border-[#1f2d46] overflow-hidden">
           {/* Tab navigation */}
-          <div className="flex gap-1 p-1.5 border-b border-[#1b2236]">
+          <div className="flex gap-1 p-1.5 border-b border-[#1f2d46]">
             {TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                   tab === key
-                    ? 'bg-[#111525] text-[#dce4f8] shadow-sm'
-                    : 'text-[#353d55] hover:text-[#6b7494]'
+                    ? 'bg-[#141b2e] text-[#dce4f8] shadow-sm'
+                    : 'text-[#7c88a4] hover:text-[#9da8c2]'
                 }`}
               >
                 {label}
@@ -269,7 +270,17 @@ export default function Home() {
             {tab === 'transactions' && (
               <TransactionsPanel month={month} onUpdate={fetchSummary} />
             )}
-            {tab === 'goals' && <GoalsPanel />}
+            {tab === 'goals' && (
+              <div className="space-y-8">
+                <GoalsPanel />
+                <div>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+                    Budget suggestions
+                  </h3>
+                  <BudgetSuggestionsPanel />
+                </div>
+              </div>
+            )}
             {tab === 'analytics' && <AnalyticsPanel month={month} />}
           </div>
         </div>
@@ -308,7 +319,7 @@ function MetricCard({
   const color = ACCENT_LINE[accent] ?? 'transparent';
   const textClass = ACCENT_TEXT[accent] ?? ACCENT_TEXT.default;
   return (
-    <div className="bg-[#0b0e19] rounded-xl border border-[#1b2236] p-4 relative overflow-hidden">
+    <div className="bg-[#0b0e19] rounded-xl border border-[#1f2d46] p-4 relative overflow-hidden">
       {accent !== 'default' && (
         <div
           className="absolute top-0 left-0 right-0 h-px"
@@ -317,7 +328,7 @@ function MetricCard({
           }}
         />
       )}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-2">
         {label}
       </p>
       <p
@@ -366,8 +377,8 @@ function BudgetBar({ summary }: { summary: Summary }) {
   ];
 
   return (
-    <div className="bg-[#0b0e19] rounded-xl border border-[#1b2236] px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-2.5">
+    <div className="bg-[#0b0e19] rounded-xl border border-[#1f2d46] px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-2.5">
         Allocation
       </p>
       <div className="h-1.5 bg-[#06080f] rounded-full flex gap-px overflow-hidden">
@@ -387,7 +398,7 @@ function BudgetBar({ summary }: { summary: Summary }) {
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: color }}
             />
-            <span className="text-[11px] text-[#6b7494]">
+            <span className="text-[11px] text-[#9da8c2]">
               {label}{' '}
               <span style={{ color }} className="font-mono">
                 {Math.round(p)}%
