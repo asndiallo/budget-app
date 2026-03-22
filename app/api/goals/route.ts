@@ -28,8 +28,19 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const db = getDb();
-  const { id, saved } = await req.json();
-  db.prepare('UPDATE goals SET saved = ? WHERE id = ?').run(saved, id);
+  const body = await req.json();
+  const { id } = body;
+
+  // Build SET clause dynamically from whichever editable fields are present
+  const editable = ['saved', 'target', 'name', 'color'] as const;
+  const updates = editable.filter((f) => f in body);
+
+  if (updates.length > 0) {
+    const clause = updates.map((f) => `${f} = ?`).join(', ');
+    const values = updates.map((f) => body[f]);
+    db.prepare(`UPDATE goals SET ${clause} WHERE id = ?`).run(...values, id);
+  }
+
   return NextResponse.json({ ok: true });
 }
 

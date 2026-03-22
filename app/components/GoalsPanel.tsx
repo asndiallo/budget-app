@@ -6,14 +6,36 @@ import {
   GOAL_COLORS,
   GOAL_DOT_COLORS,
 } from '@/lib/config';
+import type { Goal, SpendingInsights } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import type { Goal } from '@/lib/types';
 import { api } from '@/lib/api';
+
+const EMERGENCY_PATTERN = /emergency/i;
+const EMERGENCY_MONTHS = 3;
+
+const isEmergencyFund = (name: string) => EMERGENCY_PATTERN.test(name);
+
+interface EditDraft {
+  name: string;
+  target: string;
+  saved: string;
+  color: string;
+}
+
+function toDraft(g: Goal): EditDraft {
+  return {
+    name: g.name,
+    target: String(g.target),
+    saved: String(g.saved),
+    color: g.color,
+  };
+}
 
 export default function GoalsPanel() {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [addAmounts, setAddAmounts] = useState<Record<number, string>>({});
+  const [insights, setInsights] = useState<SpendingInsights | null>(null);
+  const [editing, setEditing] = useState<Record<number, EditDraft>>({});
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newColor, setNewColor] = useState<string>(DEFAULT_GOAL_COLOR);
@@ -22,14 +44,52 @@ export default function GoalsPanel() {
 
   useEffect(() => {
     reload();
+    api.insights.get().then(setInsights);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function addSavings(goal: Goal) {
-    const add = parseFloat(addAmounts[goal.id] || '0');
-    if (!add) return;
-    const newSaved = Math.min(goal.target, goal.saved + add);
-    await api.goals.updateSaved(goal.id, newSaved);
-    setAddAmounts((prev) => ({ ...prev, [goal.id]: '' }));
+  // ── Edit helpers ─────────────────────────────────────────────────────────────
+
+  const startEdit = (g: Goal) =>
+    setEditing((prev) => ({ ...prev, [g.id]: toDraft(g) }));
+
+  const cancelEdit = (id: number) =>
+    setEditing((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
+  const patchDraft = (id: number, patch: Partial<EditDraft>) =>
+    setEditing((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], ...patch },
+    }));
+
+  async function saveEdit(g: Goal) {
+    const d = editing[g.id];
+    if (!d) return;
+
+    const name = d.name.trim();
+    const target = parseFloat(d.target);
+    const saved = parseFloat(d.saved);
+
+    if (!name || isNaN(target) || target < 0 || isNaN(saved) || saved < 0)
+      return;
+
+    await api.goals.update(g.id, {
+      name,
+      target,
+      saved: Math.min(saved, target),
+      color: d.color,
+    });
+    cancelEdit(g.id);
+    reload();
+  }
+
+  // ── Add savings (non-edit mode quick-add) ────────────────────────────────────
+
+  async function applySmartTarget(g: Goal, suggested: number) {
+    await api.goals.update(g.id, { target: suggested });
     reload();
   }
 
@@ -50,6 +110,14 @@ export default function GoalsPanel() {
   const totalSaved = goals.reduce((s, g) => s + g.saved, 0);
   const overallPct =
     totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+
+  const smartFundTarget =
+    insights && insights.monthsAnalyzed > 0
+      ? Math.round(insights.avgMonthlyExpenses * EMERGENCY_MONTHS)
+      : null;
+
+  const inputClass =
+    'text-sm font-mono bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2.5 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors';
 
   return (
     <div className="space-y-5">
@@ -75,9 +143,9 @@ export default function GoalsPanel() {
           ].map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-[#06080f] rounded-xl border border-[#1b2236] p-3.5"
+              className="bg-[#06080f] rounded-xl border border-[#1f2d46] p-3.5"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-1.5">
                 {label}
               </p>
               <p className={`font-mono text-lg font-semibold ${color}`}>
@@ -91,83 +159,222 @@ export default function GoalsPanel() {
       {/* Goal cards */}
       <div className="space-y-3">
         {goals.map((g) => {
+          const draft = editing[g.id];
+          const isEditing = !!draft;
+
           const pct =
             g.target > 0
               ? Math.min(100, Math.round((g.saved / g.target) * 100))
               : 0;
           const remaining = Math.max(0, g.target - g.saved);
+
+          const showSmartBanner =
+            !isEditing &&
+            isEmergencyFund(g.name) &&
+            smartFundTarget !== null &&
+            smartFundTarget !== g.target &&
+            smartFundTarget > 0;
+
           return (
             <div
               key={g.id}
-              className="bg-[#06080f] border border-[#1b2236] rounded-xl p-4"
+              className="bg-[#06080f] border border-[#1f2d46] rounded-xl p-4"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
+              {isEditing ? (
+                /* ── Edit mode ── */
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      autoFocus
+                      value={draft.name}
+                      onChange={(e) =>
+                        patchDraft(g.id, { name: e.target.value })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit(g);
+                        if (e.key === 'Escape') cancelEdit(g.id);
+                      }}
+                      placeholder="Goal name"
+                      className={`flex-1 ${inputClass}`}
+                      style={{ fontFamily: 'inherit' }}
+                    />
+                    <select
+                      value={draft.color}
+                      onChange={(e) =>
+                        patchDraft(g.id, { color: e.target.value })
+                      }
+                      className="text-sm bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2.5 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
                     >
-                      {pct}%
-                    </span>
-                    <span className="text-sm font-semibold text-[#dce4f8]">
-                      {g.name}
-                    </span>
+                      {GOAL_COLORS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <p className="text-xs text-[#353d55] font-mono">
-                    ${Math.round(g.saved).toLocaleString()}{' '}
-                    <span className="text-[#2a3248]">
-                      / ${Math.round(g.target).toLocaleString()}
-                    </span>
-                    {pct < 100 && remaining > 0 && (
-                      <span className="text-[#353d55]">
-                        {' '}
-                        · ${Math.round(remaining).toLocaleString()} left
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <button
-                  onClick={() => deleteGoal(g.id)}
-                  className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
 
-              {/* Progress bar */}
-              <div className="h-1.5 bg-[#0b0e19] rounded-full overflow-hidden mb-3">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <p className="text-[10px] text-[#7c88a4] mb-1">
+                        Target $
+                      </p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={draft.target}
+                        onChange={(e) =>
+                          patchDraft(g.id, { target: e.target.value })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit(g);
+                          if (e.key === 'Escape') cancelEdit(g.id);
+                        }}
+                        className={`w-full ${inputClass}`}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] text-[#7c88a4] mb-1">Saved $</p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={draft.saved}
+                        onChange={(e) =>
+                          patchDraft(g.id, { saved: e.target.value })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit(g);
+                          if (e.key === 'Escape') cancelEdit(g.id);
+                        }}
+                        className={`w-full ${inputClass}`}
+                      />
+                    </div>
+                  </div>
 
-              {pct < 100 ? (
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={addAmounts[g.id] || ''}
-                    onChange={(e) =>
-                      setAddAmounts((prev) => ({
-                        ...prev,
-                        [g.id]: e.target.value,
-                      }))
-                    }
-                    onKeyDown={(e) => e.key === 'Enter' && addSavings(g)}
-                    placeholder="Add savings $"
-                    className="flex-1 text-sm font-mono bg-[#0b0e19] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
-                  />
-                  <button
-                    onClick={() => addSavings(g)}
-                    className="text-sm px-3 py-1.5 rounded-lg border border-[#1b2236] text-[#6b7494] hover:border-[#2d4080] hover:text-[#dce4f8] transition-colors"
-                  >
-                    Add
-                  </button>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => cancelEdit(g.id)}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:text-[#dce4f8] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => saveEdit(g)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <p className="text-xs font-semibold text-[#00d98a]">
-                  Goal reached! 🎯
-                </p>
+                /* ── View mode ── */
+                <>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
+                        >
+                          {pct}%
+                        </span>
+                        <span className="text-sm font-semibold text-[#dce4f8]">
+                          {g.name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#7c88a4] font-mono">
+                        ${Math.round(g.saved).toLocaleString()}{' '}
+                        <span className="text-[#4a5575]">
+                          / ${Math.round(g.target).toLocaleString()}
+                        </span>
+                        {pct < 100 && remaining > 0 && (
+                          <span className="text-[#7c88a4]">
+                            {' '}
+                            · ${Math.round(remaining).toLocaleString()} left
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEdit(g)}
+                        className="text-[#7c88a4] hover:text-[#9da8c2] text-xs transition-colors"
+                        title="Edit goal"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => deleteGoal(g.id)}
+                        className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
+                        title="Delete goal"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 bg-[#0b0e19] rounded-full overflow-hidden mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  {/* Smart target banner for emergency fund goals */}
+                  {showSmartBanner && insights && (
+                    <div className="mb-3 rounded-lg border border-[#1a2e1a] bg-[#0a150a] px-3 py-2.5 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2d6a2d] mb-0.5">
+                          Smart target
+                        </p>
+                        <p className="text-xs text-[#4a8f4a] leading-snug">
+                          3-month fund ·{' '}
+                          <span className="font-mono">
+                            ${insights.avgMonthlyExpenses.toLocaleString()}{' '}
+                            avg/mo
+                          </span>{' '}
+                          × {EMERGENCY_MONTHS} ={' '}
+                          <span className="font-mono font-semibold text-[#00d98a]">
+                            ${smartFundTarget!.toLocaleString()}
+                          </span>{' '}
+                          <span className="text-[#2d6a2d]">
+                            ({insights.monthsAnalyzed} months of data)
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => applySmartTarget(g, smartFundTarget!)}
+                        className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-[#2d6a2d] text-[#00d98a] hover:bg-[#0f2a0f] transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+
+                  {pct < 100 ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Add savings $"
+                        onKeyDown={async (e) => {
+                          if (e.key !== 'Enter') return;
+                          const v = parseFloat(
+                            (e.target as HTMLInputElement).value,
+                          );
+                          if (!v) return;
+                          const newSaved = Math.min(g.target, g.saved + v);
+                          await api.goals.update(g.id, { saved: newSaved });
+                          (e.target as HTMLInputElement).value = '';
+                          reload();
+                        }}
+                        className="flex-1 text-sm font-mono bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs font-semibold text-[#00d98a]">
+                      Goal reached! 🎯
+                    </p>
+                  )}
+                </>
               )}
             </div>
           );
@@ -176,7 +383,7 @@ export default function GoalsPanel() {
 
       {/* New goal form */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
           New goal
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -185,7 +392,7 @@ export default function GoalsPanel() {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Goal name"
-            className="flex-1 min-w-40 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="flex-1 min-w-40 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={newTarget}
@@ -193,12 +400,12 @@ export default function GoalsPanel() {
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Target $"
             type="number"
-            className="w-28 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="w-28 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <select
             value={newColor}
             onChange={(e) => setNewColor(e.target.value)}
-            className="text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+            className="text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
           >
             {GOAL_COLORS.map((c) => (
               <option key={c} value={c}>
