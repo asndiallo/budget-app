@@ -5,7 +5,10 @@
       "Bash(git rm:*)",
       "Bash(git commit:*)",
       "Bash(bun add:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(perl -i -pe ':*)"
     ]
   }
 }
