@@ -53,11 +53,11 @@ export default function FixedExpensesPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55]">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4]">
           Fixed expenses
         </h3>
         {fixed.length > 0 && (
-          <span className="font-mono text-xs text-[#6b7494]">
+          <span className="font-mono text-xs text-[#9da8c2]">
             ${Math.round(total).toLocaleString()}/mo
           </span>
         )}
@@ -68,7 +68,7 @@ export default function FixedExpensesPanel({
         return (
           <div
             key={f.id}
-            className="flex items-center py-3 border-b border-[#131929] gap-2"
+            className="flex items-center py-3 border-b border-[#1c2840] gap-2"
           >
             <p className="flex-1 text-sm text-[#dce4f8]">{f.label}</p>
             <button
@@ -76,7 +76,7 @@ export default function FixedExpensesPanel({
               className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
                 f.period === 'annual'
                   ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                  : 'border-[#1b2236] text-[#353d55] hover:border-[#2d4080] hover:text-[#6b7494]'
+                  : 'border-[#1f2d46] text-[#7c88a4] hover:border-[#2d4080] hover:text-[#9da8c2]'
               }`}
               title="Toggle monthly / annual"
             >
@@ -84,7 +84,7 @@ export default function FixedExpensesPanel({
             </button>
             <button
               onClick={() => removeFixed(f.id)}
-              className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
+              className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
             >
               ✕
             </button>
@@ -94,7 +94,7 @@ export default function FixedExpensesPanel({
                 {f.period === 'annual' ? '/yr' : ''}
               </p>
               {f.period === 'annual' && (
-                <p className="font-mono text-[11px] text-[#353d55]">
+                <p className="font-mono text-[11px] text-[#7c88a4]">
                   ${mo.toFixed(2)}/mo
                 </p>
               )}
@@ -108,7 +108,7 @@ export default function FixedExpensesPanel({
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Label"
-          className="flex-1 min-w-32 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+          className="flex-1 min-w-32 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
         />
         <input
           value={newAmt}
@@ -116,19 +116,19 @@ export default function FixedExpensesPanel({
           onKeyDown={(e) => e.key === 'Enter' && addFixed()}
           placeholder="$"
           type="number"
-          className="w-20 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+          className="w-20 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
         />
         <select
           value={newPeriod}
           onChange={(e) => setNewPeriod(e.target.value as 'monthly' | 'annual')}
-          className="text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+          className="text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-2 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
         >
           <option value="monthly">/mo</option>
           <option value="annual">/yr</option>
         </select>
         <button
           onClick={addFixed}
-          className="text-sm px-3 py-1.5 rounded-lg border border-[#1b2236] text-[#6b7494] hover:border-[#2d4080] hover:text-[#dce4f8] transition-colors"
+          className="text-sm px-3 py-1.5 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:border-[#2d4080] hover:text-[#dce4f8] transition-colors"
         >
           + Add
         </button>

@@ -64,7 +64,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55]">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4]">
           Debts & loans
         </h3>
         {activeTotal > 0 && (
@@ -86,20 +86,20 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
       </div>
 
       {adding ? (
-        <div className="mt-3 bg-[#06080f] border border-[#1b2236] rounded-xl p-4 space-y-3">
+        <div className="mt-3 bg-[#06080f] border border-[#1f2d46] rounded-xl p-4 space-y-3">
           <div className="flex gap-2">
             <input
               autoFocus
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Label (e.g. Car Loan)"
-              className="flex-1 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="flex-1 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
             <input
               value={newLender}
               onChange={(e) => setNewLender(e.target.value)}
               placeholder="Lender"
-              className="flex-1 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="flex-1 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
           </div>
           <div className="flex gap-2">
@@ -108,27 +108,27 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
               onChange={(e) => setNewBalance(e.target.value)}
               placeholder="Balance $"
               type="number"
-              className="flex-1 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="flex-1 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
             <input
               value={newPayment}
               onChange={(e) => setNewPayment(e.target.value)}
               placeholder="Monthly $"
               type="number"
-              className="flex-1 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="flex-1 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
             <input
               value={newRate}
               onChange={(e) => setNewRate(e.target.value)}
               placeholder="Rate %"
               type="number"
-              className="w-24 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="w-24 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
           </div>
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => setAdding(false)}
-              className="text-sm px-3 py-1.5 rounded-lg border border-[#1b2236] text-[#6b7494] hover:text-[#dce4f8] transition-colors"
+              className="text-sm px-3 py-1.5 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:text-[#dce4f8] transition-colors"
             >
               Cancel
             </button>
@@ -143,7 +143,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="mt-3 text-sm text-[#353d55] hover:text-[#4a8cff] transition-colors"
+          className="mt-3 text-sm text-[#7c88a4] hover:text-[#4a8cff] transition-colors"
         >
           + Add debt / loan
         </button>
@@ -167,8 +167,8 @@ function DebtRow({
     <div
       className={`border rounded-xl p-3.5 transition-opacity ${
         isPaidOff
-          ? 'border-[#131929] bg-[#06080f] opacity-40'
-          : 'border-[#1b2236] bg-[#06080f]'
+          ? 'border-[#1c2840] bg-[#06080f] opacity-40'
+          : 'border-[#1f2d46] bg-[#06080f]'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -181,7 +181,7 @@ function DebtRow({
             />
             <EditableText
               value={debt.lender || 'Add lender'}
-              className={`text-xs ${debt.lender ? 'text-[#353d55]' : 'text-[#2a3248]'}`}
+              className={`text-xs ${debt.lender ? 'text-[#7c88a4]' : 'text-[#4a5575]'}`}
               onSave={(v) => onUpdate(debt, 'lender', v)}
             />
             {isPaidOff && (
@@ -213,7 +213,7 @@ function DebtRow({
         </div>
         <button
           onClick={() => onRemove(debt.id)}
-          className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors mt-0.5 shrink-0"
+          className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors mt-0.5 shrink-0"
         >
           ✕
         </button>
@@ -286,9 +286,9 @@ function Field({
 
   if (editing) {
     return (
-      <span className="flex items-center gap-0.5 text-xs text-[#6b7494]">
-        <span className="text-[#353d55]">{label}</span>
-        <span className="text-[#353d55]">{prefix}</span>
+      <span className="flex items-center gap-0.5 text-xs text-[#9da8c2]">
+        <span className="text-[#7c88a4]">{label}</span>
+        <span className="text-[#7c88a4]">{prefix}</span>
         <input
           autoFocus
           type="number"
@@ -310,19 +310,19 @@ function Field({
           }}
           className="w-20 font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#dce4f8]"
         />
-        <span className="text-[#353d55]">{suffix}</span>
+        <span className="text-[#7c88a4]">{suffix}</span>
       </span>
     );
   }
   return (
     <span
-      className="text-xs text-[#353d55] cursor-pointer hover:text-[#6b7494] transition-colors font-mono"
+      className="text-xs text-[#7c88a4] cursor-pointer hover:text-[#9da8c2] transition-colors font-mono"
       onClick={() => {
         setDraft(String(value));
         setEditing(true);
       }}
     >
-      <span className="font-sans text-[#353d55]">{label} </span>
+      <span className="font-sans text-[#7c88a4]">{label} </span>
       {prefix}
       {value.toLocaleString()}
       {suffix}

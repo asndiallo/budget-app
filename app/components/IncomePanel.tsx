@@ -51,7 +51,7 @@ export default function IncomePanel({
     onUpdate();
   }
 
-  if (!income) return <p className="text-sm text-[#353d55] py-4">Loading…</p>;
+  if (!income) return <p className="text-sm text-[#7c88a4] py-4">Loading…</p>;
 
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round((income.base_pay || 0) * tspRate);
@@ -84,10 +84,10 @@ export default function IncomePanel({
 
       <Section title="Deductions">
         {/* TSP — rate-editable row */}
-        <div className="flex items-center py-3 border-b border-[#131929]">
+        <div className="flex items-center py-3 border-b border-[#1c2840]">
           <div className="flex-1">
             <p className="text-sm text-[#dce4f8]">TSP</p>
-            <p className="text-[11px] text-[#353d55] mt-0.5">
+            <p className="text-[11px] text-[#7c88a4] mt-0.5">
               {TSP_CONFIG.note}
             </p>
           </div>
@@ -97,9 +97,9 @@ export default function IncomePanel({
               value={tspRateLocal}
               onChange={(e) => setTspRateLocal(e.target.value)}
               onBlur={saveTspRate}
-              className="w-14 text-sm text-right font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1 text-[#4a8cff] focus:outline-none focus:border-[#2d4080] transition-colors"
+              className="w-14 text-sm text-right font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-2 py-1 text-[#4a8cff] focus:outline-none focus:border-[#2d4080] transition-colors"
             />
-            <span className="text-xs text-[#353d55]">% of base</span>
+            <span className="text-xs text-[#7c88a4]">% of base</span>
           </div>
           <span className="font-mono text-sm text-[#ff4560] w-24 text-right">
             −${tsp.toLocaleString()}
@@ -123,12 +123,12 @@ export default function IncomePanel({
         {entries.map((e) => (
           <div
             key={e.id}
-            className="flex items-center py-3 border-b border-[#131929] gap-3"
+            className="flex items-center py-3 border-b border-[#1c2840] gap-3"
           >
             <div className="flex-1">
               <p className="text-sm text-[#dce4f8]">{e.description}</p>
               {e.source && e.source !== 'Other' && (
-                <span className="inline-block text-[11px] px-2 py-0.5 rounded-full bg-[#111525] text-[#6b7494] mt-0.5">
+                <span className="inline-block text-[11px] px-2 py-0.5 rounded-full bg-[#141b2e] text-[#9da8c2] mt-0.5">
                   {e.source}
                 </span>
               )}
@@ -138,7 +138,7 @@ export default function IncomePanel({
             </span>
             <button
               onClick={() => removeEntry(e.id)}
-              className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
+              className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
             >
               ✕
             </button>
@@ -151,7 +151,7 @@ export default function IncomePanel({
             onChange={(e) => setNewDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Description"
-            className="flex-1 min-w-36 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="flex-1 min-w-36 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={newAmt}
@@ -159,14 +159,14 @@ export default function IncomePanel({
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="w-20 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <input
             value={newSource}
             onChange={(e) => setNewSource(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Source (optional)"
-            className="flex-1 min-w-28 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="flex-1 min-w-28 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
           />
           <button
             onClick={addEntry}
@@ -189,7 +189,7 @@ function Section({
 }) {
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55] mb-3">
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
         {title}
       </h3>
       {children}
@@ -219,20 +219,20 @@ function Row({
   }, [value]);
 
   return (
-    <div className="flex items-center py-3 border-b border-[#131929]">
+    <div className="flex items-center py-3 border-b border-[#1c2840]">
       <div className="flex-1">
         <p className="text-sm text-[#dce4f8]">{label}</p>
-        {note && <p className="text-[11px] text-[#353d55] mt-0.5">{note}</p>}
+        {note && <p className="text-[11px] text-[#7c88a4] mt-0.5">{note}</p>}
       </div>
       <div className="flex items-center gap-1.5">
-        {prefix && <span className="text-sm text-[#353d55]">{prefix}</span>}
-        <span className="text-sm text-[#353d55]">$</span>
+        {prefix && <span className="text-sm text-[#7c88a4]">{prefix}</span>}
+        <span className="text-sm text-[#7c88a4]">$</span>
         <input
           type="number"
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           onBlur={() => onChange(parseFloat(local) || 0)}
-          className={`w-24 text-sm text-right font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1 focus:outline-none focus:border-[#2d4080] transition-colors ${valueColor}`}
+          className={`w-24 text-sm text-right font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-2 py-1 focus:outline-none focus:border-[#2d4080] transition-colors ${valueColor}`}
         />
       </div>
     </div>

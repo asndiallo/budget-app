@@ -78,7 +78,7 @@ export default function ReceivablesPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#353d55]">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4]">
           Receivables
         </h3>
         {outstanding.length > 0 && (
@@ -93,7 +93,7 @@ export default function ReceivablesPanel({
       </div>
 
       {outstanding.length === 0 && collected.length === 0 && (
-        <p className="text-sm text-[#353d55] py-2">No one owes you anything.</p>
+        <p className="text-sm text-[#7c88a4] py-2">No one owes you anything.</p>
       )}
 
       {outstanding.map((r) => {
@@ -103,7 +103,7 @@ export default function ReceivablesPanel({
         const isPaying = payingId === r.id;
 
         return (
-          <div key={r.id} className="py-3 border-b border-[#131929]">
+          <div key={r.id} className="py-3 border-b border-[#1c2840]">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <EditableText
@@ -114,11 +114,11 @@ export default function ReceivablesPanel({
                 <EditableText
                   value={r.description || ''}
                   placeholder="Add description"
-                  className="text-xs text-[#353d55]"
+                  className="text-xs text-[#7c88a4]"
                   onSave={(v) => updateField(r.id, { description: v })}
                 />
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="text-[11px] text-[#353d55]">
+                  <p className="text-[11px] text-[#7c88a4]">
                     Since {formatMonth(r.month_created)}
                   </p>
                   {r.amount_paid > 0 && (
@@ -142,7 +142,7 @@ export default function ReceivablesPanel({
               </button>
               <button
                 onClick={() => remove(r.id)}
-                className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
+                className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
               >
                 ✕
               </button>
@@ -161,14 +161,14 @@ export default function ReceivablesPanel({
             {/* Inline payment form */}
             {isPaying && (
               <div className="flex items-center gap-2 mt-2.5">
-                <span className="text-xs text-[#6b7494]">Amount received:</span>
+                <span className="text-xs text-[#9da8c2]">Amount received:</span>
                 <input
                   autoFocus
                   type="number"
                   value={paymentAmt}
                   onChange={(e) => setPaymentAmt(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submitPayment(r)}
-                  className="w-24 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-2 py-1 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors"
+                  className="w-24 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-2 py-1 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors"
                 />
                 <button
                   onClick={() => submitPayment(r)}
@@ -184,7 +184,7 @@ export default function ReceivablesPanel({
 
       {collected.length > 0 && (
         <details className="mt-2">
-          <summary className="text-xs text-[#353d55] cursor-pointer hover:text-[#6b7494] transition-colors select-none">
+          <summary className="text-xs text-[#7c88a4] cursor-pointer hover:text-[#9da8c2] transition-colors select-none">
             {collected.length} collected
           </summary>
           <div className="mt-1">
@@ -194,16 +194,16 @@ export default function ReceivablesPanel({
                 className="flex items-center py-2 gap-3 opacity-40"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#6b7494] line-through">
+                  <p className="text-sm text-[#9da8c2] line-through">
                     {r.name}
                   </p>
                   {r.description && (
-                    <p className="text-xs text-[#353d55] truncate">
+                    <p className="text-xs text-[#7c88a4] truncate">
                       {r.description}
                     </p>
                   )}
                 </div>
-                <span className="font-mono text-sm text-[#6b7494]">
+                <span className="font-mono text-sm text-[#9da8c2]">
                   ${r.amount.toLocaleString()}
                 </span>
                 <span className="text-xs text-[#00d98a]">
@@ -211,7 +211,7 @@ export default function ReceivablesPanel({
                 </span>
                 <button
                   onClick={() => remove(r.id)}
-                  className="text-[#353d55] hover:text-[#ff4560] text-xs transition-colors"
+                  className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
                 >
                   ✕
                 </button>
@@ -228,14 +228,14 @@ export default function ReceivablesPanel({
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="Name"
-          className="w-28 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+          className="w-28 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
         />
         <input
           value={newDesc}
           onChange={(e) => setNewDesc(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="What for? (optional)"
-          className="flex-1 min-w-32 text-sm bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+          className="flex-1 min-w-32 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
         />
         <input
           value={newAmt}
@@ -243,7 +243,7 @@ export default function ReceivablesPanel({
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="$"
           type="number"
-          className="w-20 text-sm font-mono bg-[#06080f] border border-[#1b2236] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#353d55] focus:outline-none focus:border-[#2d4080] transition-colors"
+          className="w-20 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
         />
         <button
           onClick={addReceivable}
