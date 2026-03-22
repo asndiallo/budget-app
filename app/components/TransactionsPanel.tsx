@@ -189,18 +189,18 @@ export default function TransactionsPanel({
   return (
     <div className="space-y-5">
       {/* CSV import */}
-      <div className="bg-[#06080f] rounded-xl border border-[#1f2d46] p-4">
+      <div className="bg-bg rounded-xl border border-border p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <p className="text-sm font-semibold text-[#dce4f8]">Import CSV</p>
-            <p className="text-xs text-[#7c88a4] mt-0.5">
+            <p className="text-sm font-semibold text-text">Import CSV</p>
+            <p className="text-xs text-text-3 mt-0.5">
               Apple Card · Chase · Navy Federal
             </p>
             {sources.length > 0 && (
               <select
                 value={csvSource}
                 onChange={(e) => setCsvSource(e.target.value)}
-                className="mt-2 text-xs bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2 py-1 text-[#9da8c2] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+                className="mt-2 text-xs bg-surface border border-border rounded-lg px-2 py-1 text-text-2 focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
               >
                 {sources.map((s) => (
                   <option key={s.id} value={s.label}>
@@ -211,7 +211,7 @@ export default function TransactionsPanel({
             )}
           </div>
           <label className="cursor-pointer shrink-0">
-            <span className="inline-block text-sm px-3 py-1.5 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:border-[#2d4080] hover:text-[#dce4f8] transition-colors whitespace-nowrap">
+            <span className="inline-block text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors whitespace-nowrap">
               {importing ? 'Importing…' : 'Upload CSV'}
             </span>
             <input
@@ -232,18 +232,18 @@ export default function TransactionsPanel({
       <div>
         <button
           onClick={() => setManagingCards((v) => !v)}
-          className="text-xs text-[#7c88a4] hover:text-[#9da8c2] transition-colors"
+          className="text-xs text-text-3 hover:text-text-2 transition-colors"
         >
           {managingCards ? '▾ Hide cards' : '▸ Manage cards'}
         </button>
         {managingCards && (
-          <div className="mt-2 bg-[#06080f] border border-[#1f2d46] rounded-xl p-3 space-y-2">
+          <div className="mt-2 bg-bg border border-border rounded-xl p-3 space-y-2">
             {sources.map((s) => (
               <div key={s.id} className="flex items-center justify-between">
-                <span className="text-sm text-[#dce4f8]">{s.label}</span>
+                <span className="text-sm text-text">{s.label}</span>
                 <button
                   onClick={() => removeCard(s.id)}
-                  className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
+                  className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
                 >
                   ✕
                 </button>
@@ -255,11 +255,11 @@ export default function TransactionsPanel({
                 onChange={(e) => setNewCard(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 placeholder="Card name"
-                className="flex-1 text-sm bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+                className="flex-1 text-sm bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
               />
               <button
                 onClick={addCard}
-                className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+                className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
               >
                 + Add
               </button>
@@ -278,8 +278,8 @@ export default function TransactionsPanel({
             onClick={() => setFilterCat(null)}
             className={`text-xs px-3 py-1 rounded-full border transition-all ${
               !filterCat
-                ? 'bg-[#dce4f8] text-[#06080f] border-[#dce4f8] font-medium'
-                : 'border-[#1f2d46] text-[#7c88a4] hover:border-[#2d4080] hover:text-[#9da8c2]'
+                ? 'bg-text text-bg border-text font-medium'
+                : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
             }`}
           >
             All · ${Math.round(grandTotal).toLocaleString()}
@@ -290,8 +290,8 @@ export default function TransactionsPanel({
               onClick={() => setFilterCat(filterCat === c ? null : c)}
               className={`text-xs px-3 py-1 rounded-full border transition-all ${
                 filterCat === c
-                  ? 'bg-[#dce4f8] text-[#06080f] border-[#dce4f8] font-medium'
-                  : 'border-[#1f2d46] text-[#7c88a4] hover:border-[#2d4080] hover:text-[#9da8c2]'
+                  ? 'bg-text text-bg border-text font-medium'
+                  : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
               }`}
             >
               {c} · ${Math.round(total).toLocaleString()}
@@ -302,11 +302,11 @@ export default function TransactionsPanel({
 
       {/* Transaction list */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
           Transactions
         </h3>
         {filtered.length === 0 && (
-          <p className="text-sm text-[#7c88a4] py-4">
+          <p className="text-sm text-text-3 py-4">
             No transactions yet for this month.
           </p>
         )}
@@ -322,7 +322,7 @@ export default function TransactionsPanel({
 
       {/* Add transaction */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
           Add manually
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -331,7 +331,7 @@ export default function TransactionsPanel({
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="Description"
-            className="flex-1 min-w-40 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="flex-1 min-w-40 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
           />
           <input
             value={amt}
@@ -339,12 +339,12 @@ export default function TransactionsPanel({
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
           />
           <select
             value={cat}
             onChange={(e) => setCat(e.target.value)}
-            className="text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
           >
             {CATEGORIES.map((c) => (
               <option key={c}>{c}</option>
@@ -353,7 +353,7 @@ export default function TransactionsPanel({
           <select
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            className="text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
           >
             <option value="manual">Manual</option>
             {sources.map((s) => (
@@ -364,7 +364,7 @@ export default function TransactionsPanel({
           </select>
           <button
             onClick={addTx}
-            className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+            className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
           >
             + Add
           </button>
@@ -410,7 +410,7 @@ function TxRow({
   }, [amt, tx.amount, onUpdate]);
 
   return (
-    <div className="flex items-center py-2.5 border-b border-[#1c2840] gap-3 group">
+    <div className="flex items-center py-2.5 border-b border-border-dim gap-3 group">
       <div className="flex-1 min-w-0">
         {editingDesc ? (
           <input
@@ -425,11 +425,11 @@ function TxRow({
                 setEditingDesc(false);
               }
             }}
-            className="w-full text-sm border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#dce4f8]"
+            className="w-full text-sm border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
           />
         ) : (
           <p
-            className="text-sm text-[#dce4f8] truncate cursor-pointer hover:text-[#9da8c2] transition-colors"
+            className="text-sm text-text truncate cursor-pointer hover:text-text-2 transition-colors"
             onClick={() => setEditingDesc(true)}
             title="Click to edit"
           >
@@ -449,7 +449,7 @@ function TxRow({
             ))}
           </select>
           {tx.source !== 'manual' && (
-            <span className="text-xs text-[#7c88a4]">{tx.source}</span>
+            <span className="text-xs text-text-3">{tx.source}</span>
           )}
         </div>
       </div>
@@ -468,11 +468,11 @@ function TxRow({
               setEditingAmt(false);
             }
           }}
-          className="w-20 text-sm text-right font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#dce4f8]"
+          className="w-20 text-sm text-right font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
         />
       ) : (
         <span
-          className="font-mono text-sm text-[#ff4560] cursor-pointer hover:text-[#9da8c2] transition-colors whitespace-nowrap"
+          className="font-mono text-sm text-[#ff4560] cursor-pointer hover:text-text-2 transition-colors whitespace-nowrap"
           onClick={() => setEditingAmt(true)}
           title="Click to edit"
         >
@@ -482,7 +482,7 @@ function TxRow({
 
       <button
         onClick={onDelete}
-        className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100"
+        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100"
       >
         ✕
       </button>

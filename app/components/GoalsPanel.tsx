@@ -125,7 +125,7 @@ export default function GoalsPanel() {
       : null;
 
   const inputClass =
-    'text-sm font-mono bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2.5 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors';
+    'text-sm font-mono bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors';
 
   return (
     <div className="space-y-5">
@@ -136,12 +136,12 @@ export default function GoalsPanel() {
             {
               label: 'Total saved',
               value: `$${Math.round(totalSaved).toLocaleString()}`,
-              color: 'text-[#dce4f8]',
+              color: 'text-text',
             },
             {
               label: 'Total target',
               value: `$${Math.round(totalTarget).toLocaleString()}`,
-              color: 'text-[#dce4f8]',
+              color: 'text-text',
             },
             {
               label: 'Overall',
@@ -151,9 +151,9 @@ export default function GoalsPanel() {
           ].map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-[#06080f] rounded-xl border border-[#1f2d46] p-3.5"
+              className="bg-bg rounded-xl border border-border p-3.5"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
                 {label}
               </p>
               <p className={`font-mono text-lg font-semibold ${color}`}>
@@ -186,7 +186,7 @@ export default function GoalsPanel() {
           return (
             <div
               key={g.id}
-              className="bg-[#06080f] border border-[#1f2d46] rounded-xl p-4"
+              className="bg-bg border border-border rounded-xl p-4"
             >
               {isEditing ? (
                 /* ── Edit mode ── */
@@ -211,7 +211,7 @@ export default function GoalsPanel() {
                       onChange={(e) =>
                         patchDraft(g.id, { color: e.target.value })
                       }
-                      className="text-sm bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2.5 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+                      className="text-sm bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
                     >
                       {GOAL_COLORS.map((c) => (
                         <option key={c} value={c}>
@@ -223,9 +223,7 @@ export default function GoalsPanel() {
 
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <p className="text-[10px] text-[#7c88a4] mb-1">
-                        Target $
-                      </p>
+                      <p className="text-[10px] text-text-3 mb-1">Target $</p>
                       <input
                         type="number"
                         min="0"
@@ -241,7 +239,7 @@ export default function GoalsPanel() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[10px] text-[#7c88a4] mb-1">Saved $</p>
+                      <p className="text-[10px] text-text-3 mb-1">Saved $</p>
                       <input
                         type="number"
                         min="0"
@@ -261,13 +259,13 @@ export default function GoalsPanel() {
                   <div className="flex gap-2 justify-end">
                     <button
                       onClick={() => cancelEdit(g.id)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:text-[#dce4f8] transition-colors"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => saveEdit(g)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
                     >
                       Save
                     </button>
@@ -284,17 +282,17 @@ export default function GoalsPanel() {
                         >
                           {pct}%
                         </span>
-                        <span className="text-sm font-semibold text-[#dce4f8]">
+                        <span className="text-sm font-semibold text-text">
                           {g.name}
                         </span>
                       </div>
-                      <p className="text-xs text-[#7c88a4] font-mono">
+                      <p className="text-xs text-text-3 font-mono">
                         ${Math.round(g.saved).toLocaleString()}{' '}
-                        <span className="text-[#4a5575]">
+                        <span className="text-text-4">
                           / ${Math.round(g.target).toLocaleString()}
                         </span>
                         {pct < 100 && remaining > 0 && (
-                          <span className="text-[#7c88a4]">
+                          <span className="text-text-3">
                             {' '}
                             · ${Math.round(remaining).toLocaleString()} left
                           </span>
@@ -302,7 +300,7 @@ export default function GoalsPanel() {
                         {pct < 100 &&
                           insights &&
                           insights.avgMonthlyNet > 0 && (
-                            <span className="text-[#4a5575]">
+                            <span className="text-text-4">
                               {' '}
                               ·{' '}
                               {formatMonthsToGoal(
@@ -316,14 +314,14 @@ export default function GoalsPanel() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => startEdit(g)}
-                        className="text-[#7c88a4] hover:text-[#9da8c2] text-xs transition-colors"
+                        className="text-text-3 hover:text-text-2 text-xs transition-colors"
                         title="Edit goal"
                       >
                         ✎
                       </button>
                       <button
                         onClick={() => deleteGoal(g.id)}
-                        className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors"
+                        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
                         title="Delete goal"
                       >
                         ✕
@@ -332,7 +330,7 @@ export default function GoalsPanel() {
                   </div>
 
                   {/* Progress bar */}
-                  <div className="h-1.5 bg-[#0b0e19] rounded-full overflow-hidden mb-3">
+                  <div className="h-1.5 bg-surface rounded-full overflow-hidden mb-3">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
                       style={{ width: `${pct}%` }}
@@ -386,7 +384,7 @@ export default function GoalsPanel() {
                           (e.target as HTMLInputElement).value = '';
                           reload();
                         }}
-                        className="flex-1 text-sm font-mono bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+                        className="flex-1 text-sm font-mono bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
                       />
                     </div>
                   ) : (
@@ -403,7 +401,7 @@ export default function GoalsPanel() {
 
       {/* New goal form */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
           New goal
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -412,7 +410,7 @@ export default function GoalsPanel() {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Goal name"
-            className="flex-1 min-w-40 text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="flex-1 min-w-40 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
           />
           <input
             value={newTarget}
@@ -420,12 +418,12 @@ export default function GoalsPanel() {
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Target $"
             type="number"
-            className="w-28 text-sm font-mono bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] placeholder-[#4a5575] focus:outline-none focus:border-[#2d4080] transition-colors"
+            className="w-28 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
           />
           <select
             value={newColor}
             onChange={(e) => setNewColor(e.target.value)}
-            className="text-sm bg-[#06080f] border border-[#1f2d46] rounded-lg px-3 py-1.5 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors cursor-pointer"
+            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
           >
             {GOAL_COLORS.map((c) => (
               <option key={c} value={c}>
@@ -435,7 +433,7 @@ export default function GoalsPanel() {
           </select>
           <button
             onClick={addGoal}
-            className="text-sm px-3 py-1.5 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+            className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
           >
             + Add
           </button>

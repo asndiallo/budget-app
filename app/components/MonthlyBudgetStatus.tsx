@@ -66,7 +66,7 @@ export default function MonthlyBudgetStatus({ month }: { month: string }) {
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
         Budget status — this month
       </h3>
       <div className="space-y-2">
@@ -92,30 +92,30 @@ export default function MonthlyBudgetStatus({ month }: { month: string }) {
 
               {hasBudget ? (
                 <>
-                  <div className="flex-1 h-1.5 bg-[#0b0e19] rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${pct}%`, backgroundColor: barColor }}
                     />
                   </div>
                   <span
-                    className={`text-xs font-mono shrink-0 ${over ? 'text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-[#7c88a4]'}`}
+                    className={`text-xs font-mono shrink-0 ${over ? 'text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-text-3'}`}
                   >
                     ${Math.round(spent).toLocaleString()}
-                    <span className="text-[#4a5575]">
+                    <span className="text-text-4">
                       /{Math.round(budget).toLocaleString()}
                     </span>
                   </span>
                   {!isUserBudget && (
-                    <span className="text-[10px] text-[#4a5575] shrink-0">
+                    <span className="text-[10px] text-text-4 shrink-0">
                       est
                     </span>
                   )}
                 </>
               ) : (
-                <span className="text-xs font-mono text-[#9da8c2]">
+                <span className="text-xs font-mono text-text-2">
                   ${Math.round(spent).toLocaleString()}
-                  <span className="text-[#4a5575]"> · no budget set</span>
+                  <span className="text-text-4"> · no budget set</span>
                 </span>
               )}
             </div>

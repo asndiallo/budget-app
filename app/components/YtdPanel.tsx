@@ -21,7 +21,7 @@ export default function YtdPanel({ month }: { month: string }) {
     {
       label: 'Earned',
       value: fmt(ytd.totalIncome),
-      color: 'text-[#dce4f8]',
+      color: 'text-text',
       accent: 'transparent',
     },
     {
@@ -46,7 +46,7 @@ export default function YtdPanel({ month }: { month: string }) {
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
         {ytd.year} · year to date · {ytd.monthsRecorded}{' '}
         {ytd.monthsRecorded === 1 ? 'month' : 'months'} recorded
       </h3>
@@ -54,7 +54,7 @@ export default function YtdPanel({ month }: { month: string }) {
         {cards.map(({ label, value, color, accent }) => (
           <div
             key={label}
-            className="bg-[#06080f] rounded-xl border border-[#1f2d46] p-3.5 relative overflow-hidden"
+            className="bg-bg rounded-xl border border-border p-3.5 relative overflow-hidden"
           >
             {accent !== 'transparent' && (
               <div
@@ -64,7 +64,7 @@ export default function YtdPanel({ month }: { month: string }) {
                 }}
               />
             )}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
               {label}
             </p>
             <p className={`font-mono text-base font-semibold ${color}`}>

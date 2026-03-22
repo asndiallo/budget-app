@@ -16,7 +16,7 @@ const TREND_META: Record<
 > = {
   up: { icon: '↑', label: 'Trending up', className: 'text-[#ff4560]' },
   down: { icon: '↓', label: 'Trending down', className: 'text-[#00d98a]' },
-  stable: { icon: '→', label: 'Stable', className: 'text-[#9da8c2]' },
+  stable: { icon: '→', label: 'Stable', className: 'text-text-2' },
 };
 
 function fmt(n: number) {
@@ -73,7 +73,7 @@ export default function BudgetSuggestionsPanel() {
 
   if (!insights) {
     return (
-      <p className="text-xs text-[#7c88a4] text-center py-4">
+      <p className="text-xs text-text-3 text-center py-4">
         Loading budget suggestions…
       </p>
     );
@@ -81,7 +81,7 @@ export default function BudgetSuggestionsPanel() {
 
   if (insights.monthsAnalyzed === 0) {
     return (
-      <p className="text-xs text-[#7c88a4] text-center py-4">
+      <p className="text-xs text-text-3 text-center py-4">
         No spending history yet — suggestions appear once you have transactions
         across multiple months.
       </p>
@@ -93,11 +93,10 @@ export default function BudgetSuggestionsPanel() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <p className="text-xs text-[#9da8c2]">
-        Based on{' '}
-        <span className="text-[#dce4f8] font-mono">{monthsAnalyzed}</span>{' '}
+      <p className="text-xs text-text-2">
+        Based on <span className="text-text font-mono">{monthsAnalyzed}</span>{' '}
         months of data · avg total{' '}
-        <span className="text-[#dce4f8] font-mono">
+        <span className="text-text font-mono">
           {fmt(avgMonthlyExpenses)}/mo
         </span>
       </p>
@@ -123,7 +122,7 @@ export default function BudgetSuggestionsPanel() {
           return (
             <div
               key={ci.category}
-              className="bg-[#06080f] border border-[#1f2d46] rounded-xl p-3.5"
+              className="bg-bg border border-border rounded-xl p-3.5"
             >
               {/* Top row */}
               <div className="flex items-center gap-2 mb-2.5">
@@ -141,9 +140,9 @@ export default function BudgetSuggestionsPanel() {
                 </span>
 
                 <div className="ml-auto flex items-center gap-3 text-xs font-mono">
-                  <span className="text-[#7c88a4]">avg {fmt(ci.avg3m)}</span>
+                  <span className="text-text-3">avg {fmt(ci.avg3m)}</span>
                   <span
-                    className={overBudget ? 'text-[#ff4560]' : 'text-[#9da8c2]'}
+                    className={overBudget ? 'text-[#ff4560]' : 'text-text-2'}
                   >
                     last {fmt(ci.lastMonth)}
                   </span>
@@ -153,7 +152,7 @@ export default function BudgetSuggestionsPanel() {
               {/* Budget row: view or edit */}
               {isEditing ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#7c88a4] shrink-0">
+                  <span className="text-[10px] text-text-3 shrink-0">
                     Budget $
                   </span>
                   <input
@@ -166,17 +165,17 @@ export default function BudgetSuggestionsPanel() {
                       if (e.key === 'Enter') saveEdit(ci.category);
                       if (e.key === 'Escape') cancelEdit();
                     }}
-                    className="w-28 text-sm font-mono bg-[#0b0e19] border border-[#1f2d46] rounded-lg px-2.5 py-1 text-[#dce4f8] focus:outline-none focus:border-[#2d4080] transition-colors"
+                    className="w-28 text-sm font-mono bg-surface border border-border rounded-lg px-2.5 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors"
                   />
                   <button
                     onClick={() => saveEdit(ci.category)}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-[#1a2650] text-[#4a8cff] hover:bg-[#1f2f63] transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
                   >
                     Save
                   </button>
                   <button
                     onClick={cancelEdit}
-                    className="text-xs px-2.5 py-1 rounded-lg border border-[#1f2d46] text-[#9da8c2] hover:text-[#dce4f8] transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
                   >
                     Cancel
                   </button>
@@ -184,7 +183,7 @@ export default function BudgetSuggestionsPanel() {
               ) : (
                 <div className="flex items-center gap-2">
                   {/* Usage bar */}
-                  <div className="flex-1 h-1 bg-[#0b0e19] rounded-full overflow-hidden">
+                  <div className="flex-1 h-1 bg-surface rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -194,19 +193,19 @@ export default function BudgetSuggestionsPanel() {
                     />
                   </div>
 
-                  <span className="text-xs font-mono font-semibold text-[#dce4f8] shrink-0">
+                  <span className="text-xs font-mono font-semibold text-text shrink-0">
                     {fmt(activeBudget)}
                   </span>
 
                   {!hasUserBudget && (
-                    <span className="text-[10px] text-[#7c88a4] shrink-0">
+                    <span className="text-[10px] text-text-3 shrink-0">
                       suggested
                     </span>
                   )}
 
                   <button
                     onClick={() => startEdit(ci.category, activeBudget)}
-                    className="text-[#7c88a4] hover:text-[#9da8c2] text-xs transition-colors shrink-0"
+                    className="text-text-3 hover:text-text-2 text-xs transition-colors shrink-0"
                     title="Edit budget"
                   >
                     ✎
@@ -215,7 +214,7 @@ export default function BudgetSuggestionsPanel() {
                   {hasUserBudget && (
                     <button
                       onClick={() => clearBudget(ci.category)}
-                      className="text-[#7c88a4] hover:text-[#ff4560] text-xs transition-colors shrink-0"
+                      className="text-text-3 hover:text-[#ff4560] text-xs transition-colors shrink-0"
                       title="Reset to suggestion"
                     >
                       ✕

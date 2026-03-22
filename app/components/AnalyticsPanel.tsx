@@ -42,7 +42,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
   }, [month]);
 
   if (data.length === 0)
-    return <p className="text-sm text-[#7c88a4] py-10 text-center">Loading…</p>;
+    return <p className="text-sm text-text-3 py-10 text-center">Loading…</p>;
 
   const current = data[data.length - 1];
 
@@ -98,7 +98,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                 />
                 <Legend
                   formatter={(value) => (
-                    <span style={{ fontSize: 11, color: '#9da8c2' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
                       {value}
                     </span>
                   )}
@@ -130,7 +130,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
                   <stop offset="95%" stopColor="#4a8cff" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1c2840" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-dim)" />
               <XAxis
                 dataKey="label"
                 tick={axisStyle}
@@ -150,7 +150,9 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               />
               <Legend
                 formatter={(v) => (
-                  <span style={{ fontSize: 11, color: '#9da8c2' }}>{v}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
+                    {v}
+                  </span>
                 )}
               />
               <Area
@@ -196,7 +198,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#1c2840"
+                stroke="var(--border-dim)"
                 vertical={false}
               />
               <XAxis
@@ -218,7 +220,9 @@ export default function AnalyticsPanel({ month }: { month: string }) {
               />
               <Legend
                 formatter={(v) => (
-                  <span style={{ fontSize: 11, color: '#9da8c2' }}>{v}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
+                    {v}
+                  </span>
                 )}
               />
               {activeCats.map((cat) => (
@@ -244,7 +248,7 @@ export default function AnalyticsPanel({ month }: { month: string }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#7c88a4] mb-3">
+    <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
       {children}
     </h3>
   );
@@ -252,19 +256,19 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Empty() {
   return (
-    <p className="text-sm text-[#7c88a4] py-10 text-center">
+    <p className="text-sm text-text-3 py-10 text-center">
       No data yet for this period.
     </p>
   );
 }
 
 const tooltipStyle = {
-  backgroundColor: '#0b0e19',
-  border: '1px solid #1f2d46',
+  backgroundColor: 'var(--surface)',
+  border: '1px solid var(--border)',
   borderRadius: 10,
   fontSize: 12,
-  color: '#dce4f8',
+  color: 'var(--text)',
   boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
 };
 
-const axisStyle = { fontSize: 11, fill: '#7c88a4' };
+const axisStyle = { fontSize: 11, fill: 'var(--text-3)' };
