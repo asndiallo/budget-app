@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { computeMonthlyFinancials } from '@/lib/income';
+import { DEDUCTION_FIELDS } from '@/lib/config';
+import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 
@@ -46,11 +47,36 @@ export async function GET(req: Request) {
     spendingMap.get(row.month)![row.category] = row.total;
   }
 
+  // Committed expenses (fixed + debt payments) — same for all months (current values)
+  const fixedMonthly = (
+    db
+      .prepare(
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1",
+      )
+      .get() as { s: number }
+  ).s;
+  const debtPayments = (
+    db
+      .prepare(
+        'SELECT COALESCE(SUM(monthly_payment),0) as s FROM debts WHERE balance > 0',
+      )
+      .get() as { s: number }
+  ).s;
+  const committed = fixedMonthly + debtPayments;
+
   // Income + deductions per month
   const result = months.map((m) => {
     const { totalIncome, tsp, roth } = computeMonthlyFinancials(db, m);
+    const config = incomeForMonth(db, m);
+    const deductions =
+      tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
     const categories = spendingMap.get(m) ?? {};
     const spending = Object.values(categories).reduce((s, v) => s + v, 0);
+    const net = totalIncome - deductions - committed - spending;
+    const savingsRate =
+      totalIncome > 0
+        ? Math.round(((tsp + roth + Math.max(0, net)) / totalIncome) * 100)
+        : null;
 
     return {
       month: m,
@@ -60,6 +86,7 @@ export async function GET(req: Request) {
       roth,
       spending,
       net: totalIncome - tsp - roth - spending,
+      savingsRate,
       categories,
     };
   });

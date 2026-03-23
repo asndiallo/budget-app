@@ -8,6 +8,15 @@ export interface FixedExpense {
   amount: number;
   period: 'monthly' | 'annual';
   day_of_month?: number | null;
+  notes?: string | null;
+}
+
+export interface GoalContribution {
+  id: number;
+  goal_id: number;
+  amount: number;
+  note?: string | null;
+  created_at: string;
 }
 
 export interface Transaction {

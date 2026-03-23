@@ -6,7 +6,7 @@ import {
   GOAL_COLORS,
   GOAL_DOT_COLORS,
 } from '@/lib/config';
-import type { Goal, SpendingInsights } from '@/lib/types';
+import type { Goal, GoalContribution, SpendingInsights } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
@@ -44,6 +44,8 @@ export default function GoalsPanel() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [insights, setInsights] = useState<SpendingInsights | null>(null);
   const [editing, setEditing] = useState<Record<number, EditDraft>>({});
+  const [historyGoalId, setHistoryGoalId] = useState<number | null>(null);
+  const [contributions, setContributions] = useState<GoalContribution[]>([]);
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newColor, setNewColor] = useState<string>(DEFAULT_GOAL_COLOR);
@@ -95,6 +97,32 @@ export default function GoalsPanel() {
   async function applySmartTarget(g: Goal, suggested: number) {
     await api.goals.update(g.id, { target: suggested });
     reload();
+  }
+
+  async function addContribution(g: Goal, amount: number, note: string) {
+    await api.goalContributions.add(g.id, amount, note || null);
+    reload();
+    if (historyGoalId === g.id) loadHistory(g.id);
+  }
+
+  async function removeContribution(c: GoalContribution) {
+    await api.goalContributions.remove(c.id, c.goal_id, c.amount);
+    reload();
+    loadHistory(c.goal_id);
+  }
+
+  function loadHistory(goalId: number) {
+    api.goalContributions.list(goalId).then(setContributions);
+    setHistoryGoalId(goalId);
+  }
+
+  function toggleHistory(goalId: number) {
+    if (historyGoalId === goalId) {
+      setHistoryGoalId(null);
+      setContributions([]);
+    } else {
+      loadHistory(goalId);
+    }
   }
 
   async function deleteGoal(id: number) {
@@ -154,7 +182,7 @@ export default function GoalsPanel() {
             >
               {accent !== 'transparent' && (
                 <div
-                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  className="absolute top-0 left-0 right-0 h-0.5"
                   style={{
                     background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
                   }}
@@ -199,8 +227,11 @@ export default function GoalsPanel() {
               {/* Top color accent stripe */}
               {isDone && (
                 <div
-                  className="absolute top-0 left-0 right-0 h-[2px]"
-                  style={{ background: 'linear-gradient(90deg, #00d98acc, #00d98a22 70%, transparent)' }}
+                  className="absolute top-0 left-0 right-0 h-0.5"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, #00d98acc, #00d98a22 70%, transparent)',
+                  }}
                 />
               )}
 
@@ -312,7 +343,8 @@ export default function GoalsPanel() {
                         </span>
                         {pct < 100 && remaining > 0 && (
                           <span className="text-text-3">
-                            {' · '}${Math.round(remaining).toLocaleString()} left
+                            {' · '}${Math.round(remaining).toLocaleString()}{' '}
+                            left
                           </span>
                         )}
                         {pct < 100 &&
@@ -386,29 +418,64 @@ export default function GoalsPanel() {
                   )}
 
                   {pct < 100 ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        placeholder="Add savings $"
-                        onKeyDown={async (e) => {
-                          if (e.key !== 'Enter') return;
-                          const v = parseFloat(
-                            (e.target as HTMLInputElement).value,
-                          );
-                          if (!v) return;
-                          const newSaved = Math.min(g.target, g.saved + v);
-                          await api.goals.update(g.id, { saved: newSaved });
-                          (e.target as HTMLInputElement).value = '';
-                          reload();
-                        }}
-                        className="flex-1 text-sm font-mono bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
-                      />
-                    </div>
+                    <ContributionRow
+                      goal={g}
+                      onAdd={(amount, note) => addContribution(g, amount, note)}
+                    />
                   ) : (
                     <p className="text-xs font-semibold text-[#00d98a]">
                       Goal reached! 🎯
                     </p>
                   )}
+
+                  {/* History toggle */}
+                  <div className="mt-2">
+                    <button
+                      onClick={() => toggleHistory(g.id)}
+                      className="text-[10px] text-text-4 hover:text-text-3 transition-colors"
+                    >
+                      {historyGoalId === g.id
+                        ? '▾ Hide history'
+                        : '▸ Show history'}
+                    </button>
+                    {historyGoalId === g.id && (
+                      <div className="mt-2 space-y-1">
+                        {contributions.length === 0 ? (
+                          <p className="text-[11px] text-text-4 py-1">
+                            No contributions logged yet.
+                          </p>
+                        ) : (
+                          contributions.map((c) => (
+                            <div
+                              key={c.id}
+                              className="flex items-center gap-2 py-1 border-b border-border-dim"
+                            >
+                              <span className="text-[11px] font-mono text-[#00d98a] shrink-0">
+                                +${c.amount.toLocaleString()}
+                              </span>
+                              {c.note && (
+                                <span className="text-[11px] text-text-3 flex-1 truncate">
+                                  {c.note}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-text-4 ml-auto shrink-0">
+                                {new Date(c.created_at).toLocaleDateString(
+                                  'en-US',
+                                  { month: 'short', day: 'numeric' },
+                                )}
+                              </span>
+                              <button
+                                onClick={() => removeContribution(c)}
+                                className="text-text-4 hover:text-[#ff4560] text-[10px] transition-colors"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -456,6 +523,52 @@ export default function GoalsPanel() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ContributionRow({
+  goal,
+  onAdd,
+}: {
+  goal: Goal;
+  onAdd: (amount: number, note: string) => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+
+  function submit() {
+    const v = parseFloat(amount);
+    if (!v || v <= 0) return;
+    onAdd(v, note.trim());
+    setAmount('');
+    setNote('');
+  }
+
+  return (
+    <div className="flex gap-2 flex-wrap">
+      <input
+        type="number"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder="Add savings $"
+        className="w-32 text-sm font-mono bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+      />
+      <input
+        type="text"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder="Note (optional)"
+        className="flex-1 min-w-28 text-sm bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+      />
+      <button
+        onClick={submit}
+        className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+      >
+        Save
+      </button>
     </div>
   );
 }

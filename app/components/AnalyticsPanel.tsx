@@ -8,8 +8,11 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -28,6 +31,7 @@ interface MonthData {
   roth: number;
   spending: number;
   net: number;
+  savingsRate: number | null;
   categories: Record<string, number>;
 }
 
@@ -42,7 +46,7 @@ export default function AnalyticsPanel({
 
   useEffect(() => {
     if (!month) return;
-    fetch(`/api/analytics?month=${month}&count=6`)
+    fetch(`/api/analytics?month=${month}&count=12`)
       .then((r) => r.json())
       .then(setData);
   }, [month]);
@@ -61,17 +65,22 @@ export default function AnalyticsPanel({
     .sort(([, a], [, b]) => b - a)
     .map(([name, value]) => ({ name, value }));
 
-  const barData = data.map((d) => ({ label: d.label, ...d.categories }));
+  const chartData = data.slice(-6); // last 6 months for bar/area/donut
+  const barData = chartData.map((d) => ({ label: d.label, ...d.categories }));
 
-  const areaData = data.map((d) => ({
+  const areaData = chartData.map((d) => ({
     label: d.label,
     Income: d.totalIncome,
     Spending: d.spending,
     Net: d.net,
   }));
 
+  const savingsRateData = data
+    .filter((d) => d.savingsRate !== null)
+    .map((d) => ({ label: d.label, 'Savings rate': d.savingsRate }));
+
   const activeCats = CATEGORIES.filter((c) =>
-    data.some((d) => (d.categories[c] ?? 0) > 0),
+    chartData.some((d) => (d.categories[c] ?? 0) > 0),
   );
 
   const totalSpending = donutData.reduce((s, d) => s + d.value, 0);
@@ -83,7 +92,9 @@ export default function AnalyticsPanel({
         {/* Donut — current month spending */}
         <ChartCard
           title={`${current.label} · by category`}
-          subtitle={donutData.length > 0 ? `${fmt(totalSpending)} total` : undefined}
+          subtitle={
+            donutData.length > 0 ? `${fmt(totalSpending)} total` : undefined
+          }
         >
           {donutData.length === 0 ? (
             <Empty />
@@ -127,10 +138,7 @@ export default function AnalyticsPanel({
         </ChartCard>
 
         {/* Area — income vs spending vs net */}
-        <ChartCard
-          title="Income · Spending · Net"
-          subtitle="6-month trend"
-        >
+        <ChartCard title="Income · Spending · Net" subtitle="6-month trend">
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart
               data={areaData}
@@ -206,10 +214,7 @@ export default function AnalyticsPanel({
       </div>
 
       {/* Row 2: Stacked category bar */}
-      <ChartCard
-        title="Spending by category"
-        subtitle="6-month breakdown"
-      >
+      <ChartCard title="Spending by category" subtitle="6-month breakdown">
         {activeCats.length === 0 ? (
           <Empty />
         ) : (
@@ -266,6 +271,61 @@ export default function AnalyticsPanel({
           </ResponsiveContainer>
         )}
       </ChartCard>
+
+      {/* Row 3: Savings rate over time */}
+      {savingsRateData.length > 1 && (
+        <ChartCard
+          title="Savings rate"
+          subtitle={`${savingsRateData.length}-month history · target 20%`}
+        >
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart
+              data={savingsRateData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-dim)" />
+              <XAxis
+                dataKey="label"
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => `${v}%`}
+                tick={axisStyle}
+                axisLine={false}
+                tickLine={false}
+                width={36}
+                domain={[0, 'auto']}
+              />
+              <Tooltip
+                formatter={(v) => [`${v}%`, 'Savings rate']}
+                contentStyle={tooltipStyle}
+              />
+              <ReferenceLine
+                y={20}
+                stroke="#00d98a"
+                strokeDasharray="4 4"
+                strokeOpacity={0.5}
+                label={{
+                  value: '20% target',
+                  fill: '#00d98a',
+                  fontSize: 10,
+                  position: 'insideTopRight',
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Savings rate"
+                stroke="#4a8cff"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#4a8cff' }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
     </div>
   );
 }

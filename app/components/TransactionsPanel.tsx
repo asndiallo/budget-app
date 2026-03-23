@@ -28,12 +28,18 @@ export default function TransactionsPanel({
     initialCategory ?? null,
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Transaction[] | null>(null);
+  const [searchResults, setSearchResults] = useState<Transaction[] | null>(
+    null,
+  );
   const [period, setPeriod] = useState<'all' | '1' | '2'>('all');
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [managingCards, setManagingCards] = useState(false);
   const [newCard, setNewCard] = useState('');
+  const [undoTx, setUndoTx] = useState<{
+    id: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [importHistory, setImportHistory] = useState<
     {
@@ -75,7 +81,7 @@ export default function TransactionsPanel({
 
   async function addTx() {
     if (!desc.trim() || !amt) return;
-    await api.transactions.add({
+    const tx = await api.transactions.add({
       description: desc.trim(),
       amount: parseFloat(amt),
       category: cat,
@@ -84,6 +90,18 @@ export default function TransactionsPanel({
     });
     setDesc('');
     setAmt('');
+    if (undoTx) clearTimeout(undoTx.timer);
+    const timer = setTimeout(() => setUndoTx(null), 6000);
+    setUndoTx({ id: tx.id, timer });
+    reloadTxs();
+    onUpdate();
+  }
+
+  async function handleUndoAdd() {
+    if (!undoTx) return;
+    clearTimeout(undoTx.timer);
+    setUndoTx(null);
+    await api.transactions.remove(undoTx.id);
     reloadTxs();
     onUpdate();
   }
@@ -238,6 +256,31 @@ export default function TransactionsPanel({
     return null;
   }
 
+  function exportCsv(rows: Transaction[], m: string, catFilter: string | null) {
+    const header = 'Date,Description,Amount,Category,Source,Notes';
+    const lines = rows.map((t) => {
+      const date = t.date || t.created_at.slice(0, 10);
+      const desc = `"${(t.description || '').replace(/"/g, '""')}"`;
+      const notes = t.notes ? `"${t.notes.replace(/"/g, '""')}"` : '';
+      return [
+        date,
+        desc,
+        t.amount.toFixed(2),
+        t.category,
+        t.source,
+        notes,
+      ].join(',');
+    });
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions-${m}${catFilter ? `-${catFilter}` : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const isSearching = searchResults !== null;
   const displayTxs = isSearching ? searchResults : txs;
 
@@ -305,9 +348,7 @@ export default function TransactionsPanel({
                   <span className="opacity-50">↻</span> Importing…
                 </>
               ) : (
-                <>
-                  ↑ Upload CSV
-                </>
+                <>↑ Upload CSV</>
               )}
             </span>
             <input
@@ -509,9 +550,20 @@ export default function TransactionsPanel({
 
       {/* Transaction list */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-          {isSearching ? 'Search results' : 'Transactions'}
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+            {isSearching ? 'Search results' : 'Transactions'}
+          </h3>
+          {filtered.length > 0 && (
+            <button
+              onClick={() => exportCsv(filtered, month, filterCat)}
+              className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+              title="Export visible transactions as CSV"
+            >
+              ↓ CSV
+            </button>
+          )}
+        </div>
         {filtered.length === 0 && (
           <p className="text-sm text-text-3 py-4">
             {isSearching
@@ -529,6 +581,19 @@ export default function TransactionsPanel({
           />
         ))}
       </div>
+
+      {/* Undo toast */}
+      {undoTx && (
+        <div className="flex items-center gap-3 px-3 py-2 bg-surface border border-border rounded-xl text-xs animate-in fade-in">
+          <span className="text-text-2">Transaction added</span>
+          <button
+            onClick={handleUndoAdd}
+            className="ml-auto text-[#4a8cff] hover:text-[#4a8cff]/80 font-medium transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
 
       {/* Add transaction */}
       <div>

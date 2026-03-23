@@ -133,6 +133,14 @@ function initSchema(db: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS goal_contributions (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      goal_id    INTEGER NOT NULL,
+      amount     REAL NOT NULL,
+      note       TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
   `);
 
   // ── Column migrations ────────────────────────────────────────────────────────
@@ -146,6 +154,9 @@ function initSchema(db: Database.Database) {
   }
   if (!fixedCols.includes('day_of_month')) {
     db.exec('ALTER TABLE fixed_expenses ADD COLUMN day_of_month INTEGER');
+  }
+  if (!fixedCols.includes('notes')) {
+    db.exec('ALTER TABLE fixed_expenses ADD COLUMN notes TEXT');
   }
 
   const receivableCols = (

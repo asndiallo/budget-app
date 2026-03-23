@@ -65,7 +65,27 @@ export default function FixedExpensesPanel({
   async function updateDayOfMonth(f: FixedExpense, raw: string) {
     const dom = raw.trim() ? parseInt(raw) : null;
     if (dom !== null && (dom < 1 || dom > 31)) return;
-    await api.fixedExpenses.update(f.id, f.label, f.amount, f.period, dom);
+    await api.fixedExpenses.update(
+      f.id,
+      f.label,
+      f.amount,
+      f.period,
+      dom,
+      f.notes,
+    );
+    reload();
+    onUpdate();
+  }
+
+  async function updateNotes(f: FixedExpense, notes: string) {
+    await api.fixedExpenses.update(
+      f.id,
+      f.label,
+      f.amount,
+      f.period,
+      f.day_of_month,
+      notes || null,
+    );
     reload();
     onUpdate();
   }
@@ -88,43 +108,47 @@ export default function FixedExpensesPanel({
       {fixed.map((f) => {
         const mo = monthlyAmount(f);
         return (
-          <div
-            key={f.id}
-            className="flex items-center py-3 border-b border-border-dim gap-2"
-          >
-            <p className="flex-1 text-sm text-text">{f.label}</p>
-            <DayField
-              value={f.day_of_month ?? null}
-              onSave={(raw) => updateDayOfMonth(f, raw)}
-            />
-            <button
-              onClick={() => togglePeriod(f)}
-              className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
-                f.period === 'annual'
-                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                  : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
-              }`}
-              title="Toggle monthly / annual"
-            >
-              {f.period === 'annual' ? '/yr' : '/mo'}
-            </button>
-            <button
-              onClick={() => removeFixed(f.id)}
-              className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
-            >
-              ✕
-            </button>
-            <div className="text-right w-28 shrink-0">
-              <p className="font-mono text-sm text-[#ff4560]">
-                −${f.amount.toLocaleString()}
-                {f.period === 'annual' ? '/yr' : ''}
-              </p>
-              {f.period === 'annual' && (
-                <p className="font-mono text-[11px] text-text-3">
-                  ${mo.toFixed(2)}/mo
+          <div key={f.id} className="py-3 border-b border-border-dim">
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-sm text-text">{f.label}</p>
+              <DayField
+                value={f.day_of_month ?? null}
+                onSave={(raw) => updateDayOfMonth(f, raw)}
+              />
+              <button
+                onClick={() => togglePeriod(f)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                  f.period === 'annual'
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                    : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
+                }`}
+                title="Toggle monthly / annual"
+              >
+                {f.period === 'annual' ? '/yr' : '/mo'}
+              </button>
+              <button
+                onClick={() => removeFixed(f.id)}
+                className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+              >
+                ✕
+              </button>
+              <div className="text-right w-28 shrink-0">
+                <p className="font-mono text-sm text-[#ff4560]">
+                  −${f.amount.toLocaleString()}
+                  {f.period === 'annual' ? '/yr' : ''}
                 </p>
-              )}
+                {f.period === 'annual' && (
+                  <p className="font-mono text-[11px] text-text-3">
+                    ${mo.toFixed(2)}/mo
+                  </p>
+                )}
+              </div>
             </div>
+            {/* Inline notes */}
+            <NotesField
+              value={f.notes ?? null}
+              onSave={(v) => updateNotes(f, v)}
+            />
           </div>
         );
       })}
@@ -232,6 +256,59 @@ function DayField({
       }`}
     >
       {value ? `due ${ordinal(value)}` : '+ due'}
+    </button>
+  );
+}
+
+function NotesField({
+  value,
+  onSave,
+}: {
+  value: string | null;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? '');
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          onSave(draft);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onSave(draft);
+            setEditing(false);
+          }
+          if (e.key === 'Escape') {
+            setDraft(value ?? '');
+            setEditing(false);
+          }
+        }}
+        placeholder="Add a note…"
+        className="mt-1 w-full text-[11px] bg-transparent border-b border-[#4a8cff]/30 text-text-3 outline-none placeholder-text-4 py-0.5"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => {
+        setDraft(value ?? '');
+        setEditing(true);
+      }}
+      className={`mt-1 text-[11px] text-left transition-colors ${
+        value
+          ? 'text-text-3 hover:text-text-2'
+          : 'text-text-4 hover:text-text-3'
+      }`}
+    >
+      {value || '+ note'}
     </button>
   );
 }

@@ -9,6 +9,7 @@ import type {
   Debt,
   FixedExpense,
   Goal,
+  GoalContribution,
   HealthScore,
   IncomeConfig,
   IncomeEntry,
@@ -43,12 +44,14 @@ export const api = {
       amount: number,
       period: 'monthly' | 'annual' = 'monthly',
       day_of_month?: number | null,
+      notes?: string | null,
     ) =>
       send('POST', '/api/fixed-expenses', {
         label,
         amount,
         period,
         day_of_month,
+        notes,
       }).then(asJson<FixedExpense>),
     remove: (id: number) =>
       send('DELETE', '/api/fixed-expenses', { id }).then(
@@ -60,6 +63,7 @@ export const api = {
       amount: number,
       period: 'monthly' | 'annual',
       day_of_month?: number | null,
+      notes?: string | null,
     ) =>
       send('PATCH', '/api/fixed-expenses', {
         id,
@@ -67,6 +71,7 @@ export const api = {
         amount,
         period,
         day_of_month,
+        notes,
       }).then(asJson<{ ok: boolean }>),
   },
 
@@ -109,6 +114,25 @@ export const api = {
       ),
     remove: (id: number) =>
       send('DELETE', '/api/goals', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  goalContributions: {
+    list: (goalId: number) =>
+      fetch(`/api/goal-contributions?goal_id=${goalId}`).then(
+        asJson<GoalContribution[]>,
+      ),
+    add: (goalId: number, amount: number, note?: string | null) =>
+      send('POST', '/api/goal-contributions', {
+        goal_id: goalId,
+        amount,
+        note,
+      }).then(asJson<GoalContribution>),
+    remove: (id: number, goalId: number, amount: number) =>
+      send('DELETE', '/api/goal-contributions', {
+        id,
+        goal_id: goalId,
+        amount,
+      }).then(asJson<{ ok: boolean }>),
   },
 
   insights: {
