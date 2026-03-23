@@ -18,6 +18,7 @@ export default function FixedExpensesPanel({
   const [newLabel, setNewLabel] = useState('');
   const [newAmt, setNewAmt] = useState('');
   const [newPeriod, setNewPeriod] = useState<'monthly' | 'annual'>('monthly');
+  const [newDay, setNewDay] = useState('');
 
   const reload = () => api.fixedExpenses.list().then(setFixed);
 
@@ -27,10 +28,17 @@ export default function FixedExpensesPanel({
 
   async function addFixed() {
     if (!newLabel.trim() || !newAmt) return;
-    await api.fixedExpenses.add(newLabel.trim(), parseFloat(newAmt), newPeriod);
+    const dom = newDay ? parseInt(newDay) : null;
+    await api.fixedExpenses.add(
+      newLabel.trim(),
+      parseFloat(newAmt),
+      newPeriod,
+      dom,
+    );
     setNewLabel('');
     setNewAmt('');
     setNewPeriod('monthly');
+    setNewDay('');
     reload();
     onUpdate();
   }
@@ -43,7 +51,21 @@ export default function FixedExpensesPanel({
 
   async function togglePeriod(f: FixedExpense) {
     const period = f.period === 'annual' ? 'monthly' : 'annual';
-    await api.fixedExpenses.update(f.id, f.label, f.amount, period);
+    await api.fixedExpenses.update(
+      f.id,
+      f.label,
+      f.amount,
+      period,
+      f.day_of_month,
+    );
+    reload();
+    onUpdate();
+  }
+
+  async function updateDayOfMonth(f: FixedExpense, raw: string) {
+    const dom = raw.trim() ? parseInt(raw) : null;
+    if (dom !== null && (dom < 1 || dom > 31)) return;
+    await api.fixedExpenses.update(f.id, f.label, f.amount, f.period, dom);
     reload();
     onUpdate();
   }
@@ -71,6 +93,10 @@ export default function FixedExpensesPanel({
             className="flex items-center py-3 border-b border-border-dim gap-2"
           >
             <p className="flex-1 text-sm text-text">{f.label}</p>
+            <DayField
+              value={f.day_of_month ?? null}
+              onSave={(raw) => updateDayOfMonth(f, raw)}
+            />
             <button
               onClick={() => togglePeriod(f)}
               className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
@@ -118,6 +144,16 @@ export default function FixedExpensesPanel({
           type="number"
           className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
         />
+        <input
+          value={newDay}
+          onChange={(e) => setNewDay(e.target.value)}
+          placeholder="due day"
+          type="number"
+          min={1}
+          max={31}
+          title="Day of month bill is due (optional)"
+          className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+        />
         <select
           value={newPeriod}
           onChange={(e) => setNewPeriod(e.target.value as 'monthly' | 'annual')}
@@ -134,5 +170,68 @@ export default function FixedExpensesPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+function DayField({
+  value,
+  onSave,
+}: {
+  value: number | null;
+  onSave: (raw: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ? String(value) : '');
+
+  function ordinal(n: number) {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        min={1}
+        max={31}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          onSave(draft);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onSave(draft);
+            setEditing(false);
+          }
+          if (e.key === 'Escape') {
+            setDraft(value ? String(value) : '');
+            setEditing(false);
+          }
+        }}
+        placeholder="day"
+        className="w-14 text-[11px] font-mono bg-bg border border-[#4a8cff]/50 rounded px-1.5 py-0.5 text-text outline-none"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => {
+        setDraft(value ? String(value) : '');
+        setEditing(true);
+      }}
+      title="Set due day of month"
+      className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${
+        value
+          ? 'text-[#4a8cff] bg-[#4a8cff]/10 hover:bg-[#4a8cff]/20'
+          : 'text-text-4 hover:text-text-3'
+      }`}
+    >
+      {value ? `due ${ordinal(value)}` : '+ due'}
+    </button>
   );
 }

@@ -7,6 +7,7 @@ export interface FixedExpense {
   label: string;
   amount: number;
   period: 'monthly' | 'annual';
+  day_of_month?: number | null;
 }
 
 export interface Transaction {

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
+import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
@@ -30,7 +31,13 @@ import TransactionsPanel from './components/TransactionsPanel';
 import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
 
-type Tab = 'income' | 'transactions' | 'goals' | 'analytics' | 'assets';
+type Tab =
+  | 'income'
+  | 'transactions'
+  | 'goals'
+  | 'analytics'
+  | 'assets'
+  | 'calendar';
 
 interface Summary {
   totalIncome: number;
@@ -114,6 +121,7 @@ const TAB_ICONS: Record<Tab, string> = {
   goals: '◈',
   analytics: '⊞',
   assets: '◇',
+  calendar: '▦',
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -122,6 +130,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'goals', label: 'Goals' },
   { key: 'analytics', label: 'Analytics' },
   { key: 'assets', label: 'Net Worth' },
+  { key: 'calendar', label: 'Calendar' },
 ];
 
 export default function Home() {
@@ -479,6 +488,17 @@ export default function Home() {
                 <DebtsPanel onUpdate={fetchSummary} />
               </div>
             )}
+
+            {tab === 'calendar' && (
+              <CashFlowCalendar
+                month={month}
+                netMonthlyIncome={
+                  summary
+                    ? summary.net + summary.committed + summary.spending
+                    : undefined
+                }
+              />
+            )}
           </div>
         </div>
       </main>
@@ -787,9 +807,7 @@ function NetWorthCard({
         })}
         {totalGoalsSaved > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-text-4 w-20 shrink-0">
-              Goals
-            </span>
+            <span className="text-[10px] text-text-4 w-20 shrink-0">Goals</span>
             <div className="flex-1 h-1 bg-bg rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-[#b085f5]"

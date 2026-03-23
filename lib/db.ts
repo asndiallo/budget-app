@@ -144,6 +144,9 @@ function initSchema(db: Database.Database) {
       "ALTER TABLE fixed_expenses ADD COLUMN period TEXT NOT NULL DEFAULT 'monthly'",
     );
   }
+  if (!fixedCols.includes('day_of_month')) {
+    db.exec('ALTER TABLE fixed_expenses ADD COLUMN day_of_month INTEGER');
+  }
 
   const receivableCols = (
     db.prepare('PRAGMA table_info(receivables)').all() as { name: string }[]
