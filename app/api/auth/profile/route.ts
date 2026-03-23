@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
-import { auth, requireAuth, requireAdmin } from '@/lib/auth';
+import { auth, requireAdmin, requireAuth } from '@/lib/auth';
 import { getBAH, getBAS, getBasePay, isOfficer } from '@/lib/pay-tables';
+
+import { NextResponse } from 'next/server';
 import type { PayGrade } from '@/lib/pay-tables';
 import { getDb } from '@/lib/db';
 
@@ -26,14 +27,14 @@ export async function PATCH(req: Request) {
     await auth.api.updateUser({
       headers: req.headers,
       body: {
-        name:             name,
-        branch:           branch,
-        pay_grade:        pay_grade,
-        mos:              mos,
-        duty_station:     duty_station,
-        bah_zip:          bah_zip,
-        component:        component,
-        dependents:       dependents,
+        name: name,
+        branch: branch,
+        pay_grade: pay_grade,
+        mos: mos,
+        duty_station: duty_station,
+        bah_zip: bah_zip,
+        component: component,
+        dependents: dependents,
         years_of_service: years_of_service,
       },
     });
@@ -43,25 +44,37 @@ export async function PATCH(req: Request) {
 
       // Fetch the latest profile values (use body values, fall back to DB)
       const currentProfile = db
-        .prepare('SELECT pay_grade, duty_station, dependents, years_of_service FROM users WHERE id = ?')
-        .get(user.userId) as { pay_grade: string; duty_station: string; dependents: number; years_of_service: number } | undefined;
+        .prepare(
+          'SELECT pay_grade, duty_station, dependents, years_of_service FROM users WHERE id = ?',
+        )
+        .get(user.userId) as
+        | {
+            pay_grade: string;
+            duty_station: string;
+            dependents: number;
+            years_of_service: number;
+          }
+        | undefined;
 
-      const grade = (pay_grade ?? currentProfile?.pay_grade ?? 'E-3') as PayGrade;
-      const yos   = years_of_service ?? currentProfile?.years_of_service ?? 0;
-      const ds    = duty_station ?? currentProfile?.duty_station ?? '';
-      const deps  = dependents ?? currentProfile?.dependents ?? 0;
+      const grade = (pay_grade ??
+        currentProfile?.pay_grade ??
+        'E-3') as PayGrade;
+      const yos = years_of_service ?? currentProfile?.years_of_service ?? 0;
+      const ds = duty_station ?? currentProfile?.duty_station ?? '';
+      const deps = dependents ?? currentProfile?.dependents ?? 0;
 
       const basePay = getBasePay(grade, yos);
-      const bas     = getBAS(grade);
-      const bah     = getBAH(ds, grade, deps > 0);
+      const bas = getBAS(grade);
+      const bah = getBAH(ds, grade, deps > 0);
 
       const updates: Record<string, number> = {
-        base_pay:          basePay,
+        base_pay: basePay,
         bas,
         bah,
-        taxes:             Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
+        taxes:
+          Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
         fica_soc_security: Math.round(basePay * 0.062 * 100) / 100,
-        fica_medicare:     Math.round(basePay * 0.0145 * 100) / 100,
+        fica_medicare: Math.round(basePay * 0.0145 * 100) / 100,
       };
 
       const ins = db.prepare(

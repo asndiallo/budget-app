@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
-import { DEDUCTION_FIELDS } from '@/lib/config';
 import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+
+import { DEDUCTION_FIELDS } from '@/lib/config';
+import { NextResponse } from 'next/server';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
@@ -15,7 +16,10 @@ function prevMonths(to: string, count: number): string[] {
 
 function shortLabel(month: string): string {
   const [y, m] = month.split('-');
-  return new Date(+y, +m - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  return new Date(+y, +m - 1).toLocaleDateString('en-US', {
+    month: 'short',
+    year: '2-digit',
+  });
 }
 
 export async function GET(req: Request) {
@@ -34,7 +38,11 @@ export async function GET(req: Request) {
          WHERE user_id = ? AND month IN (${months.map(() => '?').join(',')})
          GROUP BY month, category`,
       )
-      .all(userId, ...months) as { month: string; category: string; total: number }[];
+      .all(userId, ...months) as {
+      month: string;
+      category: string;
+      total: number;
+    }[];
 
     const spendingMap = new Map<string, Record<string, number>>();
     for (const row of spendingRows) {
@@ -43,33 +51,53 @@ export async function GET(req: Request) {
     }
 
     const fixedMonthly = (
-      db.prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND (is_investment IS NULL OR is_investment=0)",
-      ).get(userId) as { s: number }
+      db
+        .prepare(
+          "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND (is_investment IS NULL OR is_investment=0)",
+        )
+        .get(userId) as { s: number }
     ).s;
     const investmentFixed = (
-      db.prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-      ).get(userId) as { s: number }
+      db
+        .prepare(
+          "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
+        )
+        .get(userId) as { s: number }
     ).s;
     const debtPayments = (
-      db.prepare('SELECT COALESCE(SUM(monthly_payment),0) as s FROM debts WHERE user_id=? AND balance > 0').get(userId) as { s: number }
+      db
+        .prepare(
+          'SELECT COALESCE(SUM(monthly_payment),0) as s FROM debts WHERE user_id=? AND balance > 0',
+        )
+        .get(userId) as { s: number }
     ).s;
     const committed = fixedMonthly + debtPayments;
 
     const result = months.map((m) => {
       const { totalIncome, tsp } = computeMonthlyFinancials(db, m, userId);
       const config = incomeForMonth(db, m, userId);
-      const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+      const deductions =
+        tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
       const categories = spendingMap.get(m) ?? {};
       const spending = Object.values(categories).reduce((s, v) => s + v, 0);
       const net = totalIncome - deductions - committed - spending;
       const savingsRate =
         totalIncome > 0
-          ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
+          ? Math.round(
+              ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
+            )
           : null;
 
-      return { month: m, label: shortLabel(m), totalIncome, tsp, spending, net: totalIncome - tsp - investmentFixed - spending, savingsRate, categories };
+      return {
+        month: m,
+        label: shortLabel(m),
+        totalIncome,
+        tsp,
+        spending,
+        net: totalIncome - tsp - investmentFixed - spending,
+        savingsRate,
+        categories,
+      };
     });
 
     return NextResponse.json(result);

@@ -7,7 +7,9 @@ export async function GET(req: Request) {
     const { userId } = await requireAuth(req);
     const db = getDb();
     const rows = db
-      .prepare('SELECT * FROM assets WHERE user_id = ? ORDER BY category, label')
+      .prepare(
+        'SELECT * FROM assets WHERE user_id = ? ORDER BY category, label',
+      )
       .all(userId);
     return NextResponse.json(rows);
   } catch (err) {
@@ -22,7 +24,9 @@ export async function POST(req: Request) {
     const db = getDb();
     const { label, category, balance } = await req.json();
     const row = db
-      .prepare('INSERT INTO assets (user_id, label, category, balance) VALUES (?, ?, ?, ?) RETURNING *')
+      .prepare(
+        'INSERT INTO assets (user_id, label, category, balance) VALUES (?, ?, ?, ?) RETURNING *',
+      )
       .get(userId, label, category ?? 'Other', balance ?? 0);
     return NextResponse.json(row);
   } catch (err) {
@@ -56,7 +60,10 @@ export async function DELETE(req: Request) {
     const { userId } = await requireAuth(req);
     const db = getDb();
     const { id } = await req.json();
-    db.prepare('DELETE FROM assets WHERE id = ? AND user_id = ?').run(id, userId);
+    db.prepare('DELETE FROM assets WHERE id = ? AND user_id = ?').run(
+      id,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

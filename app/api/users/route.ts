@@ -1,7 +1,8 @@
 // Admin-only: list and manage all users.
 
+import { requireAdmin, requireAuth } from '@/lib/auth';
+
 import { NextResponse } from 'next/server';
-import { requireAuth, requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
@@ -52,7 +53,10 @@ export async function DELETE(req: Request) {
     const targetId = searchParams.get('id') ?? '';
 
     if (targetId === me.userId) {
-      return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot delete yourself' },
+        { status: 400 },
+      );
     }
 
     const db = getDb();
@@ -62,9 +66,16 @@ export async function DELETE(req: Request) {
          (SELECT id FROM goals WHERE user_id = ?)`,
       ).run(targetId);
       for (const table of [
-        'income_config', 'transactions', 'goals', 'fixed_expenses',
-        'payment_sources', 'debts', 'income_entries', 'receivables',
-        'category_budgets', 'assets',
+        'income_config',
+        'transactions',
+        'goals',
+        'fixed_expenses',
+        'payment_sources',
+        'debts',
+        'income_entries',
+        'receivables',
+        'category_budgets',
+        'assets',
       ]) {
         db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(targetId);
       }

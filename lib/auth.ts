@@ -8,9 +8,9 @@ import {
   SEED_PAYMENT_SOURCES,
 } from './config';
 import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
-import type { PayGrade } from './pay-tables';
 
 import Database from 'better-sqlite3';
+import type { PayGrade } from './pay-tables';
 import { betterAuth } from 'better-auth';
 import { getDb } from './db';
 import path from 'path';
@@ -18,10 +18,7 @@ import path from 'path';
 const DB_PATH = path.join(process.cwd(), 'budget.db');
 
 export const auth = betterAuth({
-  database: {
-    db: new Database(DB_PATH),
-    type: 'sqlite',
-  },
+  database: new Database(DB_PATH),
 
   secret: process.env.BETTER_AUTH_SECRET ?? 'dev-secret-change-in-production',
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
@@ -54,15 +51,15 @@ export const auth = betterAuth({
   user: {
     modelName: 'users',
     additionalFields: {
-      role:             { type: 'string',  defaultValue: 'user',   input: false },
-      branch:           { type: 'string',  defaultValue: 'Army',   input: true  },
-      pay_grade:        { type: 'string',  defaultValue: 'E-3',    input: true  },
-      mos:              { type: 'string',  defaultValue: '',        input: true  },
-      duty_station:     { type: 'string',  defaultValue: '',        input: true  },
-      bah_zip:          { type: 'string',  defaultValue: '',        input: true  },
-      component:        { type: 'string',  defaultValue: 'Active', input: true  },
-      dependents:       { type: 'number',  defaultValue: 0,         input: true  },
-      years_of_service: { type: 'number',  defaultValue: 0,         input: true  },
+      role: { type: 'string', defaultValue: 'user', input: false },
+      branch: { type: 'string', defaultValue: 'Army', input: true },
+      pay_grade: { type: 'string', defaultValue: 'E-3', input: true },
+      mos: { type: 'string', defaultValue: '', input: true },
+      duty_station: { type: 'string', defaultValue: '', input: true },
+      bah_zip: { type: 'string', defaultValue: '', input: true },
+      component: { type: 'string', defaultValue: 'Active', input: true },
+      dependents: { type: 'number', defaultValue: 0, input: true },
+      years_of_service: { type: 'number', defaultValue: 0, input: true },
     },
   },
 
@@ -71,7 +68,7 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 days
   },
 
-  account:      { modelName: 'accounts'     },
+  account: { modelName: 'accounts' },
   verification: { modelName: 'verifications' },
 
   databaseHooks: {
@@ -93,28 +90,34 @@ export const auth = betterAuth({
           }
 
           // Seed income config from pay tables
-          const grade = ((user as Record<string, unknown>).pay_grade as PayGrade) ?? 'E-3';
-          const yos   = ((user as Record<string, unknown>).years_of_service as number) ?? 0;
-          const ds    = ((user as Record<string, unknown>).duty_station as string) ?? '';
-          const deps  = ((user as Record<string, unknown>).dependents as number) ?? 0;
+          const grade =
+            ((user as Record<string, unknown>).pay_grade as PayGrade) ?? 'E-3';
+          const yos =
+            ((user as Record<string, unknown>).years_of_service as number) ?? 0;
+          const ds =
+            ((user as Record<string, unknown>).duty_station as string) ?? '';
+          const deps =
+            ((user as Record<string, unknown>).dependents as number) ?? 0;
 
           const basePay = getBasePay(grade, yos);
-          const bas     = getBAS(grade);
-          const bah     = getBAH(ds, grade, deps > 0);
+          const bas = getBAS(grade);
+          const bah = getBAH(ds, grade, deps > 0);
 
           const incomeSeed: Record<string, number> = {
-            base_pay:         basePay,
+            base_pay: basePay,
             bas,
             bah,
-            other:            0,
-            tsp_rate:         0.05,
-            taxes:            Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
+            other: 0,
+            tsp_rate: 0.05,
+            taxes:
+              Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) /
+              100,
             fica_soc_security: Math.round(basePay * 0.062 * 100) / 100,
-            fica_medicare:    Math.round(basePay * 0.0145 * 100) / 100,
-            sgli:             26.0,
-            afrh:             0.5,
-            meal_deduction:   0,
-            roth_ira:         0,
+            fica_medicare: Math.round(basePay * 0.0145 * 100) / 100,
+            sgli: 26.0,
+            afrh: 0.5,
+            meal_deduction: 0,
+            roth_ira: 0,
           };
 
           const ins = db.prepare(
@@ -148,7 +151,8 @@ export const auth = betterAuth({
             'INSERT INTO payment_sources (user_id, label) VALUES (?, ?)',
           );
           db.transaction(() => {
-            for (const { label } of SEED_PAYMENT_SOURCES) psIns.run(userId, label);
+            for (const { label } of SEED_PAYMENT_SOURCES)
+              psIns.run(userId, label);
           })();
 
           // Seed debts
@@ -156,8 +160,21 @@ export const auth = betterAuth({
             'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
           );
           db.transaction(() => {
-            for (const { label, lender, balance, monthly_payment, interest_rate } of SEED_DEBTS)
-              dtIns.run(userId, label, lender, balance, monthly_payment, interest_rate);
+            for (const {
+              label,
+              lender,
+              balance,
+              monthly_payment,
+              interest_rate,
+            } of SEED_DEBTS)
+              dtIns.run(
+                userId,
+                label,
+                lender,
+                balance,
+                monthly_payment,
+                interest_rate,
+              );
           })();
         },
       },
@@ -190,9 +207,9 @@ export async function requireAuth(req: Request): Promise<RequestUser> {
   }
   const u = session.user as Record<string, unknown>;
   return {
-    userId:      u.id as string,
-    email:       u.email as string,
-    role:        (u.role as UserRole) ?? 'user',
+    userId: u.id as string,
+    email: u.email as string,
+    role: (u.role as UserRole) ?? 'user',
     displayName: (u.name as string) ?? '',
   };
 }

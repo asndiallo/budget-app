@@ -10,7 +10,7 @@ type Db = ReturnType<typeof getDb>;
 export function incomeForMonth(
   db: Db,
   month: string,
-  userId: number,
+  userId: string,
 ): Record<string, number> {
   const rows = db
     .prepare(
@@ -29,7 +29,7 @@ export function incomeForMonth(
 export function computeMonthlyFinancials(
   db: Db,
   month: string,
-  userId: number,
+  userId: string,
 ): { totalIncome: number; tsp: number } {
   const config = incomeForMonth(db, month, userId);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
