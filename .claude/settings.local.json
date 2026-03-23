@@ -8,7 +8,8 @@
       "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Bash(npx next:*)",
-      "Bash(perl -i -pe ':*)"
+      "Bash(perl -i -pe ':*)",
+      "Bash(git add:*)"
     ]
   }
 }
