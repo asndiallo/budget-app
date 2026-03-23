@@ -24,6 +24,7 @@ import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
+import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
@@ -451,6 +452,7 @@ export default function Home() {
               <div className="space-y-8">
                 <IncomePanel month={month} onUpdate={fetchSummary} />
                 <FixedExpensesPanel onUpdate={fetchSummary} />
+                <RecurringDetectionPanel onUpdate={fetchSummary} />
                 <ReceivablesPanel month={month} onUpdate={fetchSummary} />
               </div>
             )}

@@ -115,6 +115,22 @@ export const api = {
     get: () => fetch('/api/insights').then(asJson<SpendingInsights>),
   },
 
+  recurring: {
+    list: () =>
+      fetch('/api/recurring').then(
+        asJson<
+          {
+            description: string;
+            normalized_key: string;
+            avg_amount: number;
+            months_seen: number;
+            months: string[];
+            category: string;
+          }[]
+        >,
+      ),
+  },
+
   streak: {
     get: () => fetch('/api/streak').then(asJson<{ streak: number }>),
   },
