@@ -57,8 +57,8 @@ export default function FixedExpensesPanel({
           Fixed expenses
         </h3>
         {fixed.length > 0 && (
-          <span className="font-mono text-xs text-text-2">
-            ${Math.round(total).toLocaleString()}/mo
+          <span className="font-mono text-xs font-semibold text-[#f5aa2a]">
+            −${Math.round(total).toLocaleString()}/mo
           </span>
         )}
       </div>

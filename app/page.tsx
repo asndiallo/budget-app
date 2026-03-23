@@ -39,18 +39,8 @@ interface Summary {
 }
 
 const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
 function getYearRange() {
@@ -103,6 +93,13 @@ function calcSummary(
       : 0;
   return { totalIncome, tsp, roth, committed, spending, net, savingsRate };
 }
+
+const TAB_ICONS: Record<Tab, string> = {
+  income: '◎',
+  transactions: '⇄',
+  goals: '◈',
+  analytics: '⊞',
+};
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'income', label: 'Income' },
@@ -200,29 +197,37 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Header */}
+      {/* ── Header ── */}
       <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-semibold text-text tracking-tight">
-              {APP_CONFIG.title}
-            </h1>
-            <p className="text-[11px] text-text-3 mt-0.5 tracking-wide">
-              {APP_CONFIG.subtitle}
-            </p>
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+          {/* Brand */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)' }}>
+              B
+            </div>
+            <div>
+              <h1 className="text-[13px] font-semibold text-text tracking-tight leading-none">
+                {APP_CONFIG.title}
+              </h1>
+              <p className="text-[10px] text-text-4 mt-0.5 tracking-wide leading-none">
+                {APP_CONFIG.subtitle}
+              </p>
+            </div>
           </div>
 
+          {/* Controls */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleExport}
               title="Export backup (JSON)"
-              className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all"
+              className="h-7 px-2.5 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all"
             >
               Export
             </button>
             <label
               title="Restore from backup"
-              className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all cursor-pointer"
+              className="h-7 px-2.5 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all cursor-pointer"
             >
               Restore
               <input
@@ -233,7 +238,7 @@ export default function Home() {
                 onChange={handleRestore}
               />
             </label>
-            <div className="w-px h-4 bg-border mx-1" />
+            <div className="w-px h-4 bg-border mx-0.5" />
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -243,42 +248,44 @@ export default function Home() {
             </button>
 
             {month && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 ml-1">
                 <button
                   onClick={() => setMonth(prevMonth(month))}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
                 >
                   ‹
                 </button>
-                <select
-                  value={month.slice(5)}
-                  onChange={(e) =>
-                    setMonth(`${month.slice(0, 4)}-${e.target.value}`)
-                  }
-                  className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1"
-                >
-                  {MONTH_NAMES.map((name, i) => {
-                    const val = String(i + 1).padStart(2, '0');
-                    return (
-                      <option key={val} value={val}>
-                        {name}
+                <div className="flex items-center bg-surface-raised rounded-lg px-1 border border-border">
+                  <select
+                    value={month.slice(5)}
+                    onChange={(e) =>
+                      setMonth(`${month.slice(0, 4)}-${e.target.value}`)
+                    }
+                    className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1 py-0.5"
+                  >
+                    {MONTH_NAMES.map((name, i) => {
+                      const val = String(i + 1).padStart(2, '0');
+                      return (
+                        <option key={val} value={val}>
+                          {name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={month.slice(0, 4)}
+                    onChange={(e) =>
+                      setMonth(`${e.target.value}-${month.slice(5)}`)
+                    }
+                    className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1 py-0.5"
+                  >
+                    {yearRange.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
                       </option>
-                    );
-                  })}
-                </select>
-                <select
-                  value={month.slice(0, 4)}
-                  onChange={(e) =>
-                    setMonth(`${e.target.value}-${month.slice(5)}`)
-                  }
-                  className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1"
-                >
-                  {yearRange.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                    ))}
+                  </select>
+                </div>
                 <button
                   onClick={() => setMonth(nextMonth(month))}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
@@ -292,18 +299,14 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-6 space-y-4">
-        {/* Summary metrics */}
+        {/* ── Summary metrics ── */}
         {summary && (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-fade-in-up">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
               <MetricCard
                 label="Total income"
                 value={formatCurrency(summary.totalIncome)}
-                delta={delta(
-                  summary.totalIncome,
-                  prevSummary?.totalIncome,
-                  true,
-                )}
+                delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
               />
               <MetricCard
                 label="Invested"
@@ -363,21 +366,30 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tab panel */}
+        {/* ── Tab panel ── */}
         <div className="bg-surface rounded-2xl border border-border overflow-hidden">
           {/* Tab navigation */}
-          <div className="flex gap-1 p-1.5 border-b border-border">
+          <div className="flex border-b border-border">
             {TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
+                className={`relative flex-1 px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
                   tab === key
-                    ? 'bg-surface-raised text-text shadow-sm'
-                    : 'text-text-3 hover:text-text-2'
+                    ? 'text-text'
+                    : 'text-text-3 hover:text-text-2 hover:bg-surface-raised/50'
                 }`}
               >
+                <span className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}>
+                  {TAB_ICONS[key]}
+                </span>
                 {label}
+                {tab === key && (
+                  <span
+                    className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-t-full"
+                    style={{ background: 'linear-gradient(90deg, #4a8cff, #00d98a)' }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -403,10 +415,10 @@ export default function Home() {
               <div className="space-y-8">
                 <GoalsPanel />
                 <div>
-                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-                    Budget suggestions
-                  </h3>
-                  <BudgetSuggestionsPanel />
+                  <SectionLabel>Budget suggestions</SectionLabel>
+                  <div className="mt-3">
+                    <BudgetSuggestionsPanel />
+                  </div>
                 </div>
               </div>
             )}
@@ -426,9 +438,16 @@ export default function Home() {
   );
 }
 
-/* ── Month-over-month delta ───────────────────────────────────────── */
+/* ── Shared label component ───────────────────────────────────────── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+      {children}
+    </h3>
+  );
+}
 
-// upIsGood: true=green when up, false=green when down, null=always gray
+/* ── Month-over-month delta ───────────────────────────────────────── */
 function delta(
   curr: number,
   prev: number | undefined,
@@ -437,7 +456,7 @@ function delta(
 ): { text: string; good: boolean | null } | null {
   if (prev === undefined || prev === null) return null;
   const diff = curr - prev;
-  if (Math.abs(diff) < 0.5) return null; // too small to show
+  if (Math.abs(diff) < 0.5) return null;
   const sign = diff > 0 ? '+' : '';
   const text = isPct
     ? `${sign}${Math.round(diff)} pts`
@@ -447,24 +466,18 @@ function delta(
 }
 
 /* ── Projected spending helper ────────────────────────────────────── */
-
 function projectedSpending(month: string, spending: number): string | null {
   const today = new Date();
   const cm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   if (month !== cm) return null;
   const day = today.getDate();
-  const totalDays = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0,
-  ).getDate();
-  if (day < 3 || day >= totalDays) return null; // too early or month is done
+  const totalDays = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  if (day < 3 || day >= totalDays) return null;
   const projected = Math.round((spending / day) * totalDays);
   return `→ ${formatCurrency(projected)} projected`;
 }
 
 /* ── Metric Card ──────────────────────────────────────────────────── */
-
 const ACCENT_TEXT: Record<string, string> = {
   green: 'text-[#00d98a]',
   red: 'text-[#ff4560]',
@@ -478,6 +491,14 @@ const ACCENT_LINE: Record<string, string> = {
   red: '#ff4560',
   amber: '#f5aa2a',
   blue: '#4a8cff',
+  default: 'transparent',
+};
+
+const ACCENT_BG: Record<string, string> = {
+  green: 'rgba(0, 217, 138, 0.04)',
+  red: 'rgba(255, 69, 96, 0.04)',
+  amber: 'rgba(245, 170, 42, 0.04)',
+  blue: 'rgba(74, 140, 255, 0.04)',
   default: 'transparent',
 };
 
@@ -496,6 +517,7 @@ function MetricCard({
 }) {
   const color = ACCENT_LINE[accent] ?? 'transparent';
   const textClass = ACCENT_TEXT[accent] ?? ACCENT_TEXT.default;
+  const bgHint = ACCENT_BG[accent] ?? 'transparent';
   const deltaClass =
     d?.good === true
       ? 'text-[#00d98a]'
@@ -503,26 +525,27 @@ function MetricCard({
         ? 'text-[#ff4560]'
         : 'text-text-4';
   return (
-    <div className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden">
+    <div
+      className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden flex flex-col"
+      style={{ backgroundColor: bgHint !== 'transparent' ? `color-mix(in srgb, var(--surface) 95%, ${color} 5%)` : undefined }}
+    >
       {accent !== 'default' && (
         <div
-          className="absolute top-0 left-0 right-0 h-px"
+          className="absolute top-0 left-0 right-0 h-[2px]"
           style={{
-            background: `linear-gradient(90deg, ${color}55, transparent 70%)`,
+            background: `linear-gradient(90deg, ${color}cc, ${color}33 60%, transparent)`,
           }}
         />
       )}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
         {label}
       </p>
-      <p
-        className={`text-xl font-mono font-semibold leading-none ${textClass}`}
-      >
+      <p className={`text-[22px] font-mono font-semibold leading-none ${textClass}`}>
         {value}
       </p>
       {sub && <p className="text-[10px] font-mono text-text-4 mt-1.5">{sub}</p>}
       {d && (
-        <p className={`text-[10px] font-mono mt-1 ${deltaClass}`}>
+        <p className={`text-[10px] font-mono mt-1.5 ${deltaClass}`}>
           {d.text} vs last mo
         </p>
       )}
@@ -531,66 +554,49 @@ function MetricCard({
 }
 
 /* ── Budget Allocation Bar ────────────────────────────────────────── */
-
 function BudgetBar({ summary }: { summary: Summary }) {
   const { totalIncome, tsp, roth, committed, spending, net } = summary;
   if (totalIncome === 0) return null;
 
-  const pct = (n: number) =>
-    Math.max(0, Math.min(100, (n / totalIncome) * 100));
+  const pct = (n: number) => Math.max(0, Math.min(100, (n / totalIncome) * 100));
 
   const segments = [
-    {
-      label: 'Invested',
-      value: tsp + roth,
-      pct: pct(tsp + roth),
-      color: '#4a8cff',
-    },
-    {
-      label: 'Committed',
-      value: committed,
-      pct: pct(committed),
-      color: '#f5aa2a',
-    },
-    {
-      label: 'Spending',
-      value: spending,
-      pct: pct(spending),
-      color: '#ff4560',
-    },
-    {
-      label: 'Net',
-      value: Math.max(0, net),
-      pct: pct(Math.max(0, net)),
-      color: '#00d98a',
-    },
+    { label: 'Invested', value: tsp + roth, pct: pct(tsp + roth), color: '#4a8cff' },
+    { label: 'Committed', value: committed, pct: pct(committed), color: '#f5aa2a' },
+    { label: 'Spending', value: spending, pct: pct(spending), color: '#ff4560' },
+    { label: 'Net', value: Math.max(0, net), pct: pct(Math.max(0, net)), color: '#00d98a' },
   ];
 
   return (
-    <div className="bg-surface rounded-xl border border-border px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2.5">
-        Allocation
-      </p>
-      <div className="h-1.5 bg-bg rounded-full flex gap-px overflow-hidden">
+    <div className="bg-surface rounded-xl border border-border px-4 py-3.5">
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          Allocation
+        </p>
+        <p className="text-[10px] font-mono text-text-4">
+          {formatCurrency(totalIncome)} total
+        </p>
+      </div>
+      <div className="h-2 bg-bg rounded-full flex gap-0.5 overflow-hidden">
         {segments.map(({ label, pct: p, color }) => (
           <div
             key={label}
             style={{ width: `${p}%`, backgroundColor: color }}
             className="rounded-full transition-all duration-500"
-            title={`${label} ${Math.round(p)}%`}
+            title={`${label}: ${formatCurrency(segments.find(s => s.label === label)?.value ?? 0)} (${Math.round(p)}%)`}
           />
         ))}
       </div>
-      <div className="flex gap-5 mt-2 flex-wrap">
+      <div className="flex gap-4 mt-2.5 flex-wrap">
         {segments.map(({ label, pct: p, color }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: color }}
             />
-            <span className="text-[11px] text-text-2">
+            <span className="text-[11px] text-text-3">
               {label}{' '}
-              <span style={{ color }} className="font-mono">
+              <span style={{ color }} className="font-mono font-medium">
                 {Math.round(p)}%
               </span>
             </span>
@@ -602,7 +608,6 @@ function BudgetBar({ summary }: { summary: Summary }) {
 }
 
 /* ── Streak Banner ────────────────────────────────────────────────── */
-
 function StreakBanner({ streak }: { streak: number }) {
   const label =
     streak >= 12
@@ -610,18 +615,34 @@ function StreakBanner({ streak }: { streak: number }) {
       : streak >= 6
         ? 'Half a year in the green'
         : `${streak} months in the green`;
-  const intensity =
+
+  const config =
     streak >= 12
-      ? 'text-[#00d98a] border-[#00d98a]/30 bg-[#00d98a]/5'
+      ? { color: '#00d98a', bg: 'rgba(0,217,138,0.06)', border: 'rgba(0,217,138,0.25)', icon: '🔥' }
       : streak >= 6
-        ? 'text-[#4a8cff] border-[#4a8cff]/30 bg-[#4a8cff]/5'
-        : 'text-[#f5aa2a] border-[#f5aa2a]/30 bg-[#f5aa2a]/5';
+        ? { color: '#4a8cff', bg: 'rgba(74,140,255,0.06)', border: 'rgba(74,140,255,0.25)', icon: '🔥' }
+        : { color: '#f5aa2a', bg: 'rgba(245,170,42,0.06)', border: 'rgba(245,170,42,0.25)', icon: '⚡' };
+
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium ${intensity}`}
+      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-medium"
+      style={{
+        backgroundColor: config.bg,
+        border: `1px solid ${config.border}`,
+        boxShadow: `0 0 20px ${config.color}18`,
+      }}
     >
-      <span>{streak >= 6 ? '🔥' : '⚡'}</span>
-      <span>{label} — positive net every month</span>
+      <span className="text-base leading-none">{config.icon}</span>
+      <span style={{ color: config.color }} className="font-semibold">
+        {label}
+      </span>
+      <span className="text-text-3">— positive net every month</span>
+      <span
+        className="ml-auto font-mono text-xs px-2 py-0.5 rounded-full border"
+        style={{ color: config.color, borderColor: config.border }}
+      >
+        {streak}×
+      </span>
     </div>
   );
 }

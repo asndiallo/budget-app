@@ -28,9 +28,7 @@ export default function TransactionsPanel({
     initialCategory ?? null,
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Transaction[] | null>(
-    null,
-  );
+  const [searchResults, setSearchResults] = useState<Transaction[] | null>(null);
   const [period, setPeriod] = useState<'all' | '1' | '2'>('all');
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
@@ -53,7 +51,6 @@ export default function TransactionsPanel({
   const reloadImportHistory = () =>
     api.importHistory.list().then(setImportHistory);
 
-  // Sync initialCategory when drill-through arrives
   useEffect(() => {
     if (initialCategory) setFilterCat(initialCategory);
   }, [initialCategory]);
@@ -234,10 +231,8 @@ export default function TransactionsPanel({
   function txDayOfMonth(t: Transaction): number | null {
     const src = t.date || t.created_at;
     if (!src) return null;
-    // ISO: YYYY-MM-DD
     const iso = src.match(/^\d{4}-\d{2}-(\d{2})/);
     if (iso) return parseInt(iso[1]);
-    // US: MM/DD/YYYY or M/D/YYYY
     const us = src.match(/^\d{1,2}\/(\d{1,2})\/\d{4}/);
     if (us) return parseInt(us[1]);
     return null;
@@ -251,7 +246,7 @@ export default function TransactionsPanel({
       ? displayTxs
       : displayTxs.filter((t) => {
           const day = txDayOfMonth(t);
-          if (day === null) return true; // no date → show in all periods
+          if (day === null) return true;
           return period === '1' ? day <= 15 : day > 15;
         });
 
@@ -275,10 +270,10 @@ export default function TransactionsPanel({
 
   return (
     <div className="space-y-5">
-      {/* CSV import */}
+      {/* CSV import card */}
       <div className="bg-bg rounded-xl border border-border p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-text">Import CSV</p>
             <p className="text-xs text-text-3 mt-0.5">
               Apple Card · Chase · Navy Federal
@@ -298,8 +293,22 @@ export default function TransactionsPanel({
             )}
           </div>
           <label className="cursor-pointer shrink-0">
-            <span className="inline-block text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors whitespace-nowrap">
-              {importing ? 'Importing…' : 'Upload CSV'}
+            <span
+              className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap ${
+                importing
+                  ? 'border-border text-text-3'
+                  : 'border-border text-text-2 hover:border-[#4a8cff]/40 hover:text-[#4a8cff] hover:bg-surface-blue/40'
+              }`}
+            >
+              {importing ? (
+                <>
+                  <span className="opacity-50">↻</span> Importing…
+                </>
+              ) : (
+                <>
+                  ↑ Upload CSV
+                </>
+              )}
             </span>
             <input
               ref={fileRef}
@@ -311,7 +320,9 @@ export default function TransactionsPanel({
           </label>
         </div>
         {importMsg && (
-          <p className="text-xs text-[#00d98a] mt-2 font-mono">{importMsg}</p>
+          <p className="text-xs text-[#00d98a] mt-2.5 font-mono flex items-center gap-1.5">
+            <span>✓</span> {importMsg}
+          </p>
         )}
       </div>
 
@@ -320,10 +331,13 @@ export default function TransactionsPanel({
         <div>
           <button
             onClick={() => setShowImportHistory((v) => !v)}
-            className="text-xs text-text-3 hover:text-text-2 transition-colors"
+            className="text-xs text-text-3 hover:text-text-2 transition-colors flex items-center gap-1"
           >
-            {showImportHistory ? '▾ Hide' : '▸ Recent imports'}{' '}
-            <span className="text-text-4">({importHistory.length})</span>
+            <span className="text-[10px]">{showImportHistory ? '▾' : '▸'}</span>
+            Recent imports
+            <span className="text-text-4 font-mono ml-0.5">
+              ({importHistory.length})
+            </span>
           </button>
           {showImportHistory && (
             <div className="mt-2 bg-bg border border-border rounded-xl divide-y divide-border-dim overflow-hidden">
@@ -344,10 +358,12 @@ export default function TransactionsPanel({
                 return (
                   <div
                     key={imp.import_id}
-                    className="flex items-center justify-between px-3 py-2 gap-3"
+                    className="flex items-center justify-between px-3 py-2.5 gap-3"
                   >
                     <div className="min-w-0">
-                      <span className="text-xs text-text">{imp.source}</span>
+                      <span className="text-xs font-medium text-text">
+                        {imp.source}
+                      </span>
                       <span className="text-xs text-text-4 ml-2">
                         {imp.count} txns · {label} · {when}
                       </span>
@@ -371,9 +387,10 @@ export default function TransactionsPanel({
       <div>
         <button
           onClick={() => setManagingCards((v) => !v)}
-          className="text-xs text-text-3 hover:text-text-2 transition-colors"
+          className="text-xs text-text-3 hover:text-text-2 transition-colors flex items-center gap-1"
         >
-          {managingCards ? '▾ Hide cards' : '▸ Manage cards'}
+          <span className="text-[10px]">{managingCards ? '▾' : '▸'}</span>
+          Manage cards
         </button>
         {managingCards && (
           <div className="mt-2 bg-bg border border-border rounded-xl p-3 space-y-2">
@@ -409,17 +426,17 @@ export default function TransactionsPanel({
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-4 text-xs pointer-events-none">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-4 text-sm pointer-events-none select-none">
           ⌕
         </span>
         <input
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search all transactions…"
-          className="w-full text-sm bg-bg border border-border rounded-xl pl-7 pr-4 py-2 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className="w-full text-sm bg-bg border border-border rounded-xl pl-8 pr-4 py-2 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
         />
         {isSearching && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-4">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-4 font-mono">
             {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -428,7 +445,7 @@ export default function TransactionsPanel({
       {/* Budget vs actual (hidden in search mode) */}
       {!isSearching && <MonthlyBudgetStatus month={month} />}
 
-      {/* Pay period toggle (hidden in search mode) */}
+      {/* Pay period toggle */}
       {!isSearching && (
         <div className="flex items-center gap-1">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-4 mr-1">
@@ -467,31 +484,33 @@ export default function TransactionsPanel({
             className={`text-xs px-3 py-1 rounded-full border transition-all ${
               !filterCat
                 ? 'bg-text text-bg border-text font-medium'
-                : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
+                : 'border-border text-text-3 hover:border-border hover:text-text-2'
             }`}
           >
             All · ${Math.round(grandTotal).toLocaleString()}
           </button>
-          {Object.entries(catTotals).map(([c, total]) => (
-            <button
-              key={c}
-              onClick={() => setFilterCat(filterCat === c ? null : c)}
-              className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                filterCat === c
-                  ? 'bg-text text-bg border-text font-medium'
-                  : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
-              }`}
-            >
-              {c} · ${Math.round(total).toLocaleString()}
-            </button>
-          ))}
+          {Object.entries(catTotals)
+            .sort(([, a], [, b]) => b - a)
+            .map(([c, total]) => (
+              <button
+                key={c}
+                onClick={() => setFilterCat(filterCat === c ? null : c)}
+                className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                  filterCat === c
+                    ? `${CAT_COLORS[c] ?? 'bg-gray-500/10 text-gray-500'} border-current`
+                    : 'border-border text-text-3 hover:text-text-2'
+                }`}
+              >
+                {c} · ${Math.round(total).toLocaleString()}
+              </button>
+            ))}
         </div>
       )}
 
       {/* Transaction list */}
       <div>
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-          {isSearching ? `Search results` : 'Transactions'}
+          {isSearching ? 'Search results' : 'Transactions'}
         </h3>
         {filtered.length === 0 && (
           <p className="text-sm text-text-3 py-4">
@@ -649,14 +668,13 @@ function TxRow({
             ))}
           </select>
           {tx.source !== 'manual' && (
-            <span className="text-xs text-text-3">{tx.source}</span>
+            <span className="text-xs text-text-4">{tx.source}</span>
           )}
           {showMonth && (
             <span className="text-xs font-mono text-text-4">{tx.month}</span>
           )}
         </div>
 
-        {/* Notes */}
         {editingNotes ? (
           <input
             autoFocus
