@@ -121,28 +121,28 @@ Any card CSV is supported. Apple Card format is natively mapped. For other cards
 
 All hardcoded values live in **`lib/config.ts`**. Edit that file to customize without touching components.
 
-| Export | What it controls |
-|--------|-----------------|
-| `APP_CONFIG` | App title, subtitle, transactions tab label |
-| `INCOME_FIELDS` | Income rows — add a field here and it appears in the Income tab automatically |
-| `TSP_CONFIG` | TSP contribution rate and fund allocation note |
-| `DEDUCTION_FIELDS` | Payroll deduction rows (taxes, FICA, SGLI, etc.) |
-| `CATEGORIES` | Transaction category list |
-| `CAT_COLORS` | Tailwind badge classes per category |
-| `CHART_CAT_COLORS` | Hex colors for Recharts charts per category |
-| `CSV_CATEGORY_MAP` | Source CSV category → internal category mapping |
-| `GOAL_COLORS` | Available goal color palette |
-| `SEED_INCOME` | Default income values seeded on first run |
-| `SEED_FIXED_EXPENSES` | Default fixed expenses seeded on first run |
-| `SEED_GOALS` | Default savings goals seeded on first run |
-| `SEED_PAYMENT_SOURCES` | Default card/source list seeded on first run |
-| `SEED_DEBTS` | Default debt entries seeded on first run |
+| Export                 | What it controls                                                              |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `APP_CONFIG`           | App title, subtitle, transactions tab label                                   |
+| `INCOME_FIELDS`        | Income rows — add a field here and it appears in the Income tab automatically |
+| `TSP_CONFIG`           | TSP contribution rate and fund allocation note                                |
+| `DEDUCTION_FIELDS`     | Payroll deduction rows (taxes, FICA, SGLI, etc.)                              |
+| `CATEGORIES`           | Transaction category list                                                     |
+| `CAT_COLORS`           | Tailwind badge classes per category                                           |
+| `CHART_CAT_COLORS`     | Hex colors for Recharts charts per category                                   |
+| `CSV_CATEGORY_MAP`     | Source CSV category → internal category mapping                               |
+| `GOAL_COLORS`          | Available goal color palette                                                  |
+| `SEED_INCOME`          | Default income values seeded on first run                                     |
+| `SEED_FIXED_EXPENSES`  | Default fixed expenses seeded on first run                                    |
+| `SEED_GOALS`           | Default savings goals seeded on first run                                     |
+| `SEED_PAYMENT_SOURCES` | Default card/source list seeded on first run                                  |
+| `SEED_DEBTS`           | Default debt entries seeded on first run                                      |
 
 ---
 
 ## Project structure
 
-```
+```txt
 app/
   page.tsx                        # Root shell — tabs, summary bar, month selector
   login/                          # Login page
