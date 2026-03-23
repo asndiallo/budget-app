@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,17 +39,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)]">
-      <div className="w-full max-w-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-(--bg-base)">
+      <div className="w-full max-w-sm bg-(--bg-card) border border-border rounded-2xl p-8 shadow-xl">
         <div className="mb-8 text-center">
           <div className="text-3xl mb-2">🎖️</div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Military Budget Tracker</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">Sign in to your account</p>
+          <h1 className="text-xl font-bold text-(--text-primary)">
+            Military Budget Tracker
+          </h1>
+          <p className="text-sm text-(--text-muted) mt-1">
+            Sign in to your account
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+            <label className="block text-xs font-medium text-(--text-muted) mb-1">
               Username
             </label>
             <input
@@ -57,14 +61,14 @@ export default function LoginPage() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg bg-(--bg-base) border border-border text-(--text-primary) text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="username"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+            <label className="block text-xs font-medium text-(--text-muted) mb-1">
               Password
             </label>
             <input
@@ -72,7 +76,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg bg-(--bg-base) border border-border text-(--text-primary) text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
               required
             />
@@ -93,7 +97,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
+        <p className="mt-6 text-center text-xs text-(--text-muted)">
           No account?{' '}
           <a href="/setup" className="text-blue-400 hover:underline">
             Create one

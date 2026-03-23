@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   BRANCHES,
   COMPONENTS,
   ENLISTED_GRADES,
-  WARRANT_GRADES,
   OFFICER_GRADES,
+  WARRANT_GRADES,
 } from '@/lib/pay-tables';
 import type { Branch, Component } from '@/lib/types';
+import { useEffect, useState } from 'react';
+
+import { useRouter } from 'next/navigation';
 
 type Step = 'credentials' | 'profile' | 'pay-preview';
 
@@ -42,7 +43,9 @@ export default function SetupPage() {
   const [yos, setYos] = useState(0);
 
   const [preview, setPreview] = useState<PayPreview | null>(null);
-  const [installations, setInstallations] = useState<{ name: string; state: string }[]>([]);
+  const [installations, setInstallations] = useState<
+    { name: string; state: string }[]
+  >([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -65,7 +68,15 @@ export default function SetupPage() {
         }
       })
       .catch(() => {});
-  }, [step, payGrade, yos, dutyStation, dependents, branch, installations.length]);
+  }, [
+    step,
+    payGrade,
+    yos,
+    dutyStation,
+    dependents,
+    branch,
+    installations.length,
+  ]);
 
   // Fetch installation list once
   useEffect(() => {
@@ -75,7 +86,7 @@ export default function SetupPage() {
       .catch(() => {});
   }, []);
 
-  function handleCredentialsNext(e: React.FormEvent) {
+  function handleCredentialsNext(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     if (password !== confirmPassword) {
@@ -89,7 +100,7 @@ export default function SetupPage() {
     setStep('profile');
   }
 
-  function handleProfileNext(e: React.FormEvent) {
+  function handleProfileNext(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setStep('pay-preview');
   }
@@ -131,21 +142,24 @@ export default function SetupPage() {
   }
 
   const fmt = (n: number) =>
-    n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    n.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
 
   const ALL_GRADES = [...ENLISTED_GRADES, ...WARRANT_GRADES, ...OFFICER_GRADES];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)] p-4">
-      <div className="w-full max-w-lg bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 shadow-xl">
-
+    <div className="min-h-screen flex items-center justify-center bg-(--bg-base) p-4">
+      <div className="w-full max-w-lg bg-(--bg-card) border border-border rounded-2xl p-8 shadow-xl">
         {/* Header */}
         <div className="mb-6 text-center">
           <div className="text-3xl mb-2">🎖️</div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+          <h1 className="text-xl font-bold text-(--text-primary)">
             Create Your Account
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <p className="text-sm text-(--text-muted) mt-1">
             {step === 'credentials' && 'Step 1 of 3 — Credentials'}
             {step === 'profile' && 'Step 2 of 3 — Military Profile'}
             {step === 'pay-preview' && 'Step 3 of 3 — Pay Preview'}
@@ -160,9 +174,12 @@ export default function SetupPage() {
               className={`flex-1 h-1.5 rounded-full ${
                 step === s
                   ? 'bg-blue-500'
-                  : i < (['credentials', 'profile', 'pay-preview'] as Step[]).indexOf(step)
-                  ? 'bg-blue-500/40'
-                  : 'bg-[var(--border)]'
+                  : i <
+                      (
+                        ['credentials', 'profile', 'pay-preview'] as Step[]
+                      ).indexOf(step)
+                    ? 'bg-blue-500/40'
+                    : 'bg-border'
               }`}
             />
           ))}
@@ -219,7 +236,9 @@ export default function SetupPage() {
                 required
               />
             </Field>
-            <button type="submit" className={btnCls}>Next →</button>
+            <button type="submit" className={btnCls}>
+              Next →
+            </button>
           </form>
         )}
 
@@ -228,28 +247,50 @@ export default function SetupPage() {
           <form onSubmit={handleProfileNext} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Field label="Branch">
-                <select value={branch} onChange={(e) => setBranch(e.target.value as Branch)} className={inputCls}>
-                  {BRANCHES.map((b) => <option key={b}>{b}</option>)}
+                <select
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value as Branch)}
+                  className={inputCls}
+                >
+                  {BRANCHES.map((b) => (
+                    <option key={b}>{b}</option>
+                  ))}
                 </select>
               </Field>
               <Field label="Component">
-                <select value={component} onChange={(e) => setComponent(e.target.value as Component)} className={inputCls}>
-                  {COMPONENTS.map((c) => <option key={c}>{c}</option>)}
+                <select
+                  value={component}
+                  onChange={(e) => setComponent(e.target.value as Component)}
+                  className={inputCls}
+                >
+                  {COMPONENTS.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
                 </select>
               </Field>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Pay grade / Rank">
-                <select value={payGrade} onChange={(e) => setPayGrade(e.target.value)} className={inputCls}>
+                <select
+                  value={payGrade}
+                  onChange={(e) => setPayGrade(e.target.value)}
+                  className={inputCls}
+                >
                   <optgroup label="Enlisted">
-                    {ENLISTED_GRADES.map((g) => <option key={g}>{g}</option>)}
+                    {ENLISTED_GRADES.map((g) => (
+                      <option key={g}>{g}</option>
+                    ))}
                   </optgroup>
                   <optgroup label="Warrant Officer">
-                    {WARRANT_GRADES.map((g) => <option key={g}>{g}</option>)}
+                    {WARRANT_GRADES.map((g) => (
+                      <option key={g}>{g}</option>
+                    ))}
                   </optgroup>
                   <optgroup label="Officer">
-                    {OFFICER_GRADES.map((g) => <option key={g}>{g}</option>)}
+                    {OFFICER_GRADES.map((g) => (
+                      <option key={g}>{g}</option>
+                    ))}
                   </optgroup>
                 </select>
               </Field>
@@ -277,7 +318,11 @@ export default function SetupPage() {
             </Field>
 
             <Field label="Duty station">
-              <select value={dutyStation} onChange={(e) => setDutyStation(e.target.value)} className={inputCls}>
+              <select
+                value={dutyStation}
+                onChange={(e) => setDutyStation(e.target.value)}
+                className={inputCls}
+              >
                 <option value="">— Other / Off-post —</option>
                 {installations.map((i) => (
                   <option key={i.name} value={i.name}>
@@ -299,10 +344,16 @@ export default function SetupPage() {
             </Field>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => setStep('credentials')} className={`${btnCls} bg-transparent border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-base)]`}>
+              <button
+                type="button"
+                onClick={() => setStep('credentials')}
+                className={`${btnCls} bg-transparent border border-border text-(--text-primary) hover:bg-(--bg-base)`}
+              >
                 ← Back
               </button>
-              <button type="submit" className={btnCls}>Next →</button>
+              <button type="submit" className={btnCls}>
+                Next →
+              </button>
             </div>
           </form>
         )}
@@ -319,64 +370,109 @@ export default function SetupPage() {
                   <div className="space-y-2">
                     <PayRow label="Base Pay" value={fmt(preview.basePay)} />
                     <PayRow label="BAS" value={fmt(preview.bas)} />
-                    <PayRow label={`BAH (${dependents > 0 ? 'w/' : 'w/o'} dependents)`} value={fmt(preview.bah)} note={!dutyStation ? 'No station selected' : undefined} />
+                    <PayRow
+                      label={`BAH (${dependents > 0 ? 'w/' : 'w/o'} dependents)`}
+                      value={fmt(preview.bah)}
+                      note={!dutyStation ? 'No station selected' : undefined}
+                    />
                     <div className="border-t border-blue-500/20 pt-2 mt-2">
-                      <PayRow label="Gross monthly" value={fmt(preview.grossMonthly)} bold />
+                      <PayRow
+                        label="Gross monthly"
+                        value={fmt(preview.grossMonthly)}
+                        bold
+                      />
                     </div>
                   </div>
-                  <p className="text-xs text-[var(--text-muted)] mt-3">
-                    These values will pre-fill your income panel. You can adjust them any time.
+                  <p className="text-xs text-(--text-muted) mt-3">
+                    These values will pre-fill your income panel. You can adjust
+                    them any time.
                   </p>
                 </div>
 
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                  <p className="text-xs text-amber-400 font-medium mb-1">Deductions not included above</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    FICA, federal taxes, SGLI, and meal deductions will be estimated and editable in the income panel.
+                  <p className="text-xs text-amber-400 font-medium mb-1">
+                    Deductions not included above
+                  </p>
+                  <p className="text-xs text-(--text-muted)">
+                    FICA, federal taxes, SGLI, and meal deductions will be
+                    estimated and editable in the income panel.
                   </p>
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-[var(--text-muted)] text-sm">Loading pay preview…</div>
+              <div className="text-center py-8 text-(--text-muted) text-sm">
+                Loading pay preview…
+              </div>
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => setStep('profile')} className={`${btnCls} bg-transparent border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-base)]`}>
+              <button
+                onClick={() => setStep('profile')}
+                className={`${btnCls} bg-transparent border border-border text-(--text-primary) hover:bg-(--bg-base)`}
+              >
                 ← Back
               </button>
-              <button onClick={handleFinish} disabled={loading} className={btnCls}>
+              <button
+                onClick={handleFinish}
+                disabled={loading}
+                className={btnCls}
+              >
                 {loading ? 'Creating account…' : 'Create Account'}
               </button>
             </div>
           </div>
         )}
 
-        <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
+        <p className="mt-6 text-center text-xs text-(--text-muted)">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-400 hover:underline">Sign in</a>
+          <a href="/login" className="text-blue-400 hover:underline">
+            Sign in
+          </a>
         </p>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{label}</label>
+      <label className="block text-xs font-medium text-(--text-muted) mb-1">
+        {label}
+      </label>
       {children}
     </div>
   );
 }
 
-function PayRow({ label, value, note, bold }: { label: string; value: string; note?: string; bold?: boolean }) {
+function PayRow({
+  label,
+  value,
+  note,
+  bold,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  bold?: boolean;
+}) {
   return (
     <div className="flex justify-between items-center">
-      <span className={`text-sm ${bold ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+      <span
+        className={`text-sm ${bold ? 'font-semibold text-(--text-primary)' : 'text-(--text-muted)'}`}
+      >
         {label}
         {note && <span className="text-xs text-amber-400 ml-1">({note})</span>}
       </span>
-      <span className={`text-sm font-mono ${bold ? 'font-bold text-blue-400' : 'text-[var(--text-primary)]'}`}>
+      <span
+        className={`text-sm font-mono ${bold ? 'font-bold text-blue-400' : 'text-(--text-primary)'}`}
+      >
         {value}
       </span>
     </div>
