@@ -16,7 +16,7 @@ const TREND_META: Record<
 > = {
   up: { icon: '↑', label: 'Trending up', className: 'text-[#ff4560]' },
   down: { icon: '↓', label: 'Trending down', className: 'text-[#00d98a]' },
-  stable: { icon: '→', label: 'Stable', className: 'text-text-2' },
+  stable: { icon: '→', label: 'Stable', className: 'text-text-3' },
 };
 
 function fmt(n: number) {
@@ -46,8 +46,6 @@ export default function BudgetSuggestionsPanel() {
     reloadBudgets();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Edit helpers ─────────────────────────────────────────────────────────────
-
   const startEdit = (cat: string, currentBudget: number) => {
     setEditingCat(cat);
     setEditValue(String(Math.round(currentBudget)));
@@ -68,8 +66,6 @@ export default function BudgetSuggestionsPanel() {
     await api.categoryBudgets.remove(cat);
     reloadBudgets();
   }
-
-  // ── Render ───────────────────────────────────────────────────────────────────
 
   if (!insights) {
     return (
@@ -93,13 +89,18 @@ export default function BudgetSuggestionsPanel() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <p className="text-xs text-text-2">
-        Based on <span className="text-text font-mono">{monthsAnalyzed}</span>{' '}
-        months of data · avg total{' '}
-        <span className="text-text font-mono">
-          {fmt(avgMonthlyExpenses)}/mo
-        </span>
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-xs text-text-3">
+          Based on{' '}
+          <span className="text-text font-mono font-semibold">
+            {monthsAnalyzed}
+          </span>{' '}
+          months · avg{' '}
+          <span className="text-text font-mono font-semibold">
+            {fmt(avgMonthlyExpenses)}/mo
+          </span>
+        </p>
+      </div>
 
       {/* Category rows */}
       <div className="space-y-2">
@@ -109,7 +110,6 @@ export default function BudgetSuggestionsPanel() {
           const catClass =
             CAT_COLORS[ci.category] ?? 'bg-gray-500/10 text-gray-500';
 
-          // Active budget: user-set takes priority, falls back to computed suggestion
           const hasUserBudget = ci.category in saved;
           const activeBudget = hasUserBudget
             ? saved[ci.category]
@@ -140,10 +140,11 @@ export default function BudgetSuggestionsPanel() {
                 </span>
 
                 <div className="ml-auto flex items-center gap-3 text-xs font-mono">
-                  <span className="text-text-3">avg {fmt(ci.avg3m)}</span>
-                  <span
-                    className={overBudget ? 'text-[#ff4560]' : 'text-text-2'}
-                  >
+                  <span className="text-text-3">
+                    avg{' '}
+                    <span className="text-text-2">{fmt(ci.avg3m)}</span>
+                  </span>
+                  <span className={overBudget ? 'text-[#ff4560] font-semibold' : 'text-text-2'}>
                     last {fmt(ci.lastMonth)}
                   </span>
                 </div>
@@ -183,7 +184,7 @@ export default function BudgetSuggestionsPanel() {
               ) : (
                 <div className="flex items-center gap-2">
                   {/* Usage bar */}
-                  <div className="flex-1 h-1 bg-surface rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -193,12 +194,14 @@ export default function BudgetSuggestionsPanel() {
                     />
                   </div>
 
-                  <span className="text-xs font-mono font-semibold text-text shrink-0">
+                  <span
+                    className={`text-xs font-mono font-semibold shrink-0 ${overBudget ? 'text-[#ff4560]' : 'text-text'}`}
+                  >
                     {fmt(activeBudget)}
                   </span>
 
                   {!hasUserBudget && (
-                    <span className="text-[10px] text-text-3 shrink-0">
+                    <span className="text-[10px] text-text-4 shrink-0">
                       suggested
                     </span>
                   )}

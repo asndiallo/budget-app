@@ -56,6 +56,14 @@ export default function IncomePanel({
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round((income.base_pay || 0) * tspRate);
 
+  const militaryTotal = INCOME_FIELDS.reduce(
+    (s, f) => s + (income[f.key] || 0),
+    0,
+  );
+  const extraTotal = entries.reduce((s, e) => s + e.amount, 0);
+  const deductionTotal =
+    tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
+
   async function saveIncome(key: string, value: number) {
     setIncome((prev) => (prev ? { ...prev, [key]: value } : prev));
     await api.income.update(month, { [key]: value });
@@ -70,7 +78,7 @@ export default function IncomePanel({
 
   return (
     <div className="space-y-6">
-      <Section title="Military pay">
+      <Section title="Military pay" total={militaryTotal} totalColor="text-text">
         {INCOME_FIELDS.map((f) => (
           <Row
             key={f.key}
@@ -82,7 +90,7 @@ export default function IncomePanel({
         ))}
       </Section>
 
-      <Section title="Deductions">
+      <Section title="Deductions" total={deductionTotal} totalPrefix="−" totalColor="text-[#ff4560]">
         {/* TSP — rate-editable row */}
         <div className="flex items-center py-3 border-b border-border-dim">
           <div className="flex-1">
@@ -117,7 +125,12 @@ export default function IncomePanel({
         ))}
       </Section>
 
-      <Section title="Additional income">
+      <Section
+        title="Additional income"
+        total={extraTotal > 0 ? extraTotal : undefined}
+        totalPrefix="+"
+        totalColor="text-[#00d98a]"
+      >
         {entries.map((e) => (
           <div
             key={e.id}
@@ -181,15 +194,28 @@ export default function IncomePanel({
 function Section({
   title,
   children,
+  total,
+  totalPrefix = '',
+  totalColor = 'text-text-2',
 }: {
   title: string;
   children: React.ReactNode;
+  total?: number;
+  totalPrefix?: string;
+  totalColor?: string;
 }) {
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-        {title}
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          {title}
+        </h3>
+        {total !== undefined && (
+          <span className={`font-mono text-xs font-semibold ${totalColor}`}>
+            {totalPrefix}${Math.round(total).toLocaleString()}
+          </span>
+        )}
+      </div>
       {children}
     </div>
   );

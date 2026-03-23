@@ -55,8 +55,6 @@ export default function GoalsPanel() {
     api.insights.get().then(setInsights);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Edit helpers ─────────────────────────────────────────────────────────────
-
   const startEdit = (g: Goal) =>
     setEditing((prev) => ({ ...prev, [g.id]: toDraft(g) }));
 
@@ -93,8 +91,6 @@ export default function GoalsPanel() {
     cancelEdit(g.id);
     reload();
   }
-
-  // ── Add savings (non-edit mode quick-add) ────────────────────────────────────
 
   async function applySmartTarget(g: Goal, suggested: number) {
     await api.goals.update(g.id, { target: suggested });
@@ -137,22 +133,33 @@ export default function GoalsPanel() {
               label: 'Total saved',
               value: `$${Math.round(totalSaved).toLocaleString()}`,
               color: 'text-text',
+              accent: 'transparent',
             },
             {
               label: 'Total target',
               value: `$${Math.round(totalTarget).toLocaleString()}`,
               color: 'text-text',
+              accent: 'transparent',
             },
             {
               label: 'Overall',
               value: `${overallPct}%`,
               color: 'text-[#00d98a]',
+              accent: '#00d98a',
             },
-          ].map(({ label, value, color }) => (
+          ].map(({ label, value, color, accent }) => (
             <div
               key={label}
-              className="bg-bg rounded-xl border border-border p-3.5"
+              className="bg-bg rounded-xl border border-border p-3.5 relative overflow-hidden"
             >
+              {accent !== 'transparent' && (
+                <div
+                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  style={{
+                    background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
+                  }}
+                />
+              )}
               <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
                 {label}
               </p>
@@ -175,6 +182,7 @@ export default function GoalsPanel() {
               ? Math.min(100, Math.round((g.saved / g.target) * 100))
               : 0;
           const remaining = Math.max(0, g.target - g.saved);
+          const isDone = pct >= 100;
 
           const showSmartBanner =
             !isEditing &&
@@ -186,8 +194,16 @@ export default function GoalsPanel() {
           return (
             <div
               key={g.id}
-              className="bg-bg border border-border rounded-xl p-4"
+              className="bg-bg border border-border rounded-xl p-4 relative overflow-hidden"
             >
+              {/* Top color accent stripe */}
+              {isDone && (
+                <div
+                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  style={{ background: 'linear-gradient(90deg, #00d98acc, #00d98a22 70%, transparent)' }}
+                />
+              )}
+
               {isEditing ? (
                 /* ── Edit mode ── */
                 <div className="space-y-3">
@@ -275,34 +291,35 @@ export default function GoalsPanel() {
                 /* ── View mode ── */
                 <>
                   <div className="flex items-start justify-between mb-3">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span
                           className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
                         >
                           {pct}%
                         </span>
-                        <span className="text-sm font-semibold text-text">
+                        <span className="text-sm font-semibold text-text truncate">
                           {g.name}
                         </span>
+                        {isDone && (
+                          <span className="text-xs text-[#00d98a]">🎯</span>
+                        )}
                       </div>
                       <p className="text-xs text-text-3 font-mono">
-                        ${Math.round(g.saved).toLocaleString()}{' '}
+                        ${Math.round(g.saved).toLocaleString()}
                         <span className="text-text-4">
-                          / ${Math.round(g.target).toLocaleString()}
+                          {' / '}${Math.round(g.target).toLocaleString()}
                         </span>
                         {pct < 100 && remaining > 0 && (
                           <span className="text-text-3">
-                            {' '}
-                            · ${Math.round(remaining).toLocaleString()} left
+                            {' · '}${Math.round(remaining).toLocaleString()} left
                           </span>
                         )}
                         {pct < 100 &&
                           insights &&
                           insights.avgMonthlyNet > 0 && (
                             <span className="text-text-4">
-                              {' '}
-                              ·{' '}
+                              {' · '}
                               {formatMonthsToGoal(
                                 Math.ceil(remaining / insights.avgMonthlyNet),
                               )}{' '}
@@ -311,17 +328,17 @@ export default function GoalsPanel() {
                           )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-2 shrink-0">
                       <button
                         onClick={() => startEdit(g)}
-                        className="text-text-3 hover:text-text-2 text-xs transition-colors"
+                        className="text-text-3 hover:text-text-2 text-xs transition-colors p-1"
                         title="Edit goal"
                       >
                         ✎
                       </button>
                       <button
                         onClick={() => deleteGoal(g.id)}
-                        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors p-1"
                         title="Delete goal"
                       >
                         ✕
@@ -330,14 +347,14 @@ export default function GoalsPanel() {
                   </div>
 
                   {/* Progress bar */}
-                  <div className="h-1.5 bg-surface rounded-full overflow-hidden mb-3">
+                  <div className="h-2 bg-surface rounded-full overflow-hidden mb-3">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
+                      className={`h-full rounded-full transition-all duration-700 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
 
-                  {/* Smart target banner for emergency fund goals */}
+                  {/* Smart target banner */}
                   {showSmartBanner && insights && (
                     <div className="mb-3 rounded-lg border border-[#1a2e1a] bg-[#0a150a] px-3 py-2.5 flex items-center justify-between gap-3">
                       <div className="min-w-0">

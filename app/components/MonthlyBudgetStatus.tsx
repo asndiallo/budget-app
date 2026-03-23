@@ -69,7 +69,7 @@ export default function MonthlyBudgetStatus({ month }: { month: string }) {
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
         Budget status — this month
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {statuses.map(({ category, spent, budget, isUserBudget }) => {
           const hasBudget = budget > 0;
           const pct = hasBudget
@@ -85,37 +85,42 @@ export default function MonthlyBudgetStatus({ month }: { month: string }) {
           return (
             <div key={category} className="flex items-center gap-3">
               <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${catClass}`}
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 w-24 text-center ${catClass}`}
               >
                 {category}
               </span>
 
               {hasBudget ? (
                 <>
-                  <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${pct}%`, backgroundColor: barColor }}
                     />
                   </div>
-                  <span
-                    className={`text-xs font-mono shrink-0 ${over ? 'text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-text-3'}`}
-                  >
-                    ${Math.round(spent).toLocaleString()}
-                    <span className="text-text-4">
-                      /{Math.round(budget).toLocaleString()}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`text-xs font-mono ${over ? 'text-[#ff4560] font-semibold' : warn ? 'text-[#f5aa2a]' : 'text-text-3'}`}
+                    >
+                      ${Math.round(spent).toLocaleString()}
+                      <span className="text-text-4 font-normal">
+                        /{Math.round(budget).toLocaleString()}
+                      </span>
                     </span>
-                  </span>
-                  {!isUserBudget && (
-                    <span className="text-[10px] text-text-4 shrink-0">
-                      est
-                    </span>
-                  )}
+                    {over && (
+                      <span className="text-[10px] text-[#ff4560] font-semibold">
+                        ↑
+                      </span>
+                    )}
+                    {!isUserBudget && (
+                      <span className="text-[10px] text-text-4">est</span>
+                    )}
+                  </div>
                 </>
               ) : (
                 <span className="text-xs font-mono text-text-2">
                   ${Math.round(spent).toLocaleString()}
-                  <span className="text-text-4"> · no budget set</span>
+                  <span className="text-text-4"> · no budget</span>
                 </span>
               )}
             </div>

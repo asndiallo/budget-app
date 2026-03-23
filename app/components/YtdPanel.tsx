@@ -46,10 +46,14 @@ export default function YtdPanel({ month }: { month: string }) {
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-        {ytd.year} · year to date · {ytd.monthsRecorded}{' '}
-        {ytd.monthsRecorded === 1 ? 'month' : 'months'} recorded
-      </h3>
+      <div className="flex items-baseline gap-2 mb-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-text-2">
+          {ytd.year} · Year to date
+        </h3>
+        <span className="text-[10px] text-text-4">
+          {ytd.monthsRecorded} {ytd.monthsRecorded === 1 ? 'month' : 'months'} recorded
+        </span>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {cards.map(({ label, value, color, accent }) => (
           <div
@@ -58,9 +62,9 @@ export default function YtdPanel({ month }: { month: string }) {
           >
             {accent !== 'transparent' && (
               <div
-                className="absolute top-0 left-0 right-0 h-px"
+                className="absolute top-0 left-0 right-0 h-[2px]"
                 style={{
-                  background: `linear-gradient(90deg, ${accent}55, transparent 70%)`,
+                  background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
                 }}
               />
             )}

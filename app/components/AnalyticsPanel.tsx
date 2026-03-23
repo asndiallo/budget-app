@@ -48,7 +48,11 @@ export default function AnalyticsPanel({
   }, [month]);
 
   if (data.length === 0)
-    return <p className="text-sm text-text-3 py-10 text-center">Loading…</p>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <p className="text-sm text-text-3">Loading analytics…</p>
+      </div>
+    );
 
   const current = data[data.length - 1];
 
@@ -70,13 +74,17 @@ export default function AnalyticsPanel({
     data.some((d) => (d.categories[c] ?? 0) > 0),
   );
 
+  const totalSpending = donutData.reduce((s, d) => s + d.value, 0);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Row 1: Donut + Area */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Donut — current month spending */}
-        <div>
-          <SectionTitle>{current.label} — by category</SectionTitle>
+        <ChartCard
+          title={`${current.label} · by category`}
+          subtitle={donutData.length > 0 ? `${fmt(totalSpending)} total` : undefined}
+        >
           {donutData.length === 0 ? (
             <Empty />
           ) : (
@@ -86,8 +94,8 @@ export default function AnalyticsPanel({
                   data={donutData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={95}
+                  innerRadius={58}
+                  outerRadius={92}
                   paddingAngle={2}
                   dataKey="value"
                   onClick={(entry) =>
@@ -116,11 +124,13 @@ export default function AnalyticsPanel({
               </PieChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </ChartCard>
 
         {/* Area — income vs spending vs net */}
-        <div>
-          <SectionTitle>Income · Spending · Net (6 mo)</SectionTitle>
+        <ChartCard
+          title="Income · Spending · Net"
+          subtitle="6-month trend"
+        >
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart
               data={areaData}
@@ -192,12 +202,14 @@ export default function AnalyticsPanel({
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </ChartCard>
       </div>
 
       {/* Row 2: Stacked category bar */}
-      <div>
-        <SectionTitle>Spending by category — 6 months</SectionTitle>
+      <ChartCard
+        title="Spending by category"
+        subtitle="6-month breakdown"
+      >
         {activeCats.length === 0 ? (
           <Empty />
         ) : (
@@ -253,16 +265,32 @@ export default function AnalyticsPanel({
             </BarChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </ChartCard>
     </div>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+  subtitle?: string;
+}) {
   return (
-    <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+    <div className="bg-bg rounded-xl border border-border p-4">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-text-2">
+          {title}
+        </h3>
+        {subtitle && (
+          <span className="text-[10px] text-text-4">{subtitle}</span>
+        )}
+      </div>
       {children}
-    </h3>
+    </div>
   );
 }
 
