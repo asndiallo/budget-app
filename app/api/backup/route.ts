@@ -1,6 +1,7 @@
+import { getRequestUser, requireAdmin } from '@/lib/auth';
+
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser, requireAdmin } from '@/lib/auth';
 
 const TABLES = [
   'income_config',
@@ -22,16 +23,27 @@ export async function GET(req: Request) {
     const dump: Record<string, unknown[]> = {};
 
     for (const table of TABLES) {
-      if (role === 'admin' && new URL(req.url).searchParams.get('all') === '1') {
+      if (
+        role === 'admin' &&
+        new URL(req.url).searchParams.get('all') === '1'
+      ) {
         dump[table] = db.prepare(`SELECT * FROM ${table}`).all();
       } else {
-        dump[table] = db.prepare(`SELECT * FROM ${table} WHERE user_id = ?`).all(userId);
+        dump[table] = db
+          .prepare(`SELECT * FROM ${table} WHERE user_id = ?`)
+          .all(userId);
       }
     }
 
     const payload = JSON.stringify(
-      { exportedAt: new Date().toISOString(), version: 2, userId, tables: dump },
-      null, 2,
+      {
+        exportedAt: new Date().toISOString(),
+        version: 2,
+        userId,
+        tables: dump,
+      },
+      null,
+      2,
     );
     const date = new Date().toISOString().slice(0, 10);
     return new Response(payload, {
@@ -55,7 +67,10 @@ export async function POST(req: Request) {
     const db = getDb();
     const body = await req.json();
     if (!body.tables || typeof body.tables !== 'object') {
-      return NextResponse.json({ ok: false, error: 'Invalid backup format' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Invalid backup format' },
+        { status: 400 },
+      );
     }
 
     const tables = body.tables as Record<string, Record<string, unknown>[]>;
@@ -67,7 +82,9 @@ export async function POST(req: Request) {
         if (!Array.isArray(rows) || rows.length === 0) continue;
         const cols = Object.keys(rows[0]);
         const placeholders = cols.map(() => '?').join(', ');
-        const stmt = db.prepare(`INSERT OR IGNORE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`);
+        const stmt = db.prepare(
+          `INSERT OR IGNORE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`,
+        );
         for (const row of rows) {
           stmt.run(...cols.map((c) => row[c]));
           restored++;

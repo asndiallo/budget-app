@@ -6,7 +6,9 @@ export async function GET(req: Request) {
   try {
     const { userId } = getRequestUser(req);
     const db = getDb();
-    const rows = db.prepare('SELECT * FROM payment_sources WHERE user_id = ? ORDER BY id').all(userId);
+    const rows = db
+      .prepare('SELECT * FROM payment_sources WHERE user_id = ? ORDER BY id')
+      .all(userId);
     return NextResponse.json(rows);
   } catch (err) {
     if (err instanceof Response) return err;
@@ -20,7 +22,9 @@ export async function POST(req: Request) {
     const db = getDb();
     const { label } = await req.json();
     const result = db
-      .prepare('INSERT OR IGNORE INTO payment_sources (user_id, label) VALUES (?, ?)')
+      .prepare(
+        'INSERT OR IGNORE INTO payment_sources (user_id, label) VALUES (?, ?)',
+      )
       .run(userId, label);
     return NextResponse.json({ id: result.lastInsertRowid, label });
   } catch (err) {
@@ -34,7 +38,10 @@ export async function DELETE(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const { id } = await req.json();
-    db.prepare('DELETE FROM payment_sources WHERE id = ? AND user_id = ?').run(id, userId);
+    db.prepare('DELETE FROM payment_sources WHERE id = ? AND user_id = ?').run(
+      id,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

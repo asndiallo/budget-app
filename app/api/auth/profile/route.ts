@@ -1,12 +1,13 @@
 // Update the current user's military profile.
 // Also re-seeds income_config for the baseline month if pay-relevant fields change.
 
+import type { Branch, Component } from '@/lib/types';
+import { getBAH, getBAS, getBasePay, isOfficer } from '@/lib/pay-tables';
+
 import { NextResponse } from 'next/server';
+import type { PayGrade } from '@/lib/pay-tables';
 import { getDb } from '@/lib/db';
 import { getRequestUser } from '@/lib/auth';
-import { getBasePay, getBAS, getBAH, isOfficer } from '@/lib/pay-tables';
-import type { PayGrade } from '@/lib/pay-tables';
-import type { Branch, Component } from '@/lib/types';
 
 export async function PATCH(req: Request) {
   try {
@@ -31,8 +32,15 @@ export async function PATCH(req: Request) {
     const values: unknown[] = [];
 
     const allowed = [
-      'display_name','branch','pay_grade','mos',
-      'duty_station','bah_zip','component','dependents','years_of_service',
+      'display_name',
+      'branch',
+      'pay_grade',
+      'mos',
+      'duty_station',
+      'bah_zip',
+      'component',
+      'dependents',
+      'years_of_service',
     ] as const;
 
     for (const key of allowed) {
@@ -45,21 +53,23 @@ export async function PATCH(req: Request) {
     if (fields.length > 0) {
       fields.push("updated_at = datetime('now')");
       values.push(user.userId);
-      db.prepare(
-        `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
-      ).run(...values);
+      db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`).run(
+        ...values,
+      );
     }
 
     // Optionally reseed the income baseline from pay tables
     if (body.reseed_income) {
       const updated = db
-        .prepare('SELECT pay_grade, duty_station, dependents, years_of_service FROM users WHERE id = ?')
+        .prepare(
+          'SELECT pay_grade, duty_station, dependents, years_of_service FROM users WHERE id = ?',
+        )
         .get(user.userId) as {
-          pay_grade: string;
-          duty_station: string;
-          dependents: number;
-          years_of_service: number;
-        };
+        pay_grade: string;
+        duty_station: string;
+        dependents: number;
+        years_of_service: number;
+      };
 
       const grade = updated.pay_grade as PayGrade;
       const basePay = getBasePay(grade, updated.years_of_service);
@@ -72,7 +82,8 @@ export async function PATCH(req: Request) {
         bah,
         fica_soc_security: Math.round(basePay * 0.062 * 100) / 100,
         fica_medicare: Math.round(basePay * 0.0145 * 100) / 100,
-        taxes: Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
+        taxes:
+          Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
       };
 
       const upsert = db.prepare(

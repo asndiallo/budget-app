@@ -37,7 +37,11 @@ export async function GET(req: Request) {
          WHERE user_id = ? AND month IN (${months6.map(() => '?').join(',')})
          GROUP BY month, category`,
       )
-      .all(userId, ...months6) as { month: string; category: string; total: number }[];
+      .all(userId, ...months6) as {
+      month: string;
+      category: string;
+      total: number;
+    }[];
 
     const byMonth = new Map<string, Record<string, number>>();
     for (const row of rows) {
@@ -48,23 +52,36 @@ export async function GET(req: Request) {
     const withData6 = months6.filter((m) => byMonth.has(m));
     const withData3 = months3.filter((m) => byMonth.has(m));
 
-    const empty: SpendingInsights = { avgMonthlyExpenses: 0, avgMonthlyNet: 0, suggestedEmergencyFund: 0, monthsAnalyzed: 0, categoryInsights: [] };
+    const empty: SpendingInsights = {
+      avgMonthlyExpenses: 0,
+      avgMonthlyNet: 0,
+      suggestedEmergencyFund: 0,
+      monthsAnalyzed: 0,
+      categoryInsights: [],
+    };
     if (withData6.length === 0) return NextResponse.json(empty);
 
     const investmentFixed = (
-      db.prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-      ).get(userId) as { s: number }
+      db
+        .prepare(
+          "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
+        )
+        .get(userId) as { s: number }
     ).s;
 
     const monthlyData = withData6.map((m) => {
       const { totalIncome, tsp } = computeMonthlyFinancials(db, m, userId);
-      const spending = Object.values(byMonth.get(m)!).reduce((s, v) => s + v, 0);
+      const spending = Object.values(byMonth.get(m)!).reduce(
+        (s, v) => s + v,
+        0,
+      );
       return { spending, net: totalIncome - tsp - investmentFixed - spending };
     });
 
-    const avgMonthlyExpenses = monthlyData.reduce((s, d) => s + d.spending, 0) / withData6.length;
-    const avgMonthlyNet = monthlyData.reduce((s, d) => s + d.net, 0) / withData6.length;
+    const avgMonthlyExpenses =
+      monthlyData.reduce((s, d) => s + d.spending, 0) / withData6.length;
+    const avgMonthlyNet =
+      monthlyData.reduce((s, d) => s + d.net, 0) / withData6.length;
     const allCategories = [...new Set(rows.map((r) => r.category))];
 
     const avg = (months: string[], cat: string) => {
@@ -72,15 +89,20 @@ export async function GET(req: Request) {
       return vals.reduce((s, v) => s + v, 0) / Math.max(1, vals.length);
     };
 
-    const categoryInsights: CategoryInsight[] = allCategories.map((category) => {
-      const avg6m = avg(withData6, category);
-      const avg3m = withData3.length > 0 ? avg(withData3, category) : avg6m;
-      const lastMonth = byMonth.get(withData6[withData6.length - 1])?.[category] ?? 0;
-      const trendRatio = avg6m > 0 ? (avg3m - avg6m) / avg6m : 0;
-      const trend: CategoryInsight['trend'] = trendRatio > 0.05 ? 'up' : trendRatio < -0.05 ? 'down' : 'stable';
-      const suggestedBudget = Math.round((trend === 'up' ? avg3m * 1.05 : avg3m) / 5) * 5;
-      return { category, avg3m, avg6m, lastMonth, trend, suggestedBudget };
-    });
+    const categoryInsights: CategoryInsight[] = allCategories.map(
+      (category) => {
+        const avg6m = avg(withData6, category);
+        const avg3m = withData3.length > 0 ? avg(withData3, category) : avg6m;
+        const lastMonth =
+          byMonth.get(withData6[withData6.length - 1])?.[category] ?? 0;
+        const trendRatio = avg6m > 0 ? (avg3m - avg6m) / avg6m : 0;
+        const trend: CategoryInsight['trend'] =
+          trendRatio > 0.05 ? 'up' : trendRatio < -0.05 ? 'down' : 'stable';
+        const suggestedBudget =
+          Math.round((trend === 'up' ? avg3m * 1.05 : avg3m) / 5) * 5;
+        return { category, avg3m, avg6m, lastMonth, trend, suggestedBudget };
+      },
+    );
 
     categoryInsights.sort((a, b) => b.avg3m - a.avg3m);
 

@@ -7,7 +7,9 @@ export async function GET(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const rows = db
-      .prepare('SELECT category, budget FROM category_budgets WHERE user_id = ?')
+      .prepare(
+        'SELECT category, budget FROM category_budgets WHERE user_id = ?',
+      )
       .all(userId) as { category: string; budget: number }[];
     return NextResponse.json(rows);
   } catch (err) {
@@ -36,7 +38,9 @@ export async function DELETE(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const { category } = await req.json();
-    db.prepare('DELETE FROM category_budgets WHERE user_id = ? AND category = ?').run(userId, category);
+    db.prepare(
+      'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
+    ).run(userId, category);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

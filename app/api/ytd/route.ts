@@ -14,7 +14,10 @@ export async function GET(req: Request) {
 
     const year = month.slice(0, 4);
     const [, m] = month.split('-').map(Number);
-    const months = Array.from({ length: m }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+    const months = Array.from(
+      { length: m },
+      (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
+    );
 
     const spendingRows = db
       .prepare(
@@ -25,12 +28,16 @@ export async function GET(req: Request) {
       )
       .all(userId, ...months) as { month: string; total: number }[];
 
-    const spendingByMonth = Object.fromEntries(spendingRows.map((r) => [r.month, r.total]));
+    const spendingByMonth = Object.fromEntries(
+      spendingRows.map((r) => [r.month, r.total]),
+    );
 
     const investmentFixedMonthly = (
-      db.prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-      ).get(userId) as { s: number }
+      db
+        .prepare(
+          "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
+        )
+        .get(userId) as { s: number }
     ).s;
 
     let totalIncome = 0;
@@ -39,7 +46,11 @@ export async function GET(req: Request) {
     let monthsRecorded = 0;
 
     for (const mo of months) {
-      const { totalIncome: inc, tsp } = computeMonthlyFinancials(db, mo, userId);
+      const { totalIncome: inc, tsp } = computeMonthlyFinancials(
+        db,
+        mo,
+        userId,
+      );
       const spending = spendingByMonth[mo] ?? 0;
       if (inc > 0 || spending > 0) {
         totalIncome += inc;

@@ -47,7 +47,14 @@ export async function POST(req: Request) {
       .prepare(
         'INSERT INTO transactions (user_id, description, amount, category, month, source) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(userId, description, amount, category || DEFAULT_CATEGORY, m, source || 'manual');
+      .run(
+        userId,
+        description,
+        amount,
+        category || DEFAULT_CATEGORY,
+        m,
+        source || 'manual',
+      );
     return NextResponse.json({
       id: result.lastInsertRowid,
       description,
@@ -68,7 +75,14 @@ export async function PATCH(req: Request) {
     const { id, description, amount, category, notes } = await req.json();
     db.prepare(
       'UPDATE transactions SET description = COALESCE(?, description), amount = COALESCE(?, amount), category = COALESCE(?, category), notes = COALESCE(?, notes) WHERE id = ? AND user_id = ?',
-    ).run(description ?? null, amount ?? null, category ?? null, notes ?? null, id, userId);
+    ).run(
+      description ?? null,
+      amount ?? null,
+      category ?? null,
+      notes ?? null,
+      id,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;
@@ -81,7 +95,10 @@ export async function DELETE(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const { id } = await req.json();
-    db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(id, userId);
+    db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(
+      id,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

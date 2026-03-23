@@ -14,7 +14,11 @@ function parseDate(dateStr: string): { month: string; date: string } | null {
     return { month: `${y}-${m.padStart(2, '0')}`, date };
   }
   const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return { month: `${iso[1]}-${iso[2]}`, date: `${iso[1]}-${iso[2]}-${iso[3]}` };
+  if (iso)
+    return {
+      month: `${iso[1]}-${iso[2]}`,
+      date: `${iso[1]}-${iso[2]}-${iso[3]}`,
+    };
   return null;
 }
 
@@ -30,7 +34,11 @@ export async function POST(req: Request) {
   try {
     const { userId } = getRequestUser(req);
     const db = getDb();
-    const { rows, month: fallbackMonth, source } = (await req.json()) as {
+    const {
+      rows,
+      month: fallbackMonth,
+      source,
+    } = (await req.json()) as {
       rows: CsvRow[];
       month: string;
       source: string;
@@ -65,7 +73,11 @@ export async function POST(req: Request) {
       return n;
     })();
 
-    return NextResponse.json({ ok: true, imported: count, months: [...months] });
+    return NextResponse.json({
+      ok: true,
+      imported: count,
+      months: [...months],
+    });
   } catch (err) {
     if (err instanceof Response) return err;
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

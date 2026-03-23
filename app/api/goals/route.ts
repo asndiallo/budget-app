@@ -7,7 +7,9 @@ export async function GET(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const rows = db
-      .prepare('SELECT * FROM goals WHERE user_id = ? AND active = 1 ORDER BY id')
+      .prepare(
+        'SELECT * FROM goals WHERE user_id = ? AND active = 1 ORDER BY id',
+      )
       .all(userId);
     return NextResponse.json(rows);
   } catch (err) {
@@ -22,7 +24,9 @@ export async function POST(req: Request) {
     const db = getDb();
     const { name, target, saved, color } = await req.json();
     const result = db
-      .prepare('INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)',
+      )
       .run(userId, name, target, saved || 0, color || 'blue');
     return NextResponse.json({
       id: result.lastInsertRowid,
@@ -50,7 +54,11 @@ export async function PATCH(req: Request) {
     if (updates.length > 0) {
       const clause = updates.map((f) => `${f} = ?`).join(', ');
       const values = updates.map((f) => body[f]);
-      db.prepare(`UPDATE goals SET ${clause} WHERE id = ? AND user_id = ?`).run(...values, id, userId);
+      db.prepare(`UPDATE goals SET ${clause} WHERE id = ? AND user_id = ?`).run(
+        ...values,
+        id,
+        userId,
+      );
     }
 
     return NextResponse.json({ ok: true });
@@ -65,7 +73,10 @@ export async function DELETE(req: Request) {
     const { userId } = getRequestUser(req);
     const db = getDb();
     const { id } = await req.json();
-    db.prepare('UPDATE goals SET active = 0 WHERE id = ? AND user_id = ?').run(id, userId);
+    db.prepare('UPDATE goals SET active = 0 WHERE id = ? AND user_id = ?').run(
+      id,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

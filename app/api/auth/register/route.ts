@@ -1,7 +1,8 @@
+import type { Branch, Component } from '@/lib/types';
+import { hashPassword, signToken, tokenCookie } from '@/lib/auth';
+
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { hashPassword, signToken, tokenCookie } from '@/lib/auth';
-import type { Branch, Component } from '@/lib/types';
 
 export async function POST(req: Request) {
   try {
@@ -47,7 +48,9 @@ export async function POST(req: Request) {
 
     // Determine role: first real user becomes admin
     const userCount = (
-      db.prepare('SELECT count(*) as n FROM users WHERE password_hash != ?').get('') as {
+      db
+        .prepare('SELECT count(*) as n FROM users WHERE password_hash != ?')
+        .get('') as {
         n: number;
       }
     ).n;
@@ -90,7 +93,14 @@ export async function POST(req: Request) {
     const userId = result.lastInsertRowid as number;
 
     // Seed income config from pay tables based on profile
-    _seedIncomeForUser(db, userId, pay_grade || 'E-3', duty_station || '', dependents ?? 0, years_of_service ?? 0);
+    _seedIncomeForUser(
+      db,
+      userId,
+      pay_grade || 'E-3',
+      duty_station || '',
+      dependents ?? 0,
+      years_of_service ?? 0,
+    );
 
     const token = await signToken({
       sub: String(userId),
@@ -116,7 +126,8 @@ function _seedIncomeForUser(
   dependents: number,
   yos: number,
 ) {
-  const { getBasePay, getBAS, getBAH, isOfficer } = require('@/lib/pay-tables') as typeof import('@/lib/pay-tables');
+  const { getBasePay, getBAS, getBAH, isOfficer } =
+    require('@/lib/pay-tables') as typeof import('@/lib/pay-tables');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const grade = payGrade as any;

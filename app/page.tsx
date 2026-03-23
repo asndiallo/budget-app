@@ -25,10 +25,10 @@ import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
-import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
+import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import TransactionsPanel from './components/TransactionsPanel';
 import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
@@ -107,7 +107,9 @@ function calcSummary(
   );
   const fixedExpenses = fixed.reduce(
     (s, f) =>
-      f.is_investment ? s : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+      f.is_investment
+        ? s
+        : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
     0,
   );
   const debtPayments = debts
@@ -124,7 +126,15 @@ function calcSummary(
           ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
         )
       : 0;
-  return { totalIncome, tsp, investmentFixed, committed, spending, net, savingsRate };
+  return {
+    totalIncome,
+    tsp,
+    investmentFixed,
+    committed,
+    spending,
+    net,
+    savingsRate,
+  };
 }
 
 const TAB_ICONS: Record<Tab, string> = {
@@ -156,7 +166,11 @@ export default function Home() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [streak, setStreak] = useState(0);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : true,
+  );
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
@@ -165,10 +179,12 @@ export default function Home() {
     setMonth(currentMonth());
     setYearRange(getYearRange());
     const saved = localStorage.getItem('theme');
-    if (saved === 'light') {
-      setIsDark(false);
-    }
-    api.auth.me().then(setUser).catch(() => {});
+    if (saved === 'dark') setIsDark(true);
+    else if (saved === 'light') setIsDark(false);
+    api.auth
+      .me()
+      .then((u) => u?.username && setUser(u))
+      .catch(() => {});
   }, []);
 
   async function handleExport() {
@@ -263,7 +279,9 @@ export default function Home() {
               </h1>
               <p className="text-[10px] text-text-4 mt-0.5 tracking-wide leading-none">
                 {user
-                  ? [user.pay_grade, user.mos, user.duty_station].filter(Boolean).join(' · ') || APP_CONFIG.subtitle
+                  ? [user.pay_grade, user.mos, user.duty_station]
+                      .filter(Boolean)
+                      .join(' · ') || APP_CONFIG.subtitle
                   : APP_CONFIG.subtitle}
               </p>
             </div>
@@ -272,7 +290,15 @@ export default function Home() {
           {/* Controls */}
           <div className="flex items-center gap-1">
             {user && (
-              <UserNav user={user} onProfileUpdate={() => api.auth.me().then(setUser).catch(() => {})} />
+              <UserNav
+                user={user}
+                onProfileUpdate={() =>
+                  api.auth
+                    .me()
+                    .then((u) => u?.username && setUser(u))
+                    .catch(() => {})
+                }
+              />
             )}
             <div className="w-px h-4 bg-border mx-0.5" />
             <button
@@ -770,7 +796,8 @@ function NetWorthCard({
       <div
         className="absolute top-0 left-0 right-0 h-0.5"
         style={{
-          background: 'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
+          background:
+            'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
         }}
       />
       <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">

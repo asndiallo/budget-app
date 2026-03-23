@@ -12,13 +12,17 @@ function lastCompleteMonths(n: number): string[] {
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
   for (let i = 0; i < n; i++) {
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    months.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+    );
     d.setMonth(d.getMonth() - 1);
   }
   return months;
 }
 
-function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
 
 export async function GET(req: Request) {
   try {
@@ -26,11 +30,22 @@ export async function GET(req: Request) {
     const db = getDb();
 
     const fixedMonthly = (
-      db.prepare('SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1').all(userId) as { amount: number; period: string }[]
-    ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
+      db
+        .prepare(
+          'SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1',
+        )
+        .all(userId) as { amount: number; period: string }[]
+    ).reduce(
+      (s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+      0,
+    );
 
     const debtPayments = (
-      db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as { monthly_payment: number }[]
+      db
+        .prepare(
+          'SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0',
+        )
+        .all(userId) as { monthly_payment: number }[]
     ).reduce((s, d) => s + d.monthly_payment, 0);
 
     const committed = fixedMonthly + debtPayments;
@@ -43,13 +58,31 @@ export async function GET(req: Request) {
       const months = lastCompleteMonths(3);
       const rates: number[] = [];
       for (const month of months) {
-        const { totalIncome, tsp } = computeMonthlyFinancials(db, month, userId);
+        const { totalIncome, tsp } = computeMonthlyFinancials(
+          db,
+          month,
+          userId,
+        );
         if (totalIncome === 0) continue;
         const config = incomeForMonth(db, month, userId);
-        const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
-        const extraIncome = (db.prepare('SELECT COALESCE(SUM(amount),0) as s FROM income_entries WHERE user_id=? AND month=?').get(userId, month) as { s: number }).s;
-        const spending = (db.prepare('SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?').get(userId, month) as { s: number }).s;
-        const net = totalIncome + extraIncome - deductions - committed - spending;
+        const deductions =
+          tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+        const extraIncome = (
+          db
+            .prepare(
+              'SELECT COALESCE(SUM(amount),0) as s FROM income_entries WHERE user_id=? AND month=?',
+            )
+            .get(userId, month) as { s: number }
+        ).s;
+        const spending = (
+          db
+            .prepare(
+              'SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?',
+            )
+            .get(userId, month) as { s: number }
+        ).s;
+        const net =
+          totalIncome + extraIncome - deductions - committed - spending;
         rates.push(net / totalIncome);
       }
       if (rates.length > 0) {
@@ -63,19 +96,40 @@ export async function GET(req: Request) {
     let efScore = 0;
     let efDetail = 'No liquid assets recorded';
     {
-      const liquidAssets = (db.prepare("SELECT COALESCE(SUM(balance),0) as s FROM assets WHERE user_id=? AND category IN ('Checking','Savings')").get(userId) as { s: number }).s;
-      const liquidGoals = (db.prepare('SELECT COALESCE(SUM(saved),0) as s FROM goals WHERE user_id=? AND active = 1').get(userId) as { s: number }).s;
+      const liquidAssets = (
+        db
+          .prepare(
+            "SELECT COALESCE(SUM(balance),0) as s FROM assets WHERE user_id=? AND category IN ('Checking','Savings')",
+          )
+          .get(userId) as { s: number }
+      ).s;
+      const liquidGoals = (
+        db
+          .prepare(
+            'SELECT COALESCE(SUM(saved),0) as s FROM goals WHERE user_id=? AND active = 1',
+          )
+          .get(userId) as { s: number }
+      ).s;
       const liquid = liquidAssets + liquidGoals;
       if (liquid > 0) {
         const months = lastCompleteMonths(6);
         const spends: number[] = [];
         for (const month of months) {
-          const s = (db.prepare('SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?').get(userId, month) as { s: number }).s;
+          const s = (
+            db
+              .prepare(
+                'SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?',
+              )
+              .get(userId, month) as { s: number }
+          ).s;
           if (s > 0) spends.push(s);
         }
-        const avgExpenses = spends.length > 0 ? spends.reduce((a, b) => a + b, 0) / spends.length : null;
+        const avgExpenses =
+          spends.length > 0
+            ? spends.reduce((a, b) => a + b, 0) / spends.length
+            : null;
         if (avgExpenses && avgExpenses > 0) {
-          efScore = clamp(Math.round(((liquid / avgExpenses) / 6) * 25), 0, 25);
+          efScore = clamp(Math.round((liquid / avgExpenses / 6) * 25), 0, 25);
           efDetail = `${(liquid / avgExpenses).toFixed(1)} months covered`;
         } else {
           efScore = 12;
@@ -103,15 +157,35 @@ export async function GET(req: Request) {
     let budgetScore = 12;
     let budgetDetail = 'Set category budgets to score this';
     {
-      const budgets = db.prepare('SELECT category, budget FROM category_budgets WHERE user_id=?').all(userId) as { category: string; budget: number }[];
+      const budgets = db
+        .prepare(
+          'SELECT category, budget FROM category_budgets WHERE user_id=?',
+        )
+        .all(userId) as { category: string; budget: number }[];
       if (budgets.length > 0) {
-        const spending = db.prepare('SELECT category, SUM(amount) as total FROM transactions WHERE user_id=? AND month = ? GROUP BY category').all(userId, lastMonth) as { category: string; total: number }[];
-        const spendMap = Object.fromEntries(spending.map((r) => [r.category, r.total]));
+        const spending = db
+          .prepare(
+            'SELECT category, SUM(amount) as total FROM transactions WHERE user_id=? AND month = ? GROUP BY category',
+          )
+          .all(userId, lastMonth) as { category: string; total: number }[];
+        const spendMap = Object.fromEntries(
+          spending.map((r) => [r.category, r.total]),
+        );
         const totalBudget = budgets.reduce((s, b) => s + b.budget, 0);
-        const totalSpent = budgets.reduce((s, b) => s + (spendMap[b.category] ?? 0), 0);
+        const totalSpent = budgets.reduce(
+          (s, b) => s + (spendMap[b.category] ?? 0),
+          0,
+        );
         if (totalBudget > 0) {
           const ratio = totalSpent / totalBudget;
-          budgetScore = ratio < 0.8 ? 25 : ratio < 1.0 ? Math.round((1 - (ratio - 0.8) / 0.2) * 10 + 15) : ratio < 1.15 ? Math.round((1 - (ratio - 1.0) / 0.15) * 8) : 0;
+          budgetScore =
+            ratio < 0.8
+              ? 25
+              : ratio < 1.0
+                ? Math.round((1 - (ratio - 0.8) / 0.2) * 10 + 15)
+                : ratio < 1.15
+                  ? Math.round((1 - (ratio - 1.0) / 0.15) * 8)
+                  : 0;
           budgetScore = clamp(budgetScore, 0, 25);
           budgetDetail = `${Math.round(ratio * 100)}% of budget used`;
         }
@@ -119,13 +193,26 @@ export async function GET(req: Request) {
     }
 
     const components: HealthScoreComponent[] = [
-      { name: 'Savings rate', score: savingsScore, max: 25, detail: savingsDetail },
+      {
+        name: 'Savings rate',
+        score: savingsScore,
+        max: 25,
+        detail: savingsDetail,
+      },
       { name: 'Emergency fund', score: efScore, max: 25, detail: efDetail },
       { name: 'Debt-to-income', score: dtiScore, max: 25, detail: dtiDetail },
-      { name: 'Budget adherence', score: budgetScore, max: 25, detail: budgetDetail },
+      {
+        name: 'Budget adherence',
+        score: budgetScore,
+        max: 25,
+        detail: budgetDetail,
+      },
     ];
 
-    return NextResponse.json({ total: components.reduce((s, c) => s + c.score, 0), components });
+    return NextResponse.json({
+      total: components.reduce((s, c) => s + c.score, 0),
+      components,
+    });
   } catch (err) {
     if (err instanceof Response) return err;
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

@@ -163,10 +163,12 @@ function initSchema(db: Database.Database) {
     0;
 
   if (noUsers) {
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO users (username, password_hash, role, display_name, pay_grade, duty_station)
       VALUES ('admin', '', 'admin', 'Admin', 'E-3', 'JBSA Fort Sam Houston')
-    `).run();
+    `,
+    ).run();
   }
 
   // ── Seed financial data (only on fresh DB) ────────────────────────────────────
@@ -208,7 +210,13 @@ function initSchema(db: Database.Database) {
       'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
     );
     db.transaction(() => {
-      for (const { label, lender, balance, monthly_payment, interest_rate } of SEED_DEBTS)
+      for (const {
+        label,
+        lender,
+        balance,
+        monthly_payment,
+        interest_rate,
+      } of SEED_DEBTS)
         ins.run(1, label, lender, balance, monthly_payment, interest_rate);
     })();
   }

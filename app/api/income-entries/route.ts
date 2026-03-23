@@ -9,7 +9,9 @@ export async function GET(req: Request) {
     if (!month) return NextResponse.json([]);
     const db = getDb();
     const rows = db
-      .prepare('SELECT * FROM income_entries WHERE user_id = ? AND month = ? ORDER BY id DESC')
+      .prepare(
+        'SELECT * FROM income_entries WHERE user_id = ? AND month = ? ORDER BY id DESC',
+      )
       .all(userId, month);
     return NextResponse.json(rows);
   } catch (err) {
@@ -24,9 +26,13 @@ export async function POST(req: Request) {
     const { description, amount, month, source } = await req.json();
     const db = getDb();
     const { lastInsertRowid } = db
-      .prepare('INSERT INTO income_entries (user_id, description, amount, month, source) VALUES (?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO income_entries (user_id, description, amount, month, source) VALUES (?, ?, ?, ?, ?)',
+      )
       .run(userId, description, amount, month, source || 'Other');
-    const row = db.prepare('SELECT * FROM income_entries WHERE id = ?').get(lastInsertRowid);
+    const row = db
+      .prepare('SELECT * FROM income_entries WHERE id = ?')
+      .get(lastInsertRowid);
     return NextResponse.json(row);
   } catch (err) {
     if (err instanceof Response) return err;
@@ -38,7 +44,9 @@ export async function DELETE(req: Request) {
   try {
     const { userId } = getRequestUser(req);
     const { id } = await req.json();
-    getDb().prepare('DELETE FROM income_entries WHERE id = ? AND user_id = ?').run(id, userId);
+    getDb()
+      .prepare('DELETE FROM income_entries WHERE id = ? AND user_id = ?')
+      .run(id, userId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;
