@@ -160,6 +160,14 @@ function initSchema(db: Database.Database) {
     `);
   }
 
+  if (!txCols.includes('import_id')) {
+    db.exec('ALTER TABLE transactions ADD COLUMN import_id TEXT');
+  }
+
+  if (!txCols.includes('notes')) {
+    db.exec('ALTER TABLE transactions ADD COLUMN notes TEXT');
+  }
+
   // ── Migrate legacy transaction source value ──────────────────────────────────
   db.prepare(
     "UPDATE transactions SET source = 'Apple Card' WHERE source = 'apple_card'",

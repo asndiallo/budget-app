@@ -45,8 +45,10 @@ export async function POST(req: Request) {
     source: string;
   };
 
+  const importId = crypto.randomUUID();
+
   const insert = db.prepare(
-    'INSERT OR IGNORE INTO transactions (description, amount, category, month, source, date) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO transactions (description, amount, category, month, source, date, import_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
   );
 
   const months = new Set<string>();
@@ -65,6 +67,7 @@ export async function POST(req: Request) {
         month,
         source || 'Unknown',
         date,
+        importId,
       );
       if (result.changes > 0) n++;
     }

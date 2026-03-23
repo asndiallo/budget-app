@@ -13,7 +13,7 @@ import type {
   IncomeEntry,
 } from '@/lib/types';
 import { currentMonth, formatCurrency } from '@/lib/utils';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
@@ -116,8 +116,10 @@ export default function Home() {
   const [month, setMonth] = useState('');
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [prevSummary, setPrevSummary] = useState<Summary | null>(null);
   const [isDark, setIsDark] = useState(true);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
+  const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMonth(currentMonth());
@@ -127,6 +129,33 @@ export default function Home() {
       setIsDark(false);
     }
   }, []);
+
+  async function handleExport() {
+    const res = await fetch(api.backup.exportUrl);
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') ?? '';
+    const name = cd.match(/filename="(.+?)"/)?.[1] ?? 'budget-backup.json';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const data = JSON.parse(await file.text());
+    const res = await api.backup.restore(data);
+    if (res.ok) {
+      alert(`Restored ${res.restored ?? 0} records.`);
+      fetchSummary();
+    } else {
+      alert(`Restore failed: ${res.error}`);
+    }
+    if (restoreRef.current) restoreRef.current.value = '';
+  }
 
   function handleCategoryDrill(category: string) {
     setDrillCategory(category);
@@ -147,14 +176,20 @@ export default function Home() {
 
   const fetchSummary = useCallback(async () => {
     if (!month) return;
-    const [income, fixed, txs, debts, entries] = await Promise.all([
-      api.income.get(month),
-      api.fixedExpenses.list(),
-      api.transactions.list(month),
-      api.debts.list(),
-      api.incomeEntries.list(month),
-    ]);
+    const pm = prevMonth(month);
+    const [income, fixed, txs, debts, entries, pIncome, pTxs, pEntries] =
+      await Promise.all([
+        api.income.get(month),
+        api.fixedExpenses.list(),
+        api.transactions.list(month),
+        api.debts.list(),
+        api.incomeEntries.list(month),
+        api.income.get(pm),
+        api.transactions.list(pm),
+        api.incomeEntries.list(pm),
+      ]);
     setSummary(calcSummary(income, fixed, txs, debts, entries));
+    setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries));
   }, [month]);
 
   useEffect(() => {
@@ -175,7 +210,28 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleExport}
+              title="Export backup (JSON)"
+              className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all"
+            >
+              Export
+            </button>
+            <label
+              title="Restore from backup"
+              className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all cursor-pointer"
+            >
+              Restore
+              <input
+                ref={restoreRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleRestore}
+              />
+            </label>
+            <div className="w-px h-4 bg-border mx-1" />
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -241,22 +297,34 @@ export default function Home() {
               <MetricCard
                 label="Total income"
                 value={formatCurrency(summary.totalIncome)}
+                delta={delta(
+                  summary.totalIncome,
+                  prevSummary?.totalIncome,
+                  true,
+                )}
               />
               <MetricCard
                 label="Invested"
                 value={formatCurrency(summary.tsp + summary.roth)}
                 accent="blue"
+                delta={delta(
+                  summary.tsp + summary.roth,
+                  prevSummary ? prevSummary.tsp + prevSummary.roth : undefined,
+                  true,
+                )}
               />
               <MetricCard
                 label="Committed"
                 value={formatCurrency(summary.committed)}
                 accent="amber"
+                delta={delta(summary.committed, prevSummary?.committed, null)}
               />
               <MetricCard
                 label={APP_CONFIG.transactionsTabLabel}
                 value={formatCurrency(summary.spending)}
                 sub={projectedSpending(month, summary.spending)}
                 accent="red"
+                delta={delta(summary.spending, prevSummary?.spending, false)}
               />
               <MetricCard
                 label="Net remaining"
@@ -264,6 +332,7 @@ export default function Home() {
                   (summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)
                 }
                 accent={summary.net >= 0 ? 'green' : 'red'}
+                delta={delta(summary.net, prevSummary?.net, true)}
               />
               <MetricCard
                 label="Savings rate"
@@ -275,6 +344,12 @@ export default function Home() {
                       ? 'amber'
                       : 'red'
                 }
+                delta={delta(
+                  summary.savingsRate,
+                  prevSummary?.savingsRate,
+                  true,
+                  true,
+                )}
               />
             </div>
 
@@ -346,6 +421,26 @@ export default function Home() {
   );
 }
 
+/* ── Month-over-month delta ───────────────────────────────────────── */
+
+// upIsGood: true=green when up, false=green when down, null=always gray
+function delta(
+  curr: number,
+  prev: number | undefined,
+  upIsGood: boolean | null,
+  isPct = false,
+): { text: string; good: boolean | null } | null {
+  if (prev === undefined || prev === null) return null;
+  const diff = curr - prev;
+  if (Math.abs(diff) < 0.5) return null; // too small to show
+  const sign = diff > 0 ? '+' : '';
+  const text = isPct
+    ? `${sign}${Math.round(diff)} pts`
+    : `${sign}${formatCurrency(Math.abs(diff))} ${diff > 0 ? '↑' : '↓'}`;
+  const good = upIsGood === null ? null : diff > 0 ? upIsGood : !upIsGood;
+  return { text, good };
+}
+
 /* ── Projected spending helper ────────────────────────────────────── */
 
 function projectedSpending(month: string, spending: number): string | null {
@@ -386,14 +481,22 @@ function MetricCard({
   value,
   sub,
   accent = 'default',
+  delta: d,
 }: {
   label: string;
   value: string;
   sub?: string | null;
   accent?: string;
+  delta?: { text: string; good: boolean | null } | null;
 }) {
   const color = ACCENT_LINE[accent] ?? 'transparent';
   const textClass = ACCENT_TEXT[accent] ?? ACCENT_TEXT.default;
+  const deltaClass =
+    d?.good === true
+      ? 'text-[#00d98a]'
+      : d?.good === false
+        ? 'text-[#ff4560]'
+        : 'text-text-4';
   return (
     <div className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden">
       {accent !== 'default' && (
@@ -413,6 +516,11 @@ function MetricCard({
         {value}
       </p>
       {sub && <p className="text-[10px] font-mono text-text-4 mt-1.5">{sub}</p>}
+      {d && (
+        <p className={`text-[10px] font-mono mt-1 ${deltaClass}`}>
+          {d.text} vs last mo
+        </p>
+      )}
     </div>
   );
 }

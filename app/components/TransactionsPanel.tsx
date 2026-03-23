@@ -31,12 +31,27 @@ export default function TransactionsPanel({
   const [searchResults, setSearchResults] = useState<Transaction[] | null>(
     null,
   );
+  const [period, setPeriod] = useState<'all' | '1' | '2'>('all');
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [managingCards, setManagingCards] = useState(false);
   const [newCard, setNewCard] = useState('');
+  const [showImportHistory, setShowImportHistory] = useState(false);
+  const [importHistory, setImportHistory] = useState<
+    {
+      import_id: string;
+      source: string;
+      count: number;
+      min_month: string;
+      max_month: string;
+      imported_at: string;
+    }[]
+  >([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const reloadImportHistory = () =>
+    api.importHistory.list().then(setImportHistory);
 
   // Sync initialCategory when drill-through arrives
   useEffect(() => {
@@ -58,6 +73,7 @@ export default function TransactionsPanel({
 
   useEffect(() => {
     reloadSources();
+    reloadImportHistory();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addTx() {
@@ -174,6 +190,7 @@ export default function TransactionsPanel({
     );
     setImporting(false);
     reloadTxs();
+    reloadImportHistory();
     onUpdate();
     if (fileRef.current) fileRef.current.value = '';
   }
@@ -188,6 +205,13 @@ export default function TransactionsPanel({
   async function removeCard(id: number) {
     await api.paymentSources.remove(id);
     reloadSources();
+  }
+
+  async function undoImport(importId: string) {
+    await api.importHistory.remove(importId);
+    reloadTxs();
+    reloadImportHistory();
+    onUpdate();
   }
 
   function handleSearch(q: string) {
@@ -207,12 +231,47 @@ export default function TransactionsPanel({
     return acc;
   }, {});
 
+  function txDayOfMonth(t: Transaction): number | null {
+    const src = t.date || t.created_at;
+    if (!src) return null;
+    // ISO: YYYY-MM-DD
+    const iso = src.match(/^\d{4}-\d{2}-(\d{2})/);
+    if (iso) return parseInt(iso[1]);
+    // US: MM/DD/YYYY or M/D/YYYY
+    const us = src.match(/^\d{1,2}\/(\d{1,2})\/\d{4}/);
+    if (us) return parseInt(us[1]);
+    return null;
+  }
+
   const isSearching = searchResults !== null;
   const displayTxs = isSearching ? searchResults : txs;
+
+  const periodFiltered =
+    isSearching || period === 'all'
+      ? displayTxs
+      : displayTxs.filter((t) => {
+          const day = txDayOfMonth(t);
+          if (day === null) return true; // no date → show in all periods
+          return period === '1' ? day <= 15 : day > 15;
+        });
+
   const filtered = filterCat
-    ? displayTxs.filter((t) => t.category === filterCat)
-    : displayTxs;
+    ? periodFiltered.filter((t) => t.category === filterCat)
+    : periodFiltered;
   const grandTotal = txs.reduce((s, t) => s + t.amount, 0);
+
+  const p1Total = txs
+    .filter((t) => {
+      const d = txDayOfMonth(t);
+      return d !== null && d <= 15;
+    })
+    .reduce((s, t) => s + t.amount, 0);
+  const p2Total = txs
+    .filter((t) => {
+      const d = txDayOfMonth(t);
+      return d !== null && d > 15;
+    })
+    .reduce((s, t) => s + t.amount, 0);
 
   return (
     <div className="space-y-5">
@@ -255,6 +314,58 @@ export default function TransactionsPanel({
           <p className="text-xs text-[#00d98a] mt-2 font-mono">{importMsg}</p>
         )}
       </div>
+
+      {/* Import history */}
+      {importHistory.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowImportHistory((v) => !v)}
+            className="text-xs text-text-3 hover:text-text-2 transition-colors"
+          >
+            {showImportHistory ? '▾ Hide' : '▸ Recent imports'}{' '}
+            <span className="text-text-4">({importHistory.length})</span>
+          </button>
+          {showImportHistory && (
+            <div className="mt-2 bg-bg border border-border rounded-xl divide-y divide-border-dim overflow-hidden">
+              {importHistory.map((imp) => {
+                const label =
+                  imp.min_month === imp.max_month
+                    ? imp.min_month
+                    : `${imp.min_month} – ${imp.max_month}`;
+                const when = new Date(imp.imported_at).toLocaleDateString(
+                  'en-US',
+                  {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  },
+                );
+                return (
+                  <div
+                    key={imp.import_id}
+                    className="flex items-center justify-between px-3 py-2 gap-3"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-xs text-text">{imp.source}</span>
+                      <span className="text-xs text-text-4 ml-2">
+                        {imp.count} txns · {label} · {when}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => undoImport(imp.import_id)}
+                      className="text-xs text-text-3 hover:text-[#ff4560] transition-colors shrink-0"
+                      title="Remove this import batch"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Manage cards */}
       <div>
@@ -316,6 +427,37 @@ export default function TransactionsPanel({
 
       {/* Budget vs actual (hidden in search mode) */}
       {!isSearching && <MonthlyBudgetStatus month={month} />}
+
+      {/* Pay period toggle (hidden in search mode) */}
+      {!isSearching && (
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-4 mr-1">
+            Period
+          </span>
+          {[
+            { key: 'all' as const, label: 'All', total: null },
+            { key: '1' as const, label: '1st–15th', total: p1Total },
+            { key: '2' as const, label: '16th–end', total: p2Total },
+          ].map(({ key, label, total }) => (
+            <button
+              key={key}
+              onClick={() => setPeriod(key)}
+              className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+                period === key
+                  ? 'bg-surface-raised border-border text-text font-medium'
+                  : 'border-transparent text-text-4 hover:text-text-3'
+              }`}
+            >
+              {label}
+              {total !== null && total > 0 && (
+                <span className="ml-1 font-mono text-text-4">
+                  ${Math.round(total).toLocaleString()}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (
@@ -432,14 +574,18 @@ function TxRow({
   tx: Transaction;
   showMonth?: boolean;
   onUpdate: (
-    data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
+    data: Partial<
+      Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>
+    >,
   ) => void;
   onDelete: () => void;
 }) {
   const [editingDesc, setEditingDesc] = useState(false);
   const [editingAmt, setEditingAmt] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
   const [desc, setDesc] = useState(tx.description);
   const [amt, setAmt] = useState(String(tx.amount));
+  const [notes, setNotes] = useState(tx.notes ?? '');
 
   useEffect(() => {
     setDesc(tx.description);
@@ -447,6 +593,9 @@ function TxRow({
   useEffect(() => {
     setAmt(String(tx.amount));
   }, [tx.amount]);
+  useEffect(() => {
+    setNotes(tx.notes ?? '');
+  }, [tx.notes]);
 
   const saveDesc = useCallback(() => {
     setEditingDesc(false);
@@ -506,6 +655,38 @@ function TxRow({
             <span className="text-xs font-mono text-text-4">{tx.month}</span>
           )}
         </div>
+
+        {/* Notes */}
+        {editingNotes ? (
+          <input
+            autoFocus
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => {
+              onUpdate({ notes: notes.trim() || null });
+              setEditingNotes(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onUpdate({ notes: notes.trim() || null });
+                setEditingNotes(false);
+              }
+              if (e.key === 'Escape') {
+                setNotes(tx.notes ?? '');
+                setEditingNotes(false);
+              }
+            }}
+            placeholder="Add a note…"
+            className="mt-1 w-full text-xs border-b border-[#4a8cff]/40 bg-transparent outline-none text-text-3 placeholder-text-4"
+          />
+        ) : tx.notes ? (
+          <p
+            className="mt-1 text-xs text-text-4 italic cursor-pointer hover:text-text-3 transition-colors"
+            onClick={() => setEditingNotes(true)}
+          >
+            {tx.notes}
+          </p>
+        ) : null}
       </div>
 
       {editingAmt ? (
@@ -534,12 +715,23 @@ function TxRow({
         </span>
       )}
 
-      <button
-        onClick={onDelete}
-        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100"
-      >
-        ✕
-      </button>
+      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {!editingNotes && (
+          <button
+            onClick={() => setEditingNotes(true)}
+            title={tx.notes ? 'Edit note' : 'Add note'}
+            className="text-text-4 hover:text-text-3 text-xs transition-colors"
+          >
+            ✎
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }

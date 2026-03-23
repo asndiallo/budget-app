@@ -17,6 +17,8 @@ export interface Transaction {
   month: string;
   source: string;
   created_at: string;
+  date?: string | null;
+  notes?: string | null;
 }
 
 export interface Goal {

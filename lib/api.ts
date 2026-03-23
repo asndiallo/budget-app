@@ -69,7 +69,9 @@ export const api = {
       send('POST', '/api/transactions', data).then(asJson<Transaction>),
     update: (
       id: number,
-      data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
+      data: Partial<
+        Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>
+      >,
     ) =>
       send('PATCH', '/api/transactions', { id, ...data }).then(
         asJson<{ ok: boolean }>,
@@ -99,6 +101,10 @@ export const api = {
 
   insights: {
     get: () => fetch('/api/insights').then(asJson<SpendingInsights>),
+  },
+
+  streak: {
+    get: () => fetch('/api/streak').then(asJson<{ streak: number }>),
   },
 
   ytd: {
@@ -155,6 +161,34 @@ export const api = {
     remove: (id: number) =>
       send('DELETE', '/api/income-entries', { id }).then(
         asJson<{ ok: boolean }>,
+      ),
+  },
+
+  importHistory: {
+    list: () =>
+      fetch('/api/import-history').then(
+        asJson<
+          {
+            import_id: string;
+            source: string;
+            count: number;
+            min_month: string;
+            max_month: string;
+            imported_at: string;
+          }[]
+        >,
+      ),
+    remove: (importId: string) =>
+      send('DELETE', '/api/import-history', { importId }).then(
+        asJson<{ ok: boolean; deleted: number }>,
+      ),
+  },
+
+  backup: {
+    exportUrl: '/api/backup',
+    restore: (data: unknown) =>
+      send('POST', '/api/backup', data).then(
+        asJson<{ ok: boolean; restored?: number; error?: string }>,
       ),
   },
 

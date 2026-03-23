@@ -85,6 +85,8 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
         ))}
       </div>
 
+      <DebtStrategy debts={debts} />
+
       {adding ? (
         <div className="mt-3 bg-bg border border-border rounded-xl p-4 space-y-3">
           <div className="flex gap-2">
@@ -379,5 +381,147 @@ function Field({
       {value.toLocaleString()}
       {suffix}
     </span>
+  );
+}
+
+/* ── Debt payoff strategy comparison ─────────────────────────────── */
+
+interface SimResult {
+  months: number;
+  totalInterest: number;
+}
+
+function simulatePayoff(debts: Debt[], order: number[]): SimResult {
+  const balances = debts.map((d) => d.balance);
+  const rates = debts.map((d) => d.interest_rate / 100 / 12);
+  const minPayments = debts.map((d) => d.monthly_payment);
+  const totalBudget = minPayments.reduce((s, p) => s + p, 0);
+
+  let totalInterest = 0;
+  let month = 0;
+
+  while (balances.some((b) => b > 0.01) && month < 600) {
+    month++;
+
+    // Accrue interest
+    for (let i = 0; i < debts.length; i++) {
+      if (balances[i] > 0.01) {
+        const interest = balances[i] * rates[i];
+        totalInterest += interest;
+        balances[i] += interest;
+      }
+    }
+
+    // Pay minimums on all non-focus debts
+    let remaining = totalBudget;
+    const focusIdx = order.find((idx) => balances[idx] > 0.01);
+    for (let i = 0; i < debts.length; i++) {
+      if (i === focusIdx || balances[i] <= 0.01) continue;
+      const pay = Math.min(minPayments[i], balances[i]);
+      balances[i] -= pay;
+      remaining -= pay;
+    }
+
+    // Apply remainder to focus debt
+    if (focusIdx !== undefined && remaining > 0) {
+      balances[focusIdx] = Math.max(0, balances[focusIdx] - remaining);
+    }
+  }
+
+  return { months: month, totalInterest: Math.round(totalInterest) };
+}
+
+function DebtStrategy({ debts }: { debts: Debt[] }) {
+  const active = debts.filter((d) => d.balance > 0 && d.monthly_payment > 0);
+  if (active.length < 2) return null;
+
+  const indices = active.map((_, i) => i);
+
+  // Current order (as entered)
+  const current = simulatePayoff(active, indices);
+
+  // Avalanche: highest interest rate first
+  const avalancheOrder = [...indices].sort(
+    (a, b) => active[b].interest_rate - active[a].interest_rate,
+  );
+  const avalanche = simulatePayoff(active, avalancheOrder);
+
+  // Snowball: lowest balance first
+  const snowballOrder = [...indices].sort(
+    (a, b) => active[a].balance - active[b].balance,
+  );
+  const snowball = simulatePayoff(active, snowballOrder);
+
+  const best =
+    avalanche.totalInterest <= snowball.totalInterest
+      ? 'avalanche'
+      : 'snowball';
+  const bestResult = best === 'avalanche' ? avalanche : snowball;
+  const bestOrder = best === 'avalanche' ? avalancheOrder : snowballOrder;
+  const saved = current.totalInterest - bestResult.totalInterest;
+
+  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
+
+  const rows = [
+    {
+      label: 'Avalanche',
+      sub: 'Highest rate first',
+      result: avalanche,
+      order: avalancheOrder,
+      isBest: best === 'avalanche',
+    },
+    {
+      label: 'Snowball',
+      sub: 'Lowest balance first',
+      result: snowball,
+      order: snowballOrder,
+      isBest: best === 'snowball',
+    },
+  ];
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border-dim">
+      <h4 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+        Payoff strategy
+      </h4>
+      <div className="grid grid-cols-2 gap-2">
+        {rows.map(({ label, sub, result, order: ord, isBest }) => (
+          <div
+            key={label}
+            className={`rounded-xl border p-3 transition-colors ${
+              isBest
+                ? 'border-[#00d98a]/30 bg-[#00d98a]/5'
+                : 'border-border bg-bg'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-xs font-semibold text-text">{label}</span>
+              {isBest && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#00d98a]/10 text-[#00d98a]">
+                  recommended
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-text-3 mb-2">{sub}</p>
+            <p className="text-xs font-mono text-text-2">
+              {fmt(result.totalInterest)}{' '}
+              <span className="text-text-4">interest · {result.months} mo</span>
+            </p>
+            <p className="text-[10px] text-text-4 mt-1">
+              Focus:{' '}
+              <span className="text-text-2">{active[ord[0]]?.label}</span>
+              {ord.length > 1 && <> → {active[ord[1]]?.label}</>}
+            </p>
+          </div>
+        ))}
+      </div>
+      {saved > 50 && (
+        <p className="text-[11px] text-[#00d98a] mt-2">
+          {best === 'avalanche' ? 'Avalanche' : 'Snowball'} saves{' '}
+          <span className="font-mono">{fmt(saved)}</span> in interest vs current
+          order.
+        </p>
+      )}
+    </div>
   );
 }
