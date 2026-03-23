@@ -1,0 +1,69 @@
+import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+
+import { DEDUCTION_FIELDS } from '@/lib/config';
+import { NextResponse } from 'next/server';
+import { getDb } from '@/lib/db';
+
+function recentCompleteMonths(n: number): string[] {
+  const months: string[] = [];
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1); // start from last complete month
+  for (let i = 0; i < n; i++) {
+    months.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+    );
+    d.setMonth(d.getMonth() - 1);
+  }
+  return months;
+}
+
+export async function GET() {
+  const db = getDb();
+
+  const fixedExpenses = (
+    db
+      .prepare('SELECT amount, period FROM fixed_expenses WHERE active = 1')
+      .all() as { amount: number; period: string }[]
+  ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
+
+  const debtPayments = (
+    db.prepare('SELECT monthly_payment FROM debts WHERE balance > 0').all() as {
+      monthly_payment: number;
+    }[]
+  ).reduce((s, d) => s + d.monthly_payment, 0);
+
+  const committed = fixedExpenses + debtPayments;
+
+  let streak = 0;
+  for (const month of recentCompleteMonths(12)) {
+    const { totalIncome, tsp } = computeMonthlyFinancials(db, month);
+    if (totalIncome === 0) break; // no income data — stop counting
+
+    const config = incomeForMonth(db, month);
+    const deductions =
+      tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+
+    const extraIncome = (
+      db
+        .prepare(
+          'SELECT COALESCE(SUM(amount), 0) as s FROM income_entries WHERE month = ?',
+        )
+        .get(month) as { s: number }
+    ).s;
+
+    const spending = (
+      db
+        .prepare(
+          'SELECT COALESCE(SUM(amount), 0) as s FROM transactions WHERE month = ?',
+        )
+        .get(month) as { s: number }
+    ).s;
+
+    const net = totalIncome + extraIncome - deductions - committed - spending;
+    if (net > 0) streak++;
+    else break;
+  }
+
+  return NextResponse.json({ streak });
+}

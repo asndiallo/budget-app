@@ -117,6 +117,7 @@ export default function Home() {
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [prevSummary, setPrevSummary] = useState<Summary | null>(null);
+  const [streak, setStreak] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
@@ -190,6 +191,7 @@ export default function Home() {
       ]);
     setSummary(calcSummary(income, fixed, txs, debts, entries));
     setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries));
+    api.streak.get().then((r) => setStreak(r.streak));
   }, [month]);
 
   useEffect(() => {
@@ -355,6 +357,9 @@ export default function Home() {
 
             {/* Budget allocation bar */}
             {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
+
+            {/* Spending streak */}
+            {streak >= 2 && <StreakBanner streak={streak} />}
           </div>
         )}
 
@@ -592,6 +597,31 @@ function BudgetBar({ summary }: { summary: Summary }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ── Streak Banner ────────────────────────────────────────────────── */
+
+function StreakBanner({ streak }: { streak: number }) {
+  const label =
+    streak >= 12
+      ? 'A full year in the green'
+      : streak >= 6
+        ? 'Half a year in the green'
+        : `${streak} months in the green`;
+  const intensity =
+    streak >= 12
+      ? 'text-[#00d98a] border-[#00d98a]/30 bg-[#00d98a]/5'
+      : streak >= 6
+        ? 'text-[#4a8cff] border-[#4a8cff]/30 bg-[#4a8cff]/5'
+        : 'text-[#f5aa2a] border-[#f5aa2a]/30 bg-[#f5aa2a]/5';
+  return (
+    <div
+      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium ${intensity}`}
+    >
+      <span>{streak >= 6 ? '🔥' : '⚡'}</span>
+      <span>{label} — positive net every month</span>
     </div>
   );
 }
