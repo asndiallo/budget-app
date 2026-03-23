@@ -13,10 +13,10 @@ export type Branch =
 export type Component = 'Active' | 'Reserve' | 'Guard';
 
 export interface UserProfile {
-  id: number;
-  username: string;
+  id: string; // Better Auth UUID
+  email: string;
+  name: string; // display name
   role: UserRole;
-  display_name: string;
   branch: Branch;
   pay_grade: string; // E-3, O-4, W-2, etc.
   mos: string; // job code: 11B, 4N0, 0311, etc.
@@ -25,12 +25,12 @@ export interface UserProfile {
   component: Component;
   dependents: number; // 0 = without, 1+ = with
   years_of_service: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserSummary {
-  id: number;
+  id: string;
   username: string;
   display_name: string;
   role: UserRole;

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const month = new URL(req.url).searchParams.get('month');
     if (!month) return NextResponse.json([]);
     const db = getDb();
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const { description, amount, month, source } = await req.json();
     const db = getDb();
     const { lastInsertRowid } = db
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const { id } = await req.json();
     getDb()
       .prepare('DELETE FROM income_entries WHERE id = ? AND user_id = ?')

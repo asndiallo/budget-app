@@ -7,9 +7,8 @@ import {
   OFFICER_GRADES,
   WARRANT_GRADES,
 } from '@/lib/pay-tables';
-import type { Branch, Component } from '@/lib/types';
-
-import type { UserProfile } from '@/lib/types';
+import type { Branch, Component, UserProfile } from '@/lib/types';
+import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -26,7 +25,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
   const [saving, setSaving] = useState(false);
 
   // Edit state
-  const [displayName, setDisplayName] = useState(user.display_name);
+  const [displayName, setDisplayName] = useState(user.name);
   const [branch, setBranch] = useState<Branch>(user.branch);
   const [payGrade, setPayGrade] = useState(user.pay_grade);
   const [mos, setMos] = useState(user.mos);
@@ -37,7 +36,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
   const [reseedIncome, setReseedIncome] = useState(false);
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await authClient.signOut();
     router.push('/login');
     router.refresh();
   }
@@ -50,7 +49,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          display_name: displayName,
+          name: displayName,
           branch,
           pay_grade: payGrade,
           mos,
@@ -79,11 +78,11 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-(--bg-card) transition-colors border border-transparent hover:border-border"
       >
         <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-          {(user.display_name || user.username).charAt(0).toUpperCase()}
+          {(user.name || user.email).charAt(0).toUpperCase()}
         </div>
         <div className="text-left hidden sm:block">
           <p className="text-xs font-medium text-(--text-primary) leading-tight">
-            {user.display_name || user.username}
+            {user.name || user.email}
           </p>
           <p className="text-[10px] text-(--text-muted) leading-tight">
             {gradeLabel}

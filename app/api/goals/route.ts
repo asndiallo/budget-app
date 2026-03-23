@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const rows = db
       .prepare(
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { name, target, saved, color } = await req.json();
     const result = db
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const body = await req.json();
     const { id } = body;
@@ -70,7 +70,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id } = await req.json();
     db.prepare('UPDATE goals SET active = 0 WHERE id = ? AND user_id = ?').run(

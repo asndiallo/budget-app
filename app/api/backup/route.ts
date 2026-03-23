@@ -1,4 +1,4 @@
-import { getRequestUser, requireAdmin } from '@/lib/auth';
+import { requireAuth, requireAdmin } from '@/lib/auth';
 
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
@@ -18,7 +18,7 @@ const TABLES = [
 // GET: Export current user's data (or all data if admin)
 export async function GET(req: Request) {
   try {
-    const { userId, role } = getRequestUser(req);
+    const { userId, role } = await requireAuth(req);
     const db = getDb();
     const dump: Record<string, unknown[]> = {};
 
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 // POST: Restore backup — admin only (replaces current user's data)
 export async function POST(req: Request) {
   try {
-    const reqUser = getRequestUser(req);
+    const reqUser = await requireAuth(req);
     requireAdmin(reqUser);
 
     const db = getDb();

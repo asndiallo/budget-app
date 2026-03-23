@@ -3,7 +3,7 @@ import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
 import { DEDUCTION_FIELDS } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function recentCompleteMonths(n: number): string[] {
   const months: string[] = [];
@@ -21,7 +21,7 @@ function recentCompleteMonths(n: number): string[] {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
 
     const fixedExpenses = (

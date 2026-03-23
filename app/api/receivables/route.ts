@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const rows = getDb()
       .prepare(
         'SELECT * FROM receivables WHERE user_id = ? ORDER BY paid ASC, id DESC',
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const { name, description, amount, month_created } = await req.json();
     const db = getDb();
     const { lastInsertRowid } = db
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const body = await req.json();
     const db = getDb();
 
@@ -101,7 +101,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const { id } = await req.json();
     getDb()
       .prepare('DELETE FROM receivables WHERE id = ? AND user_id = ?')

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const rows = db
       .prepare(
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { importId } = await req.json();
     const result = db

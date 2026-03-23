@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const rows = db
       .prepare('SELECT * FROM assets WHERE user_id = ? ORDER BY category, label')
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { label, category, balance } = await req.json();
     const row = db
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id, label, category, balance } = await req.json();
     db.prepare(
@@ -53,7 +53,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id } = await req.json();
     db.prepare('DELETE FROM assets WHERE id = ? AND user_id = ?').run(id, userId);

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { searchParams } = new URL(req.url);
     const goalId = parseInt(searchParams.get('goal_id') ?? '0');
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { goal_id, amount, note } = await req.json();
     if (!goal_id || !amount)
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id, goal_id, amount } = await req.json();
 

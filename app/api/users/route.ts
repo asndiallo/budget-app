@@ -1,21 +1,19 @@
 // Admin-only: list and manage all users.
 
-import { getRequestUser, requireAdmin } from '@/lib/auth';
-
 import { NextResponse } from 'next/server';
+import { requireAuth, requireAdmin } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
   try {
-    const user = getRequestUser(req);
+    const user = await requireAuth(req);
     requireAdmin(user);
 
     const db = getDb();
     const users = db
       .prepare(
-        `SELECT id, username, role, display_name, branch, pay_grade,
-                duty_station, component, created_at
-         FROM users ORDER BY id`,
+        `SELECT id, email, name, role, branch, pay_grade, duty_station, component, createdAt
+         FROM users ORDER BY createdAt`,
       )
       .all();
 
@@ -26,13 +24,12 @@ export async function GET(req: Request) {
   }
 }
 
-// Admin: update another user's role
 export async function PATCH(req: Request) {
   try {
-    const reqUser = getRequestUser(req);
-    requireAdmin(reqUser);
+    const me = await requireAuth(req);
+    requireAdmin(me);
 
-    const { id, role } = (await req.json()) as { id: number; role: string };
+    const { id, role } = (await req.json()) as { id: string; role: string };
     if (!['admin', 'user', 'viewer'].includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
@@ -46,48 +43,34 @@ export async function PATCH(req: Request) {
   }
 }
 
-// Admin: delete a user (cannot delete self)
 export async function DELETE(req: Request) {
   try {
-    const reqUser = getRequestUser(req);
-    requireAdmin(reqUser);
+    const me = await requireAuth(req);
+    requireAdmin(me);
 
     const { searchParams } = new URL(req.url);
-    const targetId = parseInt(searchParams.get('id') ?? '0', 10);
+    const targetId = searchParams.get('id') ?? '';
 
-    if (targetId === reqUser.userId) {
-      return NextResponse.json(
-        { error: 'Cannot delete yourself' },
-        { status: 400 },
-      );
+    if (targetId === me.userId) {
+      return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
     }
 
     const db = getDb();
-    // Cascade delete all user data
     db.transaction(() => {
+      db.prepare(
+        `DELETE FROM goal_contributions WHERE goal_id IN
+         (SELECT id FROM goals WHERE user_id = ?)`,
+      ).run(targetId);
       for (const table of [
-        'income_config',
-        'transactions',
-        'goals',
-        'goal_contributions',
-        'fixed_expenses',
-        'payment_sources',
-        'debts',
-        'income_entries',
-        'receivables',
-        'category_budgets',
-        'assets',
+        'income_config', 'transactions', 'goals', 'fixed_expenses',
+        'payment_sources', 'debts', 'income_entries', 'receivables',
+        'category_budgets', 'assets',
       ]) {
-        if (table === 'goal_contributions') {
-          // goal_contributions references goal_id, not user_id
-          db.prepare(
-            `DELETE FROM goal_contributions WHERE goal_id IN
-             (SELECT id FROM goals WHERE user_id = ?)`,
-          ).run(targetId);
-        } else {
-          db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(targetId);
-        }
+        db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(targetId);
       }
+      // Better Auth tables
+      db.prepare('DELETE FROM sessions WHERE userId = ?').run(targetId);
+      db.prepare('DELETE FROM accounts WHERE userId = ?').run(targetId);
       db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
     })();
 

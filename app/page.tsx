@@ -33,6 +33,7 @@ import TransactionsPanel from './components/TransactionsPanel';
 import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
+import { authClient } from '@/lib/auth-client';
 
 type Tab =
   | 'income'
@@ -181,9 +182,11 @@ export default function Home() {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') setIsDark(true);
     else if (saved === 'light') setIsDark(false);
-    api.auth
-      .me()
-      .then((u) => u?.username && setUser(u))
+    authClient
+      .getSession()
+      .then(({ data }) => {
+        if (data?.user?.id) setUser(data.user as unknown as UserProfile);
+      })
       .catch(() => {});
   }, []);
 
@@ -293,9 +296,12 @@ export default function Home() {
               <UserNav
                 user={user}
                 onProfileUpdate={() =>
-                  api.auth
-                    .me()
-                    .then((u) => u?.username && setUser(u))
+                  authClient
+                    .getSession()
+                    .then(({ data }) => {
+                      if (data?.user?.id)
+                        setUser(data.user as unknown as UserProfile);
+                    })
                     .catch(() => {})
                 }
               />

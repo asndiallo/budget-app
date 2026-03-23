@@ -1,125 +1,203 @@
-// Auth utilities: JWT signing/verification + password hashing.
+// Better Auth server instance + request helpers.
 // Server-only — never import this in client components.
 
-import { SignJWT, jwtVerify } from 'jose';
+import {
+  SEED_DEBTS,
+  SEED_FIXED_EXPENSES,
+  SEED_GOALS,
+  SEED_PAYMENT_SOURCES,
+} from './config';
+import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
+import type { PayGrade } from './pay-tables';
 
-import bcrypt from 'bcryptjs';
+import Database from 'better-sqlite3';
+import { betterAuth } from 'better-auth';
 import { getDb } from './db';
+import path from 'path';
 
-const JWT_EXPIRY = '7d';
-const COOKIE_NAME = 'token';
+const DB_PATH = path.join(process.cwd(), 'budget.db');
 
-export { COOKIE_NAME };
+export const auth = betterAuth({
+  database: {
+    db: new Database(DB_PATH),
+    type: 'sqlite',
+  },
 
-// ── JWT secret ────────────────────────────────────────────────────────────────
-// Loaded from AUTH_SECRET env var (injected by next.config.js on every startup).
-// Falls back to DB-stored value for contexts that don't have the env var.
+  secret: process.env.BETTER_AUTH_SECRET ?? 'dev-secret-change-in-production',
+  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
 
-function getJwtSecret(): Uint8Array {
-  if (process.env.AUTH_SECRET) {
-    return new TextEncoder().encode(process.env.AUTH_SECRET);
-  }
-  // DB fallback (should not be reached in normal operation)
-  const db = getDb();
-  const row = db
-    .prepare("SELECT value FROM app_settings WHERE key = 'jwt_secret'")
-    .get() as { value: string } | undefined;
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 6,
+  },
 
-  if (row) return new TextEncoder().encode(row.value);
-  throw new Error('AUTH_SECRET not configured. Start the app via `bun dev`.');
-}
+  // Social providers — only enabled when env vars are set
+  socialProviders: {
+    ...(process.env.GOOGLE_CLIENT_ID
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          },
+        }
+      : {}),
+    ...(process.env.GITHUB_CLIENT_ID
+      ? {
+          github: {
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+          },
+        }
+      : {}),
+  },
 
-// ── Token payload ─────────────────────────────────────────────────────────────
+  user: {
+    modelName: 'users',
+    additionalFields: {
+      role:             { type: 'string',  defaultValue: 'user',   input: false },
+      branch:           { type: 'string',  defaultValue: 'Army',   input: true  },
+      pay_grade:        { type: 'string',  defaultValue: 'E-3',    input: true  },
+      mos:              { type: 'string',  defaultValue: '',        input: true  },
+      duty_station:     { type: 'string',  defaultValue: '',        input: true  },
+      bah_zip:          { type: 'string',  defaultValue: '',        input: true  },
+      component:        { type: 'string',  defaultValue: 'Active', input: true  },
+      dependents:       { type: 'number',  defaultValue: 0,         input: true  },
+      years_of_service: { type: 'number',  defaultValue: 0,         input: true  },
+    },
+  },
 
-export interface TokenPayload {
-  sub: string; // user id as string
-  username: string;
-  role: UserRole;
-  displayName: string;
-}
+  session: {
+    modelName: 'sessions',
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+  },
+
+  account:      { modelName: 'accounts'     },
+  verification: { modelName: 'verifications' },
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          const db = getDb();
+          const userId = user.id;
+
+          // First user becomes admin
+          const count = (
+            db.prepare('SELECT count(*) as n FROM users').get() as { n: number }
+          ).n;
+          if (count === 1) {
+            db.prepare('UPDATE users SET role = ? WHERE id = ?').run(
+              'admin',
+              userId,
+            );
+          }
+
+          // Seed income config from pay tables
+          const grade = ((user as Record<string, unknown>).pay_grade as PayGrade) ?? 'E-3';
+          const yos   = ((user as Record<string, unknown>).years_of_service as number) ?? 0;
+          const ds    = ((user as Record<string, unknown>).duty_station as string) ?? '';
+          const deps  = ((user as Record<string, unknown>).dependents as number) ?? 0;
+
+          const basePay = getBasePay(grade, yos);
+          const bas     = getBAS(grade);
+          const bah     = getBAH(ds, grade, deps > 0);
+
+          const incomeSeed: Record<string, number> = {
+            base_pay:         basePay,
+            bas,
+            bah,
+            other:            0,
+            tsp_rate:         0.05,
+            taxes:            Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
+            fica_soc_security: Math.round(basePay * 0.062 * 100) / 100,
+            fica_medicare:    Math.round(basePay * 0.0145 * 100) / 100,
+            sgli:             26.0,
+            afrh:             0.5,
+            meal_deduction:   0,
+            roth_ira:         0,
+          };
+
+          const ins = db.prepare(
+            'INSERT OR IGNORE INTO income_config (user_id, month, key, value) VALUES (?, ?, ?, ?)',
+          );
+          db.transaction(() => {
+            for (const [key, value] of Object.entries(incomeSeed))
+              ins.run(userId, '0000-00', key, value);
+          })();
+
+          // Seed fixed expenses
+          const fxIns = db.prepare(
+            'INSERT INTO fixed_expenses (user_id, label, amount, period) VALUES (?, ?, ?, ?)',
+          );
+          db.transaction(() => {
+            for (const { label, amount, period } of SEED_FIXED_EXPENSES)
+              fxIns.run(userId, label, amount, period);
+          })();
+
+          // Seed goals
+          const goIns = db.prepare(
+            'INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)',
+          );
+          db.transaction(() => {
+            for (const { name, target, saved, color } of SEED_GOALS)
+              goIns.run(userId, name, target, saved, color);
+          })();
+
+          // Seed payment sources
+          const psIns = db.prepare(
+            'INSERT INTO payment_sources (user_id, label) VALUES (?, ?)',
+          );
+          db.transaction(() => {
+            for (const { label } of SEED_PAYMENT_SOURCES) psIns.run(userId, label);
+          })();
+
+          // Seed debts
+          const dtIns = db.prepare(
+            'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
+          );
+          db.transaction(() => {
+            for (const { label, lender, balance, monthly_payment, interest_rate } of SEED_DEBTS)
+              dtIns.run(userId, label, lender, balance, monthly_payment, interest_rate);
+          })();
+        },
+      },
+    },
+  },
+});
+
+// ── Request helpers ────────────────────────────────────────────────────────────
 
 export type UserRole = 'admin' | 'user' | 'viewer';
 
-// ── JWT helpers ───────────────────────────────────────────────────────────────
-
-export async function signToken(payload: TokenPayload): Promise<string> {
-  const secret = getJwtSecret();
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(JWT_EXPIRY)
-    .sign(secret);
-}
-
-export async function verifyToken(token: string): Promise<TokenPayload> {
-  const secret = getJwtSecret();
-  const { payload } = await jwtVerify(token, secret);
-  return payload as unknown as TokenPayload;
-}
-
-// ── Password helpers ──────────────────────────────────────────────────────────
-
-export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 12);
-}
-
-export async function verifyPassword(
-  plain: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(plain, hash);
-}
-
-// ── Cookie helpers (for API routes, not middleware) ───────────────────────────
-
-export function tokenCookie(token: string): string {
-  const maxAge = 60 * 60 * 24 * 7; // 7 days in seconds
-  return `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-}
-
-export function clearTokenCookie(): string {
-  return `${COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`;
-}
-
-// ── Request user extractor (used in API routes) ───────────────────────────────
-
 export interface RequestUser {
-  userId: number;
-  username: string;
+  userId: string;
+  email: string;
   role: UserRole;
   displayName: string;
 }
 
 /**
- * Extract the authenticated user from request headers.
- * Middleware injects x-user-* headers after JWT verification.
- * Throws a Response (401) if not authenticated.
+ * Extracts the authenticated user from the current request via Better Auth session.
+ * Throws a 401 Response if unauthenticated — caught by the route's try/catch.
  */
-export function getRequestUser(req: Request): RequestUser {
-  const userId = req.headers.get('x-user-id');
-  const username = req.headers.get('x-user-username');
-  const role = req.headers.get('x-user-role') as UserRole | null;
-  const displayName = req.headers.get('x-user-display-name') ?? '';
-
-  if (!userId || !username || !role) {
+export async function requireAuth(req: Request): Promise<RequestUser> {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
     throw new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-
+  const u = session.user as Record<string, unknown>;
   return {
-    userId: parseInt(userId, 10),
-    username,
-    role,
-    displayName,
+    userId:      u.id as string,
+    email:       u.email as string,
+    role:        (u.role as UserRole) ?? 'user',
+    displayName: (u.name as string) ?? '',
   };
 }
 
-/**
- * Check if the current user is an admin.
- * Throws 403 if not.
- */
+/** Throws 403 if the user is not an admin. */
 export function requireAdmin(user: RequestUser): void {
   if (user.role !== 'admin') {
     throw new Response(JSON.stringify({ error: 'Forbidden' }), {

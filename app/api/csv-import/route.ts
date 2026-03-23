@@ -3,7 +3,7 @@ import { CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '@/lib/config';
 import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function parseDate(dateStr: string): { month: string; date: string } | null {
   if (!dateStr) return null;
@@ -32,7 +32,7 @@ function mapCategory(raw: string): string {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const {
       rows,

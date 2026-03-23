@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { computeMonthlyFinancials } from '@/lib/income';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function prevMonths(to: string, count: number): string[] {
   const [y, m] = to.split('-').map(Number);
@@ -21,7 +21,7 @@ function lastCompleteMonth(month: string): string {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month') || currentMonth();

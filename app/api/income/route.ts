@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function getIncomeForMonth(
   db: ReturnType<typeof getDb>,
@@ -23,7 +23,7 @@ function getIncomeForMonth(
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month') || currentMonth();
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { month: reqMonth, ...updates } = (await req.json()) as Record<
       string,

@@ -2,11 +2,11 @@ import { DEFAULT_CATEGORY } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { currentMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q');
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { description, amount, category, month, source } = await req.json();
     const m = month || currentMonth();
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id, description, amount, category, notes } = await req.json();
     db.prepare(
@@ -92,7 +92,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const { id } = await req.json();
     db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(

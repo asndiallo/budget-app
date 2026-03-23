@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function normalize(desc: string): string {
   return desc
@@ -23,7 +23,7 @@ function monthsBack(n: number): string {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
     const since = monthsBack(6);
 

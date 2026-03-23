@@ -4,7 +4,7 @@ import { DEDUCTION_FIELDS } from '@/lib/config';
 import type { HealthScoreComponent } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getRequestUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 function lastCompleteMonths(n: number): string[] {
   const months: string[] = [];
@@ -26,7 +26,7 @@ function clamp(v: number, lo: number, hi: number) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = getRequestUser(req);
+    const { userId } = await requireAuth(req);
     const db = getDb();
 
     const fixedMonthly = (
