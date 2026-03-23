@@ -19,6 +19,7 @@ export default function FixedExpensesPanel({
   const [newAmt, setNewAmt] = useState('');
   const [newPeriod, setNewPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [newDay, setNewDay] = useState('');
+  const [newIsInvestment, setNewIsInvestment] = useState(false);
 
   const reload = () => api.fixedExpenses.list().then(setFixed);
 
@@ -34,11 +35,14 @@ export default function FixedExpensesPanel({
       parseFloat(newAmt),
       newPeriod,
       dom,
+      null,
+      newIsInvestment,
     );
     setNewLabel('');
     setNewAmt('');
     setNewPeriod('monthly');
     setNewDay('');
+    setNewIsInvestment(false);
     reload();
     onUpdate();
   }
@@ -57,6 +61,22 @@ export default function FixedExpensesPanel({
       f.amount,
       period,
       f.day_of_month,
+      f.notes,
+      !!f.is_investment,
+    );
+    reload();
+    onUpdate();
+  }
+
+  async function toggleInvestment(f: FixedExpense) {
+    await api.fixedExpenses.update(
+      f.id,
+      f.label,
+      f.amount,
+      f.period,
+      f.day_of_month,
+      f.notes,
+      !f.is_investment,
     );
     reload();
     onUpdate();
@@ -72,6 +92,7 @@ export default function FixedExpensesPanel({
       f.period,
       dom,
       f.notes,
+      !!f.is_investment,
     );
     reload();
     onUpdate();
@@ -85,6 +106,7 @@ export default function FixedExpensesPanel({
       f.period,
       f.day_of_month,
       notes || null,
+      !!f.is_investment,
     );
     reload();
     onUpdate();
@@ -116,6 +138,17 @@ export default function FixedExpensesPanel({
                 onSave={(raw) => updateDayOfMonth(f, raw)}
               />
               <button
+                onClick={() => toggleInvestment(f)}
+                title="Toggle investment / expense"
+                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                  f.is_investment
+                    ? 'border-[#4a8cff]/40 bg-[#4a8cff]/10 text-[#4a8cff]'
+                    : 'border-border text-text-4 hover:border-[#2d4080] hover:text-text-3'
+                }`}
+              >
+                invest
+              </button>
+              <button
                 onClick={() => togglePeriod(f)}
                 className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
                   f.period === 'annual'
@@ -133,8 +166,10 @@ export default function FixedExpensesPanel({
                 ✕
               </button>
               <div className="text-right w-28 shrink-0">
-                <p className="font-mono text-sm text-[#ff4560]">
-                  −${f.amount.toLocaleString()}
+                <p
+                  className={`font-mono text-sm ${f.is_investment ? 'text-[#4a8cff]' : 'text-[#ff4560]'}`}
+                >
+                  {f.is_investment ? '+' : '−'}${f.amount.toLocaleString()}
                   {f.period === 'annual' ? '/yr' : ''}
                 </p>
                 {f.period === 'annual' && (
@@ -186,6 +221,17 @@ export default function FixedExpensesPanel({
           <option value="monthly">/mo</option>
           <option value="annual">/yr</option>
         </select>
+        <button
+          onClick={() => setNewIsInvestment((v) => !v)}
+          title="Mark as investment"
+          className={`text-[11px] px-2 py-1.5 rounded-lg border transition-colors ${
+            newIsInvestment
+              ? 'border-[#4a8cff]/40 bg-[#4a8cff]/10 text-[#4a8cff]'
+              : 'border-border text-text-4 hover:border-[#2d4080] hover:text-text-3'
+          }`}
+        >
+          invest
+        </button>
         <button
           onClick={addFixed}
           className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors"

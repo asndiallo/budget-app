@@ -47,11 +47,18 @@ export async function GET(req: Request) {
     spendingMap.get(row.month)![row.category] = row.total;
   }
 
-  // Committed expenses (fixed + debt payments) — same for all months (current values)
+  // Committed expenses (non-investment fixed + debt payments) — same for all months
   const fixedMonthly = (
     db
       .prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1",
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1 AND (is_investment IS NULL OR is_investment=0)",
+      )
+      .get() as { s: number }
+  ).s;
+  const investmentFixed = (
+    db
+      .prepare(
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1 AND is_investment=1",
       )
       .get() as { s: number }
   ).s;
@@ -66,7 +73,7 @@ export async function GET(req: Request) {
 
   // Income + deductions per month
   const result = months.map((m) => {
-    const { totalIncome, tsp, roth } = computeMonthlyFinancials(db, m);
+    const { totalIncome, tsp } = computeMonthlyFinancials(db, m);
     const config = incomeForMonth(db, m);
     const deductions =
       tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
@@ -75,7 +82,9 @@ export async function GET(req: Request) {
     const net = totalIncome - deductions - committed - spending;
     const savingsRate =
       totalIncome > 0
-        ? Math.round(((tsp + roth + Math.max(0, net)) / totalIncome) * 100)
+        ? Math.round(
+            ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
+          )
         : null;
 
     return {
@@ -83,9 +92,8 @@ export async function GET(req: Request) {
       label: shortLabel(m),
       totalIncome,
       tsp,
-      roth,
       spending,
-      net: totalIncome - tsp - roth - spending,
+      net: totalIncome - tsp - investmentFixed - spending,
       savingsRate,
       categories,
     };

@@ -37,11 +37,6 @@ export const DEDUCTION_FIELDS: FieldConfig[] = [
   { key: 'sgli', label: 'SGLI' },
   { key: 'afrh', label: 'AFRH' },
   { key: 'meal_deduction', label: 'Meal deduction' },
-  {
-    key: 'roth_ira',
-    label: 'Roth IRA / month',
-    note: 'Fidelity · FZROX 80 / FZILX 20',
-  },
 ];
 
 // ─── Transaction categories ───────────────────────────────────────────────────
