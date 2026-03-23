@@ -745,9 +745,9 @@ function NetWorthCard({
   return (
     <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
       <div
-        className="absolute top-0 left-0 right-0 h-px"
+        className="absolute top-0 left-0 right-0 h-0.5"
         style={{
-          background: 'linear-gradient(90deg, #00d98a55, transparent 70%)',
+          background: 'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
         }}
       />
       <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
@@ -844,9 +844,9 @@ function HealthScoreCard({ score }: { score: HealthScore }) {
   return (
     <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
       <div
-        className="absolute top-0 left-0 right-0 h-px"
+        className="absolute top-0 left-0 right-0 h-0.5"
         style={{
-          background: `linear-gradient(90deg, ${grade.color}55, transparent 70%)`,
+          background: `linear-gradient(90deg, ${grade.color}cc, ${grade.color}33 60%, transparent)`,
         }}
       />
       <div className="flex items-start justify-between mb-3">
@@ -861,7 +861,7 @@ function HealthScoreCard({ score }: { score: HealthScore }) {
         </span>
       </div>
       <p
-        className="text-3xl font-mono font-bold leading-none mb-3"
+        className="text-[22px] font-mono font-semibold leading-none mb-3"
         style={{ color: grade.color }}
       >
         {score.total}

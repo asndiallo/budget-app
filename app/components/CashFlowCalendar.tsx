@@ -3,7 +3,7 @@
 import type { FixedExpense, Transaction } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import { CAT_COLORS } from '@/lib/config';
+import { CHART_CAT_COLORS } from '@/lib/config';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -254,7 +254,7 @@ export default function CashFlowCalendar({
 
           {isPayDay && hasIncome && (
             <div className="flex items-center gap-2 py-2 border-b border-border-dim">
-              <span className="text-xs text-[#00d98a]">Military pay</span>
+              <span className="text-xs text-[#00d98a]">Pay day</span>
               {payPerCheck && (
                 <span className="ml-auto text-xs font-mono text-[#00d98a]">
                   +{formatCurrency(payPerCheck)}
@@ -282,8 +282,8 @@ export default function CashFlowCalendar({
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                     style={{
-                      color: CAT_COLORS[t.category] ?? '#7c88a4',
-                      background: `${CAT_COLORS[t.category] ?? '#7c88a4'}22`,
+                      color: CHART_CAT_COLORS[t.category] ?? '#7c88a4',
+                      background: `${CHART_CAT_COLORS[t.category] ?? '#7c88a4'}22`,
                     }}
                   >
                     {t.category}

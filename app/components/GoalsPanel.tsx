@@ -388,12 +388,12 @@ export default function GoalsPanel() {
 
                   {/* Smart target banner */}
                   {showSmartBanner && insights && (
-                    <div className="mb-3 rounded-lg border border-[#1a2e1a] bg-[#0a150a] px-3 py-2.5 flex items-center justify-between gap-3">
+                    <div className="mb-3 rounded-lg border border-[#00d98a]/20 bg-[#00d98a]/5 px-3 py-2.5 flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2d6a2d] mb-0.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#00d98a]/60 mb-0.5">
                           Smart target
                         </p>
-                        <p className="text-xs text-[#4a8f4a] leading-snug">
+                        <p className="text-xs text-text-3 leading-snug">
                           3-month fund ·{' '}
                           <span className="font-mono">
                             ${insights.avgMonthlyExpenses.toLocaleString()}{' '}
@@ -403,14 +403,14 @@ export default function GoalsPanel() {
                           <span className="font-mono font-semibold text-[#00d98a]">
                             ${smartFundTarget!.toLocaleString()}
                           </span>{' '}
-                          <span className="text-[#2d6a2d]">
+                          <span className="text-text-4">
                             ({insights.monthsAnalyzed} months of data)
                           </span>
                         </p>
                       </div>
                       <button
                         onClick={() => applySmartTarget(g, smartFundTarget!)}
-                        className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-[#2d6a2d] text-[#00d98a] hover:bg-[#0f2a0f] transition-colors"
+                        className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-[#00d98a]/30 text-[#00d98a] hover:bg-[#00d98a]/10 transition-colors"
                       >
                         Apply
                       </button>
