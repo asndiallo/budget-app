@@ -47,11 +47,11 @@ export async function GET(req: Request) {
     spendingMap.get(row.month)![row.category] = row.total;
   }
 
-  // Committed expenses (fixed + debt payments) — same for all months (current values)
+  // Committed expenses (non-investment fixed + debt payments) — same for all months
   const fixedMonthly = (
     db
       .prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1",
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1 AND (is_investment IS NULL OR is_investment=0)",
       )
       .get() as { s: number }
   ).s;
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
       totalIncome,
       tsp,
       spending,
-      net: totalIncome - tsp - spending,
+      net: totalIncome - tsp - investmentFixed - spending,
       savingsRate,
       categories,
     };

@@ -104,7 +104,8 @@ function calcSummary(
     0,
   );
   const fixedExpenses = fixed.reduce(
-    (s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+    (s, f) =>
+      f.is_investment ? s : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
     0,
   );
   const debtPayments = debts

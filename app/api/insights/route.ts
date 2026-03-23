@@ -56,11 +56,19 @@ export async function GET(req: Request) {
   };
   if (withData6.length === 0) return NextResponse.json(empty);
 
+  const investmentFixed = (
+    db
+      .prepare(
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1 AND is_investment=1",
+      )
+      .get() as { s: number }
+  ).s;
+
   // Per-month totals (spending + net)
   const monthlyData = withData6.map((m) => {
     const { totalIncome, tsp } = computeMonthlyFinancials(db, m);
     const spending = Object.values(byMonth.get(m)!).reduce((s, v) => s + v, 0);
-    return { spending, net: totalIncome - tsp - spending };
+    return { spending, net: totalIncome - tsp - investmentFixed - spending };
   });
 
   const avgMonthlyExpenses =
