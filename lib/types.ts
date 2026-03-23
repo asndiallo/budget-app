@@ -1,5 +1,40 @@
 // Shared domain types — used by both API routes (server) and components (client)
 
+// ── User & Auth ───────────────────────────────────────────────────────────────
+
+export type UserRole = 'admin' | 'user' | 'viewer';
+export type Branch = 'Army' | 'Navy' | 'Air Force' | 'Marines' | 'Coast Guard' | 'Space Force';
+export type Component = 'Active' | 'Reserve' | 'Guard';
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  role: UserRole;
+  display_name: string;
+  branch: Branch;
+  pay_grade: string;       // E-3, O-4, W-2, etc.
+  mos: string;             // job code: 11B, 4N0, 0311, etc.
+  duty_station: string;    // installation name
+  bah_zip: string;
+  component: Component;
+  dependents: number;      // 0 = without, 1+ = with
+  years_of_service: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSummary {
+  id: number;
+  username: string;
+  display_name: string;
+  role: UserRole;
+  branch: Branch;
+  pay_grade: string;
+  duty_station: string;
+  component: Component;
+  created_at: string;
+}
+
 export type IncomeConfig = Record<string, number>;
 
 export interface FixedExpense {

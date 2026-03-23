@@ -14,6 +14,7 @@ import type {
   HealthScore,
   IncomeConfig,
   IncomeEntry,
+  UserProfile,
 } from '@/lib/types';
 import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,6 +30,7 @@ import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import TransactionsPanel from './components/TransactionsPanel';
+import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
 
@@ -156,6 +158,7 @@ export default function Home() {
   const [streak, setStreak] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -165,6 +168,7 @@ export default function Home() {
     if (saved === 'light') {
       setIsDark(false);
     }
+    api.auth.me().then(setUser).catch(() => {});
   }, []);
 
   async function handleExport() {
@@ -258,13 +262,19 @@ export default function Home() {
                 {APP_CONFIG.title}
               </h1>
               <p className="text-[10px] text-text-4 mt-0.5 tracking-wide leading-none">
-                {APP_CONFIG.subtitle}
+                {user
+                  ? [user.pay_grade, user.mos, user.duty_station].filter(Boolean).join(' · ') || APP_CONFIG.subtitle
+                  : APP_CONFIG.subtitle}
               </p>
             </div>
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-1">
+            {user && (
+              <UserNav user={user} onProfileUpdate={() => api.auth.me().then(setUser).catch(() => {})} />
+            )}
+            <div className="w-px h-4 bg-border mx-0.5" />
             <button
               onClick={handleExport}
               title="Export backup (JSON)"

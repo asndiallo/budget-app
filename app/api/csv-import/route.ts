@@ -3,25 +3,18 @@ import { CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '@/lib/config';
 import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getRequestUser } from '@/lib/auth';
 
-// Parses MM/DD/YYYY or YYYY-MM-DD into { month: 'YYYY-MM', date: 'YYYY-MM-DD' }.
-// Returns null if the date string is unrecognizable.
 function parseDate(dateStr: string): { month: string; date: string } | null {
   if (!dateStr) return null;
-  // MM/DD/YYYY
   const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (slash) {
     const [, m, d, y] = slash;
     const date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     return { month: `${y}-${m.padStart(2, '0')}`, date };
   }
-  // YYYY-MM-DD
   const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso)
-    return {
-      month: `${iso[1]}-${iso[2]}`,
-      date: `${iso[1]}-${iso[2]}-${iso[3]}`,
-    };
+  if (iso) return { month: `${iso[1]}-${iso[2]}`, date: `${iso[1]}-${iso[2]}-${iso[3]}` };
   return null;
 }
 
@@ -34,45 +27,47 @@ function mapCategory(raw: string): string {
 }
 
 export async function POST(req: Request) {
-  const db = getDb();
-  const {
-    rows,
-    month: fallbackMonth,
-    source,
-  } = (await req.json()) as {
-    rows: CsvRow[];
-    month: string;
-    source: string;
-  };
+  try {
+    const { userId } = getRequestUser(req);
+    const db = getDb();
+    const { rows, month: fallbackMonth, source } = (await req.json()) as {
+      rows: CsvRow[];
+      month: string;
+      source: string;
+    };
 
-  const importId = crypto.randomUUID();
+    const importId = crypto.randomUUID();
+    const insert = db.prepare(
+      'INSERT OR IGNORE INTO transactions (user_id, description, amount, category, month, source, date, import_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    );
 
-  const insert = db.prepare(
-    'INSERT OR IGNORE INTO transactions (description, amount, category, month, source, date, import_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  );
+    const months = new Set<string>();
+    const count = db.transaction(() => {
+      let n = 0;
+      for (const row of rows) {
+        if (!row.description || !row.amount) continue;
+        const parsed = parseDate(row.date);
+        const month = parsed?.month ?? fallbackMonth;
+        const date = parsed?.date ?? null;
+        months.add(month);
+        const result = insert.run(
+          userId,
+          row.description,
+          Math.abs(row.amount),
+          mapCategory(row.category),
+          month,
+          source || 'Unknown',
+          date,
+          importId,
+        );
+        if (result.changes > 0) n++;
+      }
+      return n;
+    })();
 
-  const months = new Set<string>();
-  const count = db.transaction(() => {
-    let n = 0;
-    for (const row of rows) {
-      if (!row.description || !row.amount) continue;
-      const parsed = parseDate(row.date);
-      const month = parsed?.month ?? fallbackMonth;
-      const date = parsed?.date ?? null;
-      months.add(month);
-      const result = insert.run(
-        row.description,
-        Math.abs(row.amount),
-        mapCategory(row.category),
-        month,
-        source || 'Unknown',
-        date,
-        importId,
-      );
-      if (result.changes > 0) n++;
-    }
-    return n;
-  })();
-
-  return NextResponse.json({ ok: true, imported: count, months: [...months] });
+    return NextResponse.json({ ok: true, imported: count, months: [...months] });
+  } catch (err) {
+    if (err instanceof Response) return err;
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
 }

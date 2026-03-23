@@ -6,18 +6,22 @@ import { getDb } from './db';
 
 type Db = ReturnType<typeof getDb>;
 
-/** Nearest-prior snapshot: returns the income config as of the given month. */
-export function incomeForMonth(db: Db, month: string): Record<string, number> {
+/** Nearest-prior snapshot: returns the income config as of the given month for a user. */
+export function incomeForMonth(
+  db: Db,
+  month: string,
+  userId: number,
+): Record<string, number> {
   const rows = db
     .prepare(
       `SELECT key, value FROM income_config i1
-       WHERE month <= ?
+       WHERE user_id = ? AND month <= ?
          AND month = (
            SELECT MAX(month) FROM income_config i2
-           WHERE i2.key = i1.key AND i2.month <= ?
+           WHERE i2.user_id = i1.user_id AND i2.key = i1.key AND i2.month <= ?
          )`,
     )
-    .all(month, month) as { key: string; value: number }[];
+    .all(userId, month, month) as { key: string; value: number }[];
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
@@ -25,8 +29,9 @@ export function incomeForMonth(db: Db, month: string): Record<string, number> {
 export function computeMonthlyFinancials(
   db: Db,
   month: string,
+  userId: number,
 ): { totalIncome: number; tsp: number } {
-  const config = incomeForMonth(db, month);
+  const config = incomeForMonth(db, month, userId);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
   const totalIncome = INCOME_FIELDS.reduce(
     (s, f) => s + (config[f.key] ?? 0),
