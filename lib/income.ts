@@ -21,11 +21,11 @@ export function incomeForMonth(db: Db, month: string): Record<string, number> {
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
-/** Returns total income, TSP, and Roth IRA for a given month. */
+/** Returns total income and TSP for a given month. */
 export function computeMonthlyFinancials(
   db: Db,
   month: string,
-): { totalIncome: number; tsp: number; roth: number } {
+): { totalIncome: number; tsp: number } {
   const config = incomeForMonth(db, month);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
   const totalIncome = INCOME_FIELDS.reduce(
@@ -33,6 +33,5 @@ export function computeMonthlyFinancials(
     0,
   );
   const tsp = Math.round((config.base_pay ?? 0) * tspRate);
-  const roth = config.roth_ira ?? 0;
-  return { totalIncome, tsp, roth };
+  return { totalIncome, tsp };
 }

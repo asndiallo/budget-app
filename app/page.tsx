@@ -43,7 +43,7 @@ type Tab =
 interface Summary {
   totalIncome: number;
   tsp: number;
-  roth: number;
+  investmentFixed: number;
   committed: number;
   spending: number;
   net: number;
@@ -90,13 +90,19 @@ function calcSummary(
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round(base * tspRate);
-  const roth = income.roth_ira || 0;
   const militaryIncome = INCOME_FIELDS.reduce(
     (s, f) => s + (income[f.key] || 0),
     0,
   );
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
   const totalIncome = militaryIncome + extraIncome;
+  const investmentFixed = fixed.reduce(
+    (s, f) =>
+      f.is_investment
+        ? s + (f.period === 'annual' ? f.amount / 12 : f.amount)
+        : s,
+    0,
+  );
   const fixedExpenses = fixed.reduce(
     (s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount),
     0,
@@ -111,9 +117,11 @@ function calcSummary(
   const net = totalIncome - deductions - committed - spending;
   const savingsRate =
     totalIncome > 0
-      ? Math.round(((tsp + roth + Math.max(0, net)) / totalIncome) * 100)
+      ? Math.round(
+          ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
+        )
       : 0;
-  return { totalIncome, tsp, roth, committed, spending, net, savingsRate };
+  return { totalIncome, tsp, investmentFixed, committed, spending, net, savingsRate };
 }
 
 const TAB_ICONS: Record<Tab, string> = {
@@ -352,11 +360,13 @@ export default function Home() {
               />
               <MetricCard
                 label="Invested"
-                value={formatCurrency(summary.tsp + summary.roth)}
+                value={formatCurrency(summary.tsp + summary.investmentFixed)}
                 accent="blue"
                 delta={delta(
-                  summary.tsp + summary.roth,
-                  prevSummary ? prevSummary.tsp + prevSummary.roth : undefined,
+                  summary.tsp + summary.investmentFixed,
+                  prevSummary
+                    ? prevSummary.tsp + prevSummary.investmentFixed
+                    : undefined,
                   true,
                 )}
               />
@@ -636,17 +646,19 @@ function MetricCard({
 
 /* ── Budget Allocation Bar ────────────────────────────────────────── */
 function BudgetBar({ summary }: { summary: Summary }) {
-  const { totalIncome, tsp, roth, committed, spending, net } = summary;
+  const { totalIncome, tsp, investmentFixed, committed, spending, net } =
+    summary;
   if (totalIncome === 0) return null;
 
   const pct = (n: number) =>
     Math.max(0, Math.min(100, (n / totalIncome) * 100));
 
+  const invested = tsp + investmentFixed;
   const segments = [
     {
       label: 'Invested',
-      value: tsp + roth,
-      pct: pct(tsp + roth),
+      value: invested,
+      pct: pct(invested),
       color: '#4a8cff',
     },
     {

@@ -11,14 +11,16 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const db = getDb();
-  const { label, amount, period, day_of_month, notes } = await req.json();
+  const { label, amount, period, day_of_month, notes, is_investment } =
+    await req.json();
   const p = period === 'annual' ? 'annual' : 'monthly';
   const dom = day_of_month ? Number(day_of_month) : null;
+  const inv = is_investment ? 1 : 0;
   const result = db
     .prepare(
-      'INSERT INTO fixed_expenses (label, amount, period, day_of_month, notes) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO fixed_expenses (label, amount, period, day_of_month, notes, is_investment) VALUES (?, ?, ?, ?, ?, ?)',
     )
-    .run(label, amount, p, dom, notes ?? null);
+    .run(label, amount, p, dom, notes ?? null, inv);
   return NextResponse.json({
     id: result.lastInsertRowid,
     label,
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
     period: p,
     day_of_month: dom,
     notes: notes ?? null,
+    is_investment: inv,
     active: 1,
   });
 }
@@ -39,10 +42,19 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   const db = getDb();
-  const { id, label, amount, period, day_of_month, notes } = await req.json();
+  const { id, label, amount, period, day_of_month, notes, is_investment } =
+    await req.json();
   const dom = day_of_month ? Number(day_of_month) : null;
   db.prepare(
-    'UPDATE fixed_expenses SET label = ?, amount = ?, period = ?, day_of_month = ?, notes = ? WHERE id = ?',
-  ).run(label, amount, period ?? 'monthly', dom, notes ?? null, id);
+    'UPDATE fixed_expenses SET label = ?, amount = ?, period = ?, day_of_month = ?, notes = ?, is_investment = ? WHERE id = ?',
+  ).run(
+    label,
+    amount,
+    period ?? 'monthly',
+    dom,
+    notes ?? null,
+    is_investment ? 1 : 0,
+    id,
+  );
   return NextResponse.json({ ok: true });
 }

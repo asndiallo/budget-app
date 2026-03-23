@@ -58,9 +58,9 @@ export async function GET(req: Request) {
 
   // Per-month totals (spending + net)
   const monthlyData = withData6.map((m) => {
-    const { totalIncome, tsp, roth } = computeMonthlyFinancials(db, m);
+    const { totalIncome, tsp } = computeMonthlyFinancials(db, m);
     const spending = Object.values(byMonth.get(m)!).reduce((s, v) => s + v, 0);
-    return { spending, net: totalIncome - tsp - roth - spending };
+    return { spending, net: totalIncome - tsp - spending };
   });
 
   const avgMonthlyExpenses =

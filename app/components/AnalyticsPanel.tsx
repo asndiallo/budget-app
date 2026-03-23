@@ -28,7 +28,6 @@ interface MonthData {
   label: string;
   totalIncome: number;
   tsp: number;
-  roth: number;
   spending: number;
   net: number;
   savingsRate: number | null;

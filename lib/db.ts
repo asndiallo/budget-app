@@ -158,6 +158,11 @@ function initSchema(db: Database.Database) {
   if (!fixedCols.includes('notes')) {
     db.exec('ALTER TABLE fixed_expenses ADD COLUMN notes TEXT');
   }
+  if (!fixedCols.includes('is_investment')) {
+    db.exec(
+      'ALTER TABLE fixed_expenses ADD COLUMN is_investment INTEGER NOT NULL DEFAULT 0',
+    );
+  }
 
   const receivableCols = (
     db.prepare('PRAGMA table_info(receivables)').all() as { name: string }[]

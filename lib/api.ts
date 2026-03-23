@@ -45,6 +45,7 @@ export const api = {
       period: 'monthly' | 'annual' = 'monthly',
       day_of_month?: number | null,
       notes?: string | null,
+      is_investment?: boolean,
     ) =>
       send('POST', '/api/fixed-expenses', {
         label,
@@ -52,6 +53,7 @@ export const api = {
         period,
         day_of_month,
         notes,
+        is_investment,
       }).then(asJson<FixedExpense>),
     remove: (id: number) =>
       send('DELETE', '/api/fixed-expenses', { id }).then(
@@ -64,6 +66,7 @@ export const api = {
       period: 'monthly' | 'annual',
       day_of_month?: number | null,
       notes?: string | null,
+      is_investment?: boolean,
     ) =>
       send('PATCH', '/api/fixed-expenses', {
         id,
@@ -72,6 +75,7 @@ export const api = {
         period,
         day_of_month,
         notes,
+        is_investment,
       }).then(asJson<{ ok: boolean }>),
   },
 

@@ -9,6 +9,7 @@ export interface FixedExpense {
   period: 'monthly' | 'annual';
   day_of_month?: number | null;
   notes?: string | null;
+  is_investment?: number | null;
 }
 
 export interface GoalContribution {

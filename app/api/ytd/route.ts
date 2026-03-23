@@ -31,17 +31,25 @@ export async function GET(req: Request) {
     spendingRows.map((r) => [r.month, r.total]),
   );
 
+  const investmentFixedMonthly = (
+    db
+      .prepare(
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE active=1 AND is_investment=1",
+      )
+      .get() as { s: number }
+  ).s;
+
   let totalIncome = 0;
   let totalInvested = 0;
   let totalSpending = 0;
   let monthsRecorded = 0;
 
   for (const mo of months) {
-    const { totalIncome: inc, tsp, roth } = computeMonthlyFinancials(db, mo);
+    const { totalIncome: inc, tsp } = computeMonthlyFinancials(db, mo);
     const spending = spendingByMonth[mo] ?? 0;
     if (inc > 0 || spending > 0) {
       totalIncome += inc;
-      totalInvested += tsp + roth;
+      totalInvested += tsp + investmentFixedMonthly;
       totalSpending += spending;
       monthsRecorded++;
     }
