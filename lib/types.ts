@@ -97,6 +97,35 @@ export interface SpendingInsights {
   categoryInsights: CategoryInsight[];
 }
 
+export type AssetCategory =
+  | 'Checking'
+  | 'Savings'
+  | 'Brokerage'
+  | 'Retirement'
+  | 'Property'
+  | 'Vehicle'
+  | 'Other';
+
+export interface Asset {
+  id: number;
+  label: string;
+  category: AssetCategory;
+  balance: number;
+  updated_at: string;
+}
+
+export interface HealthScoreComponent {
+  name: string;
+  score: number;
+  max: 25;
+  detail: string;
+}
+
+export interface HealthScore {
+  total: number;
+  components: HealthScoreComponent[];
+}
+
 export interface YtdSummary {
   year: number;
   monthsRecorded: number;

@@ -2,11 +2,14 @@
 // Only call these functions from 'use client' components.
 
 import type {
+  Asset,
+  AssetCategory,
   CategoryBudget,
   CsvRow,
   Debt,
   FixedExpense,
   Goal,
+  HealthScore,
   IncomeConfig,
   IncomeEntry,
   PaymentSource,
@@ -105,6 +108,27 @@ export const api = {
 
   streak: {
     get: () => fetch('/api/streak').then(asJson<{ streak: number }>),
+  },
+
+  assets: {
+    list: () => fetch('/api/assets').then(asJson<Asset[]>),
+    add: (label: string, category: AssetCategory, balance: number) =>
+      send('POST', '/api/assets', { label, category, balance }).then(
+        asJson<Asset>,
+      ),
+    update: (
+      id: number,
+      data: Partial<Pick<Asset, 'label' | 'category' | 'balance'>>,
+    ) =>
+      send('PATCH', '/api/assets', { id, ...data }).then(
+        asJson<{ ok: boolean }>,
+      ),
+    remove: (id: number) =>
+      send('DELETE', '/api/assets', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  healthScore: {
+    get: () => fetch('/api/health-score').then(asJson<HealthScore>),
   },
 
   ytd: {

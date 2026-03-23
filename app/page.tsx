@@ -7,8 +7,11 @@ import {
   TSP_CONFIG,
 } from '@/lib/config';
 import type {
+  Asset,
   Debt,
   FixedExpense,
+  Goal,
+  HealthScore,
   IncomeConfig,
   IncomeEntry,
 } from '@/lib/types';
@@ -16,6 +19,7 @@ import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
+import AssetsPanel from './components/AssetsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
@@ -26,7 +30,7 @@ import TransactionsPanel from './components/TransactionsPanel';
 import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
 
-type Tab = 'income' | 'transactions' | 'goals' | 'analytics';
+type Tab = 'income' | 'transactions' | 'goals' | 'analytics' | 'assets';
 
 interface Summary {
   totalIncome: number;
@@ -39,8 +43,18 @@ interface Summary {
 }
 
 const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 function getYearRange() {
@@ -99,6 +113,7 @@ const TAB_ICONS: Record<Tab, string> = {
   transactions: '⇄',
   goals: '◈',
   analytics: '⊞',
+  assets: '◇',
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -106,6 +121,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'transactions', label: APP_CONFIG.transactionsTabLabel },
   { key: 'goals', label: 'Goals' },
   { key: 'analytics', label: 'Analytics' },
+  { key: 'assets', label: 'Net Worth' },
 ];
 
 export default function Home() {
@@ -114,6 +130,10 @@ export default function Home() {
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [prevSummary, setPrevSummary] = useState<Summary | null>(null);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [streak, setStreak] = useState(0);
   const [isDark, setIsDark] = useState(true);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
@@ -189,6 +209,10 @@ export default function Home() {
     setSummary(calcSummary(income, fixed, txs, debts, entries));
     setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries));
     api.streak.get().then((r) => setStreak(r.streak));
+    api.assets.list().then(setAssets);
+    api.debts.list().then(setDebts);
+    api.goals.list().then(setGoals);
+    api.healthScore.get().then(setHealthScore);
   }, [month]);
 
   useEffect(() => {
@@ -202,8 +226,12 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
           {/* Brand */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)' }}>
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)',
+              }}
+            >
               B
             </div>
             <div>
@@ -306,7 +334,11 @@ export default function Home() {
               <MetricCard
                 label="Total income"
                 value={formatCurrency(summary.totalIncome)}
-                delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
+                delta={delta(
+                  summary.totalIncome,
+                  prevSummary?.totalIncome,
+                  true,
+                )}
               />
               <MetricCard
                 label="Invested"
@@ -361,6 +393,12 @@ export default function Home() {
             {/* Budget allocation bar */}
             {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
 
+            {/* Net worth + Health score */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <NetWorthCard assets={assets} debts={debts} goals={goals} />
+              {healthScore && <HealthScoreCard score={healthScore} />}
+            </div>
+
             {/* Spending streak */}
             {streak >= 2 && <StreakBanner streak={streak} />}
           </div>
@@ -380,14 +418,18 @@ export default function Home() {
                     : 'text-text-3 hover:text-text-2 hover:bg-surface-raised/50'
                 }`}
               >
-                <span className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}>
+                <span
+                  className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}
+                >
                   {TAB_ICONS[key]}
                 </span>
                 {label}
                 {tab === key && (
                   <span
-                    className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-t-full"
-                    style={{ background: 'linear-gradient(90deg, #4a8cff, #00d98a)' }}
+                    className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-t-full"
+                    style={{
+                      background: 'linear-gradient(90deg, #4a8cff, #00d98a)',
+                    }}
                   />
                 )}
               </button>
@@ -400,7 +442,6 @@ export default function Home() {
               <div className="space-y-8">
                 <IncomePanel month={month} onUpdate={fetchSummary} />
                 <FixedExpensesPanel onUpdate={fetchSummary} />
-                <DebtsPanel onUpdate={fetchSummary} />
                 <ReceivablesPanel month={month} onUpdate={fetchSummary} />
               </div>
             )}
@@ -429,6 +470,13 @@ export default function Home() {
                   month={month}
                   onCategoryClick={handleCategoryDrill}
                 />
+              </div>
+            )}
+
+            {tab === 'assets' && (
+              <div className="space-y-8">
+                <AssetsPanel onUpdate={fetchSummary} />
+                <DebtsPanel onUpdate={fetchSummary} />
               </div>
             )}
           </div>
@@ -471,7 +519,11 @@ function projectedSpending(month: string, spending: number): string | null {
   const cm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   if (month !== cm) return null;
   const day = today.getDate();
-  const totalDays = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const totalDays = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
   if (day < 3 || day >= totalDays) return null;
   const projected = Math.round((spending / day) * totalDays);
   return `→ ${formatCurrency(projected)} projected`;
@@ -527,11 +579,16 @@ function MetricCard({
   return (
     <div
       className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden flex flex-col"
-      style={{ backgroundColor: bgHint !== 'transparent' ? `color-mix(in srgb, var(--surface) 95%, ${color} 5%)` : undefined }}
+      style={{
+        backgroundColor:
+          bgHint !== 'transparent'
+            ? `color-mix(in srgb, var(--surface) 95%, ${color} 5%)`
+            : undefined,
+      }}
     >
       {accent !== 'default' && (
         <div
-          className="absolute top-0 left-0 right-0 h-[2px]"
+          className="absolute top-0 left-0 right-0 h-0.5"
           style={{
             background: `linear-gradient(90deg, ${color}cc, ${color}33 60%, transparent)`,
           }}
@@ -540,7 +597,9 @@ function MetricCard({
       <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
         {label}
       </p>
-      <p className={`text-[22px] font-mono font-semibold leading-none ${textClass}`}>
+      <p
+        className={`text-[22px] font-mono font-semibold leading-none ${textClass}`}
+      >
         {value}
       </p>
       {sub && <p className="text-[10px] font-mono text-text-4 mt-1.5">{sub}</p>}
@@ -558,13 +617,34 @@ function BudgetBar({ summary }: { summary: Summary }) {
   const { totalIncome, tsp, roth, committed, spending, net } = summary;
   if (totalIncome === 0) return null;
 
-  const pct = (n: number) => Math.max(0, Math.min(100, (n / totalIncome) * 100));
+  const pct = (n: number) =>
+    Math.max(0, Math.min(100, (n / totalIncome) * 100));
 
   const segments = [
-    { label: 'Invested', value: tsp + roth, pct: pct(tsp + roth), color: '#4a8cff' },
-    { label: 'Committed', value: committed, pct: pct(committed), color: '#f5aa2a' },
-    { label: 'Spending', value: spending, pct: pct(spending), color: '#ff4560' },
-    { label: 'Net', value: Math.max(0, net), pct: pct(Math.max(0, net)), color: '#00d98a' },
+    {
+      label: 'Invested',
+      value: tsp + roth,
+      pct: pct(tsp + roth),
+      color: '#4a8cff',
+    },
+    {
+      label: 'Committed',
+      value: committed,
+      pct: pct(committed),
+      color: '#f5aa2a',
+    },
+    {
+      label: 'Spending',
+      value: spending,
+      pct: pct(spending),
+      color: '#ff4560',
+    },
+    {
+      label: 'Net',
+      value: Math.max(0, net),
+      pct: pct(Math.max(0, net)),
+      color: '#00d98a',
+    },
   ];
 
   return (
@@ -583,7 +663,7 @@ function BudgetBar({ summary }: { summary: Summary }) {
             key={label}
             style={{ width: `${p}%`, backgroundColor: color }}
             className="rounded-full transition-all duration-500"
-            title={`${label}: ${formatCurrency(segments.find(s => s.label === label)?.value ?? 0)} (${Math.round(p)}%)`}
+            title={`${label}: ${formatCurrency(segments.find((s) => s.label === label)?.value ?? 0)} (${Math.round(p)}%)`}
           />
         ))}
       </div>
@@ -607,6 +687,200 @@ function BudgetBar({ summary }: { summary: Summary }) {
   );
 }
 
+/* ── Net Worth Card ───────────────────────────────────────────────── */
+
+function NetWorthCard({
+  assets,
+  debts,
+  goals,
+}: {
+  assets: Asset[];
+  debts: Debt[];
+  goals: Goal[];
+}) {
+  const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
+  const totalGoalsSaved = goals.reduce((s, g) => s + g.saved, 0);
+  const totalLiabilities = debts.reduce((s, d) => s + d.balance, 0);
+  const netWorth = totalAssets + totalGoalsSaved - totalLiabilities;
+  const noData = assets.length === 0 && totalGoalsSaved === 0;
+
+  if (noData) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1">
+            Net Worth
+          </p>
+          <p className="text-sm text-text-4">
+            Add assets in the <span className="text-text-2">Net Worth tab</span>{' '}
+            to track your complete financial picture.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
+      <div
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{
+          background: 'linear-gradient(90deg, #00d98a55, transparent 70%)',
+        }}
+      />
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
+        Net Worth
+      </p>
+      <p
+        className={`text-xl font-mono font-semibold leading-none ${netWorth >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]'}`}
+      >
+        {netWorth >= 0 ? '' : '–'}
+        {formatCurrency(Math.abs(netWorth))}
+      </p>
+      {totalLiabilities > 0 && (
+        <p className="text-[10px] text-text-4 mt-1">
+          <span className="text-text-2">
+            {formatCurrency(totalAssets + totalGoalsSaved)}
+          </span>{' '}
+          assets
+          {' · '}
+          <span className="text-[#ff4560]">
+            {formatCurrency(totalLiabilities)}
+          </span>{' '}
+          liabilities
+        </p>
+      )}
+      <div className="mt-3 space-y-1.5">
+        {(
+          [
+            'Checking',
+            'Savings',
+            'Brokerage',
+            'Retirement',
+            'Property',
+            'Vehicle',
+            'Other',
+          ] as const
+        ).map((cat) => {
+          const total = assets
+            .filter((a) => a.category === cat)
+            .reduce((s, a) => s + a.balance, 0);
+          if (total === 0) return null;
+          const grandTotal = totalAssets + totalGoalsSaved;
+          const pct = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
+          return (
+            <div key={cat} className="flex items-center gap-2">
+              <span className="text-[10px] text-text-4 w-20 shrink-0">
+                {cat}
+              </span>
+              <div className="flex-1 h-1 bg-bg rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#00d98a]"
+                  style={{ width: `${pct}%`, opacity: 0.4 + pct / 150 }}
+                />
+              </div>
+              <span className="text-[10px] font-mono text-text-2 shrink-0">
+                {formatCurrency(total)}
+              </span>
+            </div>
+          );
+        })}
+        {totalGoalsSaved > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-text-4 w-20 shrink-0">
+              Goals
+            </span>
+            <div className="flex-1 h-1 bg-bg rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#b085f5]"
+                style={{
+                  width: `${((totalGoalsSaved / (totalAssets + totalGoalsSaved)) * 100).toFixed(1)}%`,
+                  opacity: 0.6,
+                }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-text-2 shrink-0">
+              {formatCurrency(totalGoalsSaved)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Health Score Card ─────────────────────────────────────────────── */
+
+function HealthScoreCard({ score }: { score: HealthScore }) {
+  const grade =
+    score.total >= 85
+      ? { label: 'Excellent', color: '#00d98a' }
+      : score.total >= 70
+        ? { label: 'Good', color: '#4a8cff' }
+        : score.total >= 50
+          ? { label: 'Fair', color: '#f5aa2a' }
+          : { label: 'Needs work', color: '#ff4560' };
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
+      <div
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{
+          background: `linear-gradient(90deg, ${grade.color}55, transparent 70%)`,
+        }}
+      />
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          Financial Health
+        </p>
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          style={{ color: grade.color, background: `${grade.color}18` }}
+        >
+          {grade.label}
+        </span>
+      </div>
+      <p
+        className="text-3xl font-mono font-bold leading-none mb-3"
+        style={{ color: grade.color }}
+      >
+        {score.total}
+        <span className="text-sm font-normal text-text-4">/100</span>
+      </p>
+      <div className="space-y-2">
+        {score.components.map((c) => (
+          <div key={c.name}>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] text-text-3">{c.name}</span>
+              <span className="text-[10px] font-mono text-text-2">
+                {c.score}
+                <span className="text-text-4">/{c.max}</span>
+              </span>
+            </div>
+            <div className="h-1 bg-bg rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${(c.score / c.max) * 100}%`,
+                  backgroundColor:
+                    c.score >= 20
+                      ? '#00d98a'
+                      : c.score >= 12
+                        ? '#4a8cff'
+                        : c.score >= 6
+                          ? '#f5aa2a'
+                          : '#ff4560',
+                }}
+              />
+            </div>
+            <p className="text-[9px] text-text-4 mt-0.5">{c.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Streak Banner ────────────────────────────────────────────────── */
 function StreakBanner({ streak }: { streak: number }) {
   const label =
@@ -618,10 +892,25 @@ function StreakBanner({ streak }: { streak: number }) {
 
   const config =
     streak >= 12
-      ? { color: '#00d98a', bg: 'rgba(0,217,138,0.06)', border: 'rgba(0,217,138,0.25)', icon: '🔥' }
+      ? {
+          color: '#00d98a',
+          bg: 'rgba(0,217,138,0.06)',
+          border: 'rgba(0,217,138,0.25)',
+          icon: '🔥',
+        }
       : streak >= 6
-        ? { color: '#4a8cff', bg: 'rgba(74,140,255,0.06)', border: 'rgba(74,140,255,0.25)', icon: '🔥' }
-        : { color: '#f5aa2a', bg: 'rgba(245,170,42,0.06)', border: 'rgba(245,170,42,0.25)', icon: '⚡' };
+        ? {
+            color: '#4a8cff',
+            bg: 'rgba(74,140,255,0.06)',
+            border: 'rgba(74,140,255,0.25)',
+            icon: '🔥',
+          }
+        : {
+            color: '#f5aa2a',
+            bg: 'rgba(245,170,42,0.06)',
+            border: 'rgba(245,170,42,0.25)',
+            icon: '⚡',
+          };
 
   return (
     <div

@@ -125,6 +125,14 @@ function initSchema(db: Database.Database) {
       budget   REAL NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS assets (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      label      TEXT NOT NULL,
+      category   TEXT NOT NULL DEFAULT 'Other',
+      balance    REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
   `);
 
   // ── Column migrations ────────────────────────────────────────────────────────
@@ -166,6 +174,20 @@ function initSchema(db: Database.Database) {
 
   if (!txCols.includes('notes')) {
     db.exec('ALTER TABLE transactions ADD COLUMN notes TEXT');
+  }
+
+  const assetCols = (
+    db.prepare('PRAGMA table_info(assets)').all() as { name: string }[]
+  ).map((c) => c.name);
+  if (assetCols.length > 0 && !assetCols.includes('category')) {
+    db.exec(
+      "ALTER TABLE assets ADD COLUMN category TEXT NOT NULL DEFAULT 'Other'",
+    );
+  }
+  if (assetCols.length > 0 && !assetCols.includes('updated_at')) {
+    db.exec(
+      "ALTER TABLE assets ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))",
+    );
   }
 
   // ── Migrate legacy transaction source value ──────────────────────────────────
