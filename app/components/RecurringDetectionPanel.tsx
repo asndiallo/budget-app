@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+import { CAT_COLORS } from '@/lib/config';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { CAT_COLORS } from '@/lib/config';
 
 type Candidate = {
   description: string;

@@ -78,7 +78,11 @@ export default function IncomePanel({
 
   return (
     <div className="space-y-6">
-      <Section title="Military pay" total={militaryTotal} totalColor="text-text">
+      <Section
+        title="Military pay"
+        total={militaryTotal}
+        totalColor="text-text"
+      >
         {INCOME_FIELDS.map((f) => (
           <Row
             key={f.key}
@@ -90,7 +94,12 @@ export default function IncomePanel({
         ))}
       </Section>
 
-      <Section title="Deductions" total={deductionTotal} totalPrefix="−" totalColor="text-[#ff4560]">
+      <Section
+        title="Deductions"
+        total={deductionTotal}
+        totalPrefix="−"
+        totalColor="text-[#ff4560]"
+      >
         {/* TSP — rate-editable row */}
         <div className="flex items-center py-3 border-b border-border-dim">
           <div className="flex-1">

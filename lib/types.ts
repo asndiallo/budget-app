@@ -3,7 +3,13 @@
 // ── User & Auth ───────────────────────────────────────────────────────────────
 
 export type UserRole = 'admin' | 'user' | 'viewer';
-export type Branch = 'Army' | 'Navy' | 'Air Force' | 'Marines' | 'Coast Guard' | 'Space Force';
+export type Branch =
+  | 'Army'
+  | 'Navy'
+  | 'Air Force'
+  | 'Marines'
+  | 'Coast Guard'
+  | 'Space Force';
 export type Component = 'Active' | 'Reserve' | 'Guard';
 
 export interface UserProfile {
@@ -12,12 +18,12 @@ export interface UserProfile {
   role: UserRole;
   display_name: string;
   branch: Branch;
-  pay_grade: string;       // E-3, O-4, W-2, etc.
-  mos: string;             // job code: 11B, 4N0, 0311, etc.
-  duty_station: string;    // installation name
+  pay_grade: string; // E-3, O-4, W-2, etc.
+  mos: string; // job code: 11B, 4N0, 0311, etc.
+  duty_station: string; // installation name
   bah_zip: string;
   component: Component;
-  dependents: number;      // 0 = without, 1+ = with
+  dependents: number; // 0 = without, 1+ = with
   years_of_service: number;
   created_at: string;
   updated_at: string;

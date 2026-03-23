@@ -31,7 +31,8 @@ const send = (method: string, url: string, body: unknown) =>
 export const api = {
   auth: {
     me: () => fetch('/api/auth/me').then(asJson<UserProfile>),
-    logout: () => send('POST', '/api/auth/logout', {}).then(asJson<{ ok: boolean }>),
+    logout: () =>
+      send('POST', '/api/auth/logout', {}).then(asJson<{ ok: boolean }>),
     updateProfile: (data: Partial<UserProfile> & { reseed_income?: boolean }) =>
       send('PATCH', '/api/auth/profile', data).then(asJson<{ ok: boolean }>),
   },
