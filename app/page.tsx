@@ -34,6 +34,7 @@ import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import OverviewPanel from './components/OverviewPanel';
+import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import RecurringDetectionPanel from './components/RecurringDetectionPanel';
@@ -50,7 +51,8 @@ type Tab =
   | 'analytics'
   | 'assets'
   | 'calendar'
-  | 'overview';
+  | 'overview'
+  | 'pcs';
 
 interface Summary {
   totalIncome: number;
@@ -145,6 +147,7 @@ const TAB_ICONS: Record<Tab, string> = {
   assets: '◇',
   calendar: '▦',
   overview: '◉',
+  pcs: '⊳',
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -155,6 +158,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'assets', label: 'Net Worth' },
   { key: 'calendar', label: 'Calendar' },
   { key: 'overview', label: 'Overview' },
+  { key: 'pcs', label: 'PCS' },
 ];
 
 export default function Home() {
@@ -608,6 +612,8 @@ export default function Home() {
                 }
               />
             )}
+
+            {tab === 'pcs' && <PcsPanel user={user} />}
           </div>
         </div>
       </main>
@@ -629,7 +635,7 @@ export default function Home() {
             <div className="space-y-1 text-xs">
               {[
                 ['←  /  →', 'Previous / next month'],
-                ['1 – 7', 'Switch tab (Income → Overview)'],
+                ['1 – 8', 'Switch tab (Income → PCS)'],
                 ['/', 'Focus transaction search'],
                 ['?', 'Toggle this help'],
                 ['Esc', 'Close overlay'],
@@ -641,7 +647,7 @@ export default function Home() {
               ))}
             </div>
             <div className="mt-4 text-[10px] text-text-4 text-center">
-              Tabs: 1 Income · 2 Transactions · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7 Overview
+              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7 Overview · 8 PCS
             </div>
           </div>
         </div>
