@@ -52,10 +52,14 @@ export const auth = betterAuth({
     modelName: 'users',
     additionalFields: {
       role: { type: 'string', defaultValue: 'user', input: false },
-      branch: { type: 'string', defaultValue: 'Army', input: true },
+      branch: { type: 'string', defaultValue: 'Air Force', input: true },
       pay_grade: { type: 'string', defaultValue: 'E-3', input: true },
       mos: { type: 'string', defaultValue: '', input: true },
-      duty_station: { type: 'string', defaultValue: '', input: true },
+      duty_station: {
+        type: 'string',
+        defaultValue: 'JBSA Fort Sam Houston',
+        input: true,
+      },
       bah_zip: { type: 'string', defaultValue: '', input: true },
       component: { type: 'string', defaultValue: 'Active', input: true },
       dependents: { type: 'number', defaultValue: 0, input: true },

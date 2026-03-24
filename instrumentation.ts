@@ -27,7 +27,15 @@ export async function register() {
     const password = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
 
     await auth.api.signUpEmail({
-      body: { email, password, name: 'Admin' },
+      body: {
+        email,
+        password,
+        name: 'Admin',
+        branch: 'Air Force',
+        component: 'Active',
+        duty_station: 'JBSA Fort Sam Houston',
+        pay_grade: 'E-3',
+      },
     });
 
     console.log(`[budget] Default admin created → ${email} / ${password}`);
