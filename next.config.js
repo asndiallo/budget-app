@@ -5,7 +5,6 @@ const path = require('path');
 
 // Generate (or load) a persistent JWT secret so the Edge middleware
 // and Node.js API routes share the same signing key without any manual setup.
-const secretFile = path.join(__dirname, '.jwt-secret');
 let authSecret;
 if (existsSync(secretFile)) {
   authSecret = readFileSync(secretFile, 'utf-8').trim();
