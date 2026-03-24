@@ -141,10 +141,15 @@ export default function BudgetSuggestionsPanel() {
 
                 <div className="ml-auto flex items-center gap-3 text-xs font-mono">
                   <span className="text-text-3">
-                    avg{' '}
-                    <span className="text-text-2">{fmt(ci.avg3m)}</span>
+                    avg <span className="text-text-2">{fmt(ci.avg3m)}</span>
                   </span>
-                  <span className={overBudget ? 'text-[#ff4560] font-semibold' : 'text-text-2'}>
+                  <span
+                    className={
+                      overBudget
+                        ? 'text-[#ff4560] font-semibold'
+                        : 'text-text-2'
+                    }
+                  >
                     last {fmt(ci.lastMonth)}
                   </span>
                 </div>

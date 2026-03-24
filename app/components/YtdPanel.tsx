@@ -51,7 +51,8 @@ export default function YtdPanel({ month }: { month: string }) {
           {ytd.year} · Year to date
         </h3>
         <span className="text-[10px] text-text-4">
-          {ytd.monthsRecorded} {ytd.monthsRecorded === 1 ? 'month' : 'months'} recorded
+          {ytd.monthsRecorded} {ytd.monthsRecorded === 1 ? 'month' : 'months'}{' '}
+          recorded
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -62,7 +63,7 @@ export default function YtdPanel({ month }: { month: string }) {
           >
             {accent !== 'transparent' && (
               <div
-                className="absolute top-0 left-0 right-0 h-[2px]"
+                className="absolute top-0 left-0 right-0 h-0.5"
                 style={{
                   background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
                 }}

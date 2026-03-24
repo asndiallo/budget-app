@@ -1,5 +1,48 @@
 // Shared domain types — used by both API routes (server) and components (client)
 
+// ── User & Auth ───────────────────────────────────────────────────────────────
+
+export type UserRole = 'admin' | 'user' | 'viewer';
+export type Branch =
+  | 'Army'
+  | 'Navy'
+  | 'Air Force'
+  | 'Marines'
+  | 'Coast Guard'
+  | 'Space Force';
+export type Component = 'Active' | 'Reserve' | 'Guard';
+
+export interface UserProfile {
+  id: string; // Better Auth UUID
+  email: string;
+  name: string; // display name
+  role: UserRole;
+  branch: Branch;
+  pay_grade: string; // E-3, O-4, W-2, etc.
+  mos: string; // job code: 11B, 4N0, 0311, etc.
+  duty_station: string; // installation name
+  bah_zip: string;
+  component: Component;
+  dependents: number; // 0 = without, 1+ = with
+  years_of_service: number;
+  /** Military service start month: "YYYY-MM" or empty string */
+  joined_at: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSummary {
+  id: string;
+  username: string;
+  display_name: string;
+  role: UserRole;
+  branch: Branch;
+  pay_grade: string;
+  duty_station: string;
+  component: Component;
+  created_at: string;
+}
+
 export type IncomeConfig = Record<string, number>;
 
 export interface FixedExpense {
@@ -145,4 +188,44 @@ export interface YtdSummary {
   totalSpending: number;
   /** totalIncome − totalInvested − totalSpending */
   netSaved: number;
+}
+
+export interface MonthlyPoint {
+  month: string;
+  income: number;
+  invested: number;
+  spending: number;
+  net: number;
+  savingsRate: number;
+  hasData: boolean;
+  /** True for months after the current month — income is a projection, spending is 0 */
+  projected: boolean;
+  /** True for months before the user's service start date */
+  preService: boolean;
+}
+
+export interface QuarterSummary {
+  q: number;
+  months: string[];
+  income: number;
+  invested: number;
+  spending: number;
+  net: number;
+  savingsRate: number;
+  hasData: boolean;
+}
+
+export interface YearOverview {
+  year: number;
+  annual: {
+    income: number;
+    invested: number;
+    spending: number;
+    net: number;
+    savingsRate: number;
+    monthsWithData: number;
+  };
+  quarters: QuarterSummary[];
+  monthly: MonthlyPoint[];
+  categories: { category: string; total: number }[];
 }

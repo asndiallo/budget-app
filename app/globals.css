@@ -108,18 +108,33 @@ option {
 
 /* ── Animations ───────────────────────────────────────────────────── */
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes pulse-border {
-  0%, 100% { box-shadow: 0 0 0 0 var(--pulse-color, rgba(0, 217, 138, 0.3)); }
-  50%       { box-shadow: 0 0 0 4px var(--pulse-color, rgba(0, 217, 138, 0.1)); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--pulse-color, rgba(0, 217, 138, 0.3));
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--pulse-color, rgba(0, 217, 138, 0.1));
+  }
 }
 
 .animate-fade-in-up {
@@ -128,7 +143,9 @@ option {
 
 /* Subtle card lift on hover */
 .card-lift {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .card-lift:hover {
   transform: translateY(-1px);

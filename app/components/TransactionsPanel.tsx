@@ -40,6 +40,9 @@ export default function TransactionsPanel({
     id: number;
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkCat, setBulkCat] = useState<string>(CATEGORIES[0]);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [importHistory, setImportHistory] = useState<
     {
@@ -121,6 +124,45 @@ export default function TransactionsPanel({
     onUpdate();
   }
 
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === filtered.length
+        ? new Set()
+        : new Set(filtered.map((t) => t.id)),
+    );
+  }
+
+  async function bulkDelete() {
+    if (!selectedIds.size) return;
+    await api.transactions.bulkDelete([...selectedIds]);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    reloadTxs();
+    onUpdate();
+  }
+
+  async function bulkRecategorize() {
+    if (!selectedIds.size) return;
+    await api.transactions.bulkRecategorize([...selectedIds], bulkCat);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    reloadTxs();
+    onUpdate();
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -138,6 +180,9 @@ export default function TransactionsPanel({
     );
     const isNavyFed =
       creditDebitIdx >= 0 && headers.some((h) => h === 'type group');
+    const debitIdx = headers.findIndex((h) => h === 'debit');
+    const creditIdx = headers.findIndex((h) => h === 'credit');
+    const isCapitalOne = debitIdx >= 0 && creditIdx >= 0 && !isNavyFed;
 
     const dateIdx = headers.findIndex(
       (h) => h.includes('transaction date') || h === 'date',
@@ -157,6 +202,19 @@ export default function TransactionsPanel({
         vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||
         'Unknown';
       const isTaptap = description.toLowerCase().includes('taptap');
+
+      if (isCapitalOne) {
+        // Skip credits/payments — only keep rows with a debit value
+        const debitVal = vals[debitIdx]?.trim();
+        if (!debitVal) continue;
+        const capCat = (vals[catIdx] || '').toLowerCase();
+        if (capCat === 'payment/credit') continue;
+        const amount = Math.abs(parseFloat(debitVal.replace(/[^0-9.-]/g, '')));
+        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
+        const category = isTaptap ? 'Family' : vals[catIdx] || DEFAULT_CATEGORY;
+        if (amount > 0) rows.push({ description, amount, category, date });
+        continue;
+      }
 
       if (isNavyFed) {
         const indicator = (vals[creditDebitIdx] || '').toLowerCase();
@@ -319,7 +377,7 @@ export default function TransactionsPanel({
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-text">Import CSV</p>
             <p className="text-xs text-text-3 mt-0.5">
-              Apple Card · Chase · Navy Federal
+              Apple Card · Chase · Capital One · Navy Federal
             </p>
             {sources.length > 0 && (
               <select
@@ -554,16 +612,79 @@ export default function TransactionsPanel({
           <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
             {isSearching ? 'Search results' : 'Transactions'}
           </h3>
-          {filtered.length > 0 && (
-            <button
-              onClick={() => exportCsv(filtered, month, filterCat)}
-              className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
-              title="Export visible transactions as CSV"
-            >
-              ↓ CSV
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {filtered.length > 0 && !selectMode && (
+              <>
+                <button
+                  onClick={() => exportCsv(filtered, month, filterCat)}
+                  className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+                  title="Export visible transactions as CSV"
+                >
+                  ↓ CSV
+                </button>
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+                >
+                  Select
+                </button>
+              </>
+            )}
+            {selectMode && (
+              <button
+                onClick={exitSelectMode}
+                className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Bulk action bar */}
+        {selectMode && filtered.length > 0 && (
+          <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-surface border border-border rounded-xl">
+            <input
+              type="checkbox"
+              checked={
+                selectedIds.size === filtered.length && filtered.length > 0
+              }
+              onChange={toggleSelectAll}
+              className="accent-[#4a8cff] cursor-pointer"
+            />
+            <span className="text-xs text-text-3 flex-1">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} selected`
+                : 'Select all'}
+            </span>
+            {selectedIds.size > 0 && (
+              <>
+                <select
+                  value={bulkCat}
+                  onChange={(e) => setBulkCat(e.target.value)}
+                  className="text-xs bg-bg border border-border rounded-lg px-2 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={bulkRecategorize}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors whitespace-nowrap"
+                >
+                  Re-categorize
+                </button>
+                <button
+                  onClick={bulkDelete}
+                  className="text-xs px-2.5 py-1 rounded-lg text-[#ff4560] hover:bg-[#ff4560]/10 border border-[#ff4560]/20 transition-colors"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {filtered.length === 0 && (
           <p className="text-sm text-text-3 py-4">
             {isSearching
@@ -576,6 +697,9 @@ export default function TransactionsPanel({
             key={t.id}
             tx={t}
             showMonth={isSearching}
+            selectMode={selectMode}
+            selected={selectedIds.has(t.id)}
+            onToggleSelect={() => toggleSelect(t.id)}
             onUpdate={(data) => updateTx(t.id, data)}
             onDelete={() => deleteTx(t.id)}
           />
@@ -652,11 +776,17 @@ export default function TransactionsPanel({
 function TxRow({
   tx,
   showMonth,
+  selectMode,
+  selected,
+  onToggleSelect,
   onUpdate,
   onDelete,
 }: {
   tx: Transaction;
   showMonth?: boolean;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
   onUpdate: (
     data: Partial<
       Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>
@@ -694,7 +824,19 @@ function TxRow({
   }, [amt, tx.amount, onUpdate]);
 
   return (
-    <div className="flex items-center py-2.5 border-b border-border-dim gap-3 group">
+    <div
+      className={`flex items-center py-2.5 border-b border-border-dim gap-3 group ${selected ? 'bg-surface-blue/20' : ''}`}
+      onClick={selectMode ? onToggleSelect : undefined}
+    >
+      {selectMode && (
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onChange={onToggleSelect}
+          onClick={(e) => e.stopPropagation()}
+          className="accent-[#4a8cff] cursor-pointer shrink-0"
+        />
+      )}
       <div className="flex-1 min-w-0">
         {editingDesc ? (
           <input
@@ -798,23 +940,25 @@ function TxRow({
         </span>
       )}
 
-      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        {!editingNotes && (
+      {!selectMode && (
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {!editingNotes && (
+            <button
+              onClick={() => setEditingNotes(true)}
+              title={tx.notes ? 'Edit note' : 'Add note'}
+              className="text-text-4 hover:text-text-3 text-xs transition-colors"
+            >
+              ✎
+            </button>
+          )}
           <button
-            onClick={() => setEditingNotes(true)}
-            title={tx.notes ? 'Edit note' : 'Add note'}
-            className="text-text-4 hover:text-text-3 text-xs transition-colors"
+            onClick={onDelete}
+            className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
           >
-            ✎
+            ✕
           </button>
-        )}
-        <button
-          onClick={onDelete}
-          className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
-        >
-          ✕
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

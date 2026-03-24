@@ -14,23 +14,27 @@ import type {
   HealthScore,
   IncomeConfig,
   IncomeEntry,
+  UserProfile,
 } from '@/lib/types';
-import { currentMonth, formatCurrency } from '@/lib/utils';
+import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
+import OverviewPanel from './components/OverviewPanel';
 import AssetsPanel from './components/AssetsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
-import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
+import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import TransactionsPanel from './components/TransactionsPanel';
+import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
 import { api } from '@/lib/api';
+import { authClient } from '@/lib/auth-client';
 
 type Tab =
   | 'income'
@@ -38,7 +42,8 @@ type Tab =
   | 'goals'
   | 'analytics'
   | 'assets'
-  | 'calendar';
+  | 'calendar'
+  | 'overview';
 
 interface Summary {
   totalIncome: number;
@@ -70,15 +75,6 @@ function getYearRange() {
   return Array.from({ length: 4 }, (_, i) => y - 2 + i);
 }
 
-function prevMonth(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
-}
-
-function nextMonth(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
-}
 
 function calcSummary(
   income: IncomeConfig,
@@ -105,7 +101,9 @@ function calcSummary(
   );
   const fixedExpenses = fixed.reduce(
     (s, f) =>
-      f.is_investment ? s : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+      f.is_investment
+        ? s
+        : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
     0,
   );
   const debtPayments = debts
@@ -122,7 +120,15 @@ function calcSummary(
           ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
         )
       : 0;
-  return { totalIncome, tsp, investmentFixed, committed, spending, net, savingsRate };
+  return {
+    totalIncome,
+    tsp,
+    investmentFixed,
+    committed,
+    spending,
+    net,
+    savingsRate,
+  };
 }
 
 const TAB_ICONS: Record<Tab, string> = {
@@ -132,6 +138,7 @@ const TAB_ICONS: Record<Tab, string> = {
   analytics: '⊞',
   assets: '◇',
   calendar: '▦',
+  overview: '◉',
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -141,6 +148,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'analytics', label: 'Analytics' },
   { key: 'assets', label: 'Net Worth' },
   { key: 'calendar', label: 'Calendar' },
+  { key: 'overview', label: 'Overview' },
 ];
 
 export default function Home() {
@@ -154,17 +162,37 @@ export default function Home() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [streak, setStreak] = useState(0);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMonth(currentMonth());
     setYearRange(getYearRange());
     const saved = localStorage.getItem('theme');
-    if (saved === 'light') {
-      setIsDark(false);
+    if (saved === 'dark') setIsDark(true);
+    else if (saved === 'light') setIsDark(false);
+    else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    authClient
+      .getSession()
+      .then(({ data }) => {
+        if (data?.user?.id) setUser(data.user as unknown as UserProfile);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Keyboard navigation: ← → to move between months
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (e.key === 'ArrowLeft') setMonth((m) => (m ? prevMonth(m) : m));
+      if (e.key === 'ArrowRight')
+        setMonth((m) => (m ? nextMonth(m) : m));
     }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   async function handleExport() {
@@ -258,13 +286,32 @@ export default function Home() {
                 {APP_CONFIG.title}
               </h1>
               <p className="text-[10px] text-text-4 mt-0.5 tracking-wide leading-none">
-                {APP_CONFIG.subtitle}
+                {user
+                  ? [user.pay_grade, user.mos, user.duty_station]
+                      .filter(Boolean)
+                      .join(' · ') || APP_CONFIG.subtitle
+                  : APP_CONFIG.subtitle}
               </p>
             </div>
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-1">
+            {user && (
+              <UserNav
+                user={user}
+                onProfileUpdate={() =>
+                  authClient
+                    .getSession()
+                    .then(({ data }) => {
+                      if (data?.user?.id)
+                        setUser(data.user as unknown as UserProfile);
+                    })
+                    .catch(() => {})
+                }
+              />
+            )}
+            <div className="w-px h-4 bg-border mx-0.5" />
             <button
               onClick={handleExport}
               title="Export backup (JSON)"
@@ -296,6 +343,15 @@ export default function Home() {
 
             {month && (
               <div className="flex items-center gap-0.5 ml-1">
+                {month !== currentMonth() && (
+                  <button
+                    onClick={() => setMonth(currentMonth())}
+                    className="text-[10px] text-[#4a8cff] hover:text-[#4a8cff]/70 transition-colors mr-1 font-medium"
+                    title="Jump to current month"
+                  >
+                    Today
+                  </button>
+                )}
                 <button
                   onClick={() => setMonth(prevMonth(month))}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
@@ -510,6 +566,12 @@ export default function Home() {
                     ? summary.net + summary.committed + summary.spending
                     : undefined
                 }
+              />
+            )}
+
+            {tab === 'overview' && (
+              <OverviewPanel
+                initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
               />
             )}
           </div>
@@ -760,7 +822,8 @@ function NetWorthCard({
       <div
         className="absolute top-0 left-0 right-0 h-0.5"
         style={{
-          background: 'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
+          background:
+            'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
         }}
       />
       <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
