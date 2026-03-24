@@ -171,6 +171,7 @@ export default function Home() {
   const [isDark, setIsDark] = useState(false);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -188,13 +189,35 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  // Keyboard navigation: ← → to move between months
+  // Keyboard navigation
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Always allow Escape to close shortcuts overlay
+      if (e.key === 'Escape') { setShowShortcuts(false); return; }
+      if (e.key === '?') { setShowShortcuts((v) => !v); return; }
+
       const tag = (e.target as HTMLElement)?.tagName;
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+
+      // / — focus search input in transactions panel
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        setTab('transactions');
+        setTimeout(() => {
+          (document.querySelector('[data-search-input]') as HTMLInputElement)?.focus();
+        }, 50);
+        return;
+      }
+
+      if (isInput) return;
+
+      // ← → to move between months
       if (e.key === 'ArrowLeft') setMonth((m) => (m ? prevMonth(m) : m));
       if (e.key === 'ArrowRight') setMonth((m) => (m ? nextMonth(m) : m));
+
+      // 1–7 to switch tabs
+      const tabIndex = parseInt(e.key) - 1;
+      if (tabIndex >= 0 && tabIndex < TABS.length) setTab(TABS[tabIndex].key);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -588,6 +611,41 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Keyboard shortcuts overlay */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="bg-bg border border-border rounded-2xl p-6 w-80 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-text">Keyboard shortcuts</h2>
+              <button onClick={() => setShowShortcuts(false)} className="text-text-4 hover:text-text-2 text-xs transition-colors">✕</button>
+            </div>
+            <div className="space-y-1 text-xs">
+              {[
+                ['←  /  →', 'Previous / next month'],
+                ['1 – 7', 'Switch tab (Income → Overview)'],
+                ['/', 'Focus transaction search'],
+                ['?', 'Toggle this help'],
+                ['Esc', 'Close overlay'],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between py-1.5 border-b border-border-dim last:border-0">
+                  <kbd className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface border border-border text-text-2">{key}</kbd>
+                  <span className="text-text-3">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-[10px] text-text-4 text-center">
+              Tabs: 1 Income · 2 Transactions · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7 Overview
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

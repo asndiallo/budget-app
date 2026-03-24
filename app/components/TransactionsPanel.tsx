@@ -54,6 +54,10 @@ export default function TransactionsPanel({
       imported_at: string;
     }[]
   >([]);
+  const [pendingRows, setPendingRows] = useState<
+    { description: string; amount: number; category: string; date: string }[]
+  >([]);
+  const [committing, setCommitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -246,7 +250,15 @@ export default function TransactionsPanel({
       if (amount > 0) rows.push({ description, amount, category, date });
     }
 
-    const data = await api.transactions.importCsv(rows, month, csvSource);
+    setImporting(false);
+    setPendingRows(rows);
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
+  async function applyPendingImport() {
+    if (!pendingRows.length) return;
+    setCommitting(true);
+    const data = await api.transactions.importCsv(pendingRows, month, csvSource);
     const monthLabels = (data.months ?? [])
       .sort()
       .map((m) => {
@@ -261,11 +273,11 @@ export default function TransactionsPanel({
       `Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}` +
         (monthLabels ? ` · ${monthLabels}` : ''),
     );
-    setImporting(false);
+    setPendingRows([]);
+    setCommitting(false);
     reloadTxs();
     reloadImportHistory();
     onUpdate();
-    if (fileRef.current) fileRef.current.value = '';
   }
 
   async function addCard() {
@@ -425,6 +437,80 @@ export default function TransactionsPanel({
         )}
       </div>
 
+      {/* CSV review grid */}
+      {pendingRows.length > 0 && (
+        <div className="bg-bg border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div>
+              <p className="text-sm font-semibold text-text">Review import</p>
+              <p className="text-xs text-text-3 mt-0.5">
+                {pendingRows.length} transaction{pendingRows.length !== 1 ? 's' : ''} ·{' '}
+                <span className="text-amber-400">
+                  {pendingRows.filter((r) => r.category === DEFAULT_CATEGORY || r.category === 'Other').length} uncategorized
+                </span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPendingRows([])}
+                className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-3 hover:text-text-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyPendingImport}
+                disabled={committing}
+                className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition-colors"
+              >
+                {committing ? 'Importing…' : `Import ${pendingRows.length}`}
+              </button>
+            </div>
+          </div>
+          {/* Column headers */}
+          <div className="grid grid-cols-[90px_1fr_80px_140px] gap-2 px-4 py-2 bg-surface-raised border-b border-border-dim">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Date</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Description</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4 text-right">Amount</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Category</span>
+          </div>
+          <div className="max-h-80 overflow-y-auto divide-y divide-border-dim">
+            {pendingRows.map((row, i) => {
+              const isUncategorized = row.category === DEFAULT_CATEGORY || row.category === 'Other';
+              return (
+                <div
+                  key={i}
+                  className={`grid grid-cols-[90px_1fr_80px_140px] gap-2 px-4 py-2 items-center transition-colors ${
+                    isUncategorized ? 'bg-amber-500/5' : 'hover:bg-surface/40'
+                  }`}
+                >
+                  <span className="text-[11px] font-mono text-text-4 truncate">{row.date || '—'}</span>
+                  <span className="text-xs text-text truncate" title={row.description}>{row.description}</span>
+                  <span className="text-xs font-mono text-text text-right">${row.amount.toFixed(2)}</span>
+                  <select
+                    value={row.category}
+                    onChange={(e) => {
+                      const cat = e.target.value;
+                      setPendingRows((prev) =>
+                        prev.map((r, j) => (j === i ? { ...r, category: cat } : r)),
+                      );
+                    }}
+                    className={`text-xs rounded-lg px-2 py-1 border focus:outline-none focus:border-blue-500 transition-colors cursor-pointer bg-surface ${
+                      isUncategorized
+                        ? 'border-amber-500/40 text-amber-400'
+                        : 'border-border text-text'
+                    }`}
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Import history */}
       {importHistory.length > 0 && (
         <div>
@@ -529,6 +615,7 @@ export default function TransactionsPanel({
           ⌕
         </span>
         <input
+          data-search-input
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search all transactions…"
