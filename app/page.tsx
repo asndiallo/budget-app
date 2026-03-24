@@ -33,6 +33,7 @@ import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
+import BrsPanel from './components/BrsPanel';
 import OverviewPanel from './components/OverviewPanel';
 import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
@@ -551,6 +552,7 @@ export default function Home() {
               <div className="space-y-8">
                 <IncomePanel month={month} onUpdate={fetchSummary} />
                 <PromoProjectionPanel user={user} />
+            <BrsPanel user={user} month={month} />
                 <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
                 <RecurringDetectionPanel onUpdate={fetchSummary} />
                 <ReceivablesPanel month={month} onUpdate={fetchSummary} />
