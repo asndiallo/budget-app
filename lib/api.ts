@@ -47,6 +47,10 @@ export const api = {
       send('POST', '/api/income', { month, ...data }).then(
         asJson<{ ok: boolean }>,
       ),
+    suggest: () =>
+      fetch('/api/income/suggest').then(
+        asJson<{ base_pay: number; bas: number; bah: number }>,
+      ),
   },
 
   fixedExpenses: {

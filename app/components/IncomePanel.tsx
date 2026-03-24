@@ -4,8 +4,14 @@ import { DEDUCTION_FIELDS, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
 import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import { api } from '@/lib/api';
 import LesImportButton from './LesImportButton';
+import { api } from '@/lib/api';
+
+interface PaySuggestion {
+  base_pay: number;
+  bas: number;
+  bah: number;
+}
 
 export default function IncomePanel({
   month,
@@ -20,6 +26,8 @@ export default function IncomePanel({
   const [newDesc, setNewDesc] = useState('');
   const [newAmt, setNewAmt] = useState('');
   const [newSource, setNewSource] = useState('');
+  const [suggestion, setSuggestion] = useState<PaySuggestion | null>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   useEffect(() => {
     if (!month) return;
@@ -77,6 +85,33 @@ export default function IncomePanel({
     await saveIncome('tsp_rate', pct / 100);
   }
 
+  async function fetchSuggestion() {
+    setSyncLoading(true);
+    try {
+      const s = await api.income.suggest();
+      setSuggestion(s);
+    } finally {
+      setSyncLoading(false);
+    }
+  }
+
+  async function applySuggestion() {
+    if (!suggestion || !income) return;
+    const changed: Partial<IncomeConfig> = {};
+    if (suggestion.base_pay !== income.base_pay)
+      changed.base_pay = suggestion.base_pay;
+    if (suggestion.bas !== income.bas) changed.bas = suggestion.bas;
+    if (suggestion.bah !== income.bah) changed.bah = suggestion.bah;
+    if (Object.keys(changed).length === 0) {
+      setSuggestion(null);
+      return;
+    }
+    setIncome((prev) => (prev ? { ...prev, ...(changed as IncomeConfig) } : prev));
+    await api.income.update(month, changed);
+    setSuggestion(null);
+    onUpdate();
+  }
+
   async function handleLesImport() {
     // Re-fetch income and entries after LES import
     const [data, ents] = await Promise.all([
@@ -84,10 +119,24 @@ export default function IncomePanel({
       api.incomeEntries.list(month),
     ]);
     setIncome(data);
-    setTspRateLocal(String(Math.round((data.tsp_rate ?? TSP_CONFIG.rate) * 100)));
+    setTspRateLocal(
+      String(Math.round((data.tsp_rate ?? TSP_CONFIG.rate) * 100)),
+    );
     setEntries(ents);
     onUpdate();
   }
+
+  // Build suggestion diff for display
+  const suggestionDiff = suggestion
+    ? (['base_pay', 'bas', 'bah'] as const)
+        .filter((k) => suggestion[k] !== (income?.[k] ?? 0))
+        .map((k) => ({
+          key: k,
+          label: k === 'base_pay' ? 'Base pay' : k.toUpperCase(),
+          current: income?.[k] ?? 0,
+          suggested: suggestion[k],
+        }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -95,8 +144,63 @@ export default function IncomePanel({
         title="Military pay"
         total={militaryTotal}
         totalColor="text-text"
-        action={<LesImportButton month={month} onImport={handleLesImport} />}
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchSuggestion}
+              disabled={syncLoading}
+              title="Sync base pay, BAS, and BAH from your profile"
+              className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-raised text-text-3 hover:text-text-2 hover:bg-surface-raised/80 transition-colors disabled:opacity-40"
+            >
+              {syncLoading ? '…' : '⟳ Sync from profile'}
+            </button>
+            <LesImportButton month={month} onImport={handleLesImport} />
+          </div>
+        }
       >
+        {suggestion && (
+          <div className="mb-2 rounded-xl border border-blue-500/20 bg-surface-blue/30 px-4 py-3 space-y-2">
+            {suggestionDiff.length === 0 ? (
+              <p className="text-xs text-text-2">
+                Your pay values already match your profile — nothing to update.
+              </p>
+            ) : (
+              <>
+                <p className="text-[11px] text-text-3 font-medium uppercase tracking-wider">
+                  Calculated from your profile
+                </p>
+                {suggestionDiff.map(({ key, label, current, suggested }) => (
+                  <div key={key} className="flex items-center gap-2 text-xs">
+                    <span className="w-20 text-text-3">{label}</span>
+                    <span className="font-mono text-text-3 line-through">
+                      ${Math.round(current).toLocaleString()}
+                    </span>
+                    <span className="text-text-4">→</span>
+                    <span className="font-mono text-[#4a8cff] font-medium">
+                      ${Math.round(suggested).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </>
+            )}
+            <div className="flex items-center gap-2 pt-1">
+              {suggestionDiff.length > 0 && (
+                <button
+                  onClick={applySuggestion}
+                  className="text-xs px-3 py-1 rounded-lg bg-[#4a8cff]/15 text-[#4a8cff] hover:bg-[#4a8cff]/25 transition-colors"
+                >
+                  Apply
+                </button>
+              )}
+              <button
+                onClick={() => setSuggestion(null)}
+                className="text-xs px-3 py-1 rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
         {INCOME_FIELDS.map((f) => (
           <Row
             key={f.key}
