@@ -167,11 +167,7 @@ export default function Home() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [streak, setStreak] = useState(0);
-  const [isDark, setIsDark] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : true,
-  );
+  const [isDark, setIsDark] = useState(false);
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
@@ -182,6 +178,7 @@ export default function Home() {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') setIsDark(true);
     else if (saved === 'light') setIsDark(false);
+    else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
     authClient
       .getSession()
       .then(({ data }) => {

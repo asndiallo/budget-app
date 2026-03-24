@@ -72,7 +72,18 @@ export async function PATCH(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { id, description, amount, category, notes } = await req.json();
+    const body = await req.json();
+
+    // Bulk recategorize
+    if (Array.isArray(body.ids) && body.category) {
+      const placeholders = body.ids.map(() => '?').join(',');
+      db.prepare(
+        `UPDATE transactions SET category = ? WHERE id IN (${placeholders}) AND user_id = ?`,
+      ).run(body.category, ...body.ids, userId);
+      return NextResponse.json({ ok: true });
+    }
+
+    const { id, description, amount, category, notes } = body;
     db.prepare(
       'UPDATE transactions SET description = COALESCE(?, description), amount = COALESCE(?, amount), category = COALESCE(?, category), notes = COALESCE(?, notes) WHERE id = ? AND user_id = ?',
     ).run(
@@ -94,9 +105,19 @@ export async function DELETE(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { id } = await req.json();
+    const body = await req.json();
+
+    // Bulk delete
+    if (Array.isArray(body.ids)) {
+      const placeholders = body.ids.map(() => '?').join(',');
+      db.prepare(
+        `DELETE FROM transactions WHERE id IN (${placeholders}) AND user_id = ?`,
+      ).run(...body.ids, userId);
+      return NextResponse.json({ ok: true });
+    }
+
     db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(
-      id,
+      body.id,
       userId,
     );
     return NextResponse.json({ ok: true });

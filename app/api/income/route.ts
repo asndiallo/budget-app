@@ -6,7 +6,7 @@ import { requireAuth } from '@/lib/auth';
 function getIncomeForMonth(
   db: ReturnType<typeof getDb>,
   month: string,
-  userId: number,
+  userId: string,
 ) {
   const rows = db
     .prepare(
