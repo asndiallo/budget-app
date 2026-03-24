@@ -11,7 +11,6 @@ interface Props {
 
 type Step = 'idle' | 'input' | 'preview' | 'done';
 
-
 export default function LesImportButton({ month, onImport }: Props) {
   const [step, setStep] = useState<Step>('idle');
   const [applying, setApplying] = useState(false);
@@ -75,7 +74,10 @@ export default function LesImportButton({ month, onImport }: Props) {
     return (
       <div className="flex items-center gap-2 text-[11px] text-[#00d98a]">
         <span>✓ Imported</span>
-        <button onClick={reset} className="text-text-4 hover:text-text-3 transition-colors">
+        <button
+          onClick={reset}
+          className="text-text-4 hover:text-text-3 transition-colors"
+        >
           ✕
         </button>
       </div>
@@ -87,17 +89,21 @@ export default function LesImportButton({ month, onImport }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-text">Import LES</p>
-        <button onClick={reset} className="text-text-4 hover:text-text-3 text-xs transition-colors">
+        <button
+          onClick={reset}
+          className="text-text-4 hover:text-text-3 text-xs transition-colors"
+        >
           ✕
         </button>
       </div>
 
       {/* Input area — shown until we have a parsed result */}
-      {(step === 'input' || (step === 'preview' && !result?.preview.length)) && (
+      {(step === 'input' ||
+        (step === 'preview' && !result?.preview.length)) && (
         <div className="space-y-3">
           <p className="text-[11px] text-text-4 leading-relaxed">
-            Paste your LES text below, or upload the <code className="text-text-3">.txt</code> file
-            from{' '}
+            Paste your LES text below, or upload the{' '}
+            <code className="text-text-3">.txt</code> file from{' '}
             <a
               href="https://mypay.dfas.mil"
               target="_blank"
@@ -107,10 +113,14 @@ export default function LesImportButton({ month, onImport }: Props) {
               myPay
             </a>
             . For a PDF: open it, press{' '}
-            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">⌘A</kbd>{' '}
+            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">
+              ⌘A
+            </kbd>{' '}
             then{' '}
-            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">⌘C</kbd>,
-            then paste here.
+            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">
+              ⌘C
+            </kbd>
+            , then paste here.
           </p>
           <textarea
             autoFocus
@@ -148,7 +158,9 @@ export default function LesImportButton({ month, onImport }: Props) {
                 <div
                   key={key}
                   className={`flex items-center justify-between px-3 py-2 text-xs ${
-                    i < result.preview.length - 1 ? 'border-b border-border-dim' : ''
+                    i < result.preview.length - 1
+                      ? 'border-b border-border-dim'
+                      : ''
                   }`}
                 >
                   <span className="text-text-3">{label}</span>
@@ -166,7 +178,10 @@ export default function LesImportButton({ month, onImport }: Props) {
           {result.warnings.length > 0 && (
             <div className="space-y-1">
               {result.warnings.map((w) => (
-                <p key={w} className="text-[11px] text-amber-400 flex items-start gap-1.5">
+                <p
+                  key={w}
+                  className="text-[11px] text-amber-400 flex items-start gap-1.5"
+                >
                   <span className="shrink-0">⚠</span>
                   <span>{w}</span>
                 </p>
@@ -176,7 +191,9 @@ export default function LesImportButton({ month, onImport }: Props) {
 
           {/* Month confirmation */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-3 shrink-0">Apply to month</span>
+            <span className="text-[11px] text-text-3 shrink-0">
+              Apply to month
+            </span>
             <input
               type="month"
               value={targetMonth}
@@ -188,7 +205,11 @@ export default function LesImportButton({ month, onImport }: Props) {
           {/* Paste a different LES */}
           {text && (
             <button
-              onClick={() => { setText(''); setResult(null); setStep('input'); }}
+              onClick={() => {
+                setText('');
+                setResult(null);
+                setStep('input');
+              }}
               className="text-[11px] text-text-4 hover:text-text-3 transition-colors"
             >
               ← Paste different LES

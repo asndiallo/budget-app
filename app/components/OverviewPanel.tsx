@@ -68,8 +68,7 @@ export default function OverviewPanel({
     income: m.hasData || m.projected ? m.income : null,
     spending: m.hasData && !m.projected ? m.spending : null,
     invested: (m.hasData || m.projected) && !m.preService ? m.invested : null,
-    rate:
-      (m.hasData || m.projected) && m.income > 0 ? m.savingsRate : null,
+    rate: (m.hasData || m.projected) && m.income > 0 ? m.savingsRate : null,
     projected: m.projected,
   }));
 
@@ -295,99 +294,102 @@ export default function OverviewPanel({
                 const allProjected = qMonthly.every((m) => m.projected);
                 const someProjected = qMonthly.some((m) => m.projected);
                 return (
-                <div
-                  key={q.q}
-                  className={`bg-bg rounded-xl border p-4 transition-opacity ${
-                    allProjected
-                      ? 'border-dashed border-border opacity-60'
-                      : !q.hasData
-                        ? 'border-border opacity-40'
-                        : 'border-border'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-text">
-                      Q{q.q}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {someProjected && (
-                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#f5a623]/10 text-[#f5a623]">
-                          {allProjected ? 'Projected' : 'Partial'}
-                        </span>
-                      )}
-                      <span className="text-[10px] text-text-4">
-                        {Q_RANGES[q.q - 1]}
+                  <div
+                    key={q.q}
+                    className={`bg-bg rounded-xl border p-4 transition-opacity ${
+                      allProjected
+                        ? 'border-dashed border-border opacity-60'
+                        : !q.hasData
+                          ? 'border-border opacity-40'
+                          : 'border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-text">
+                        Q{q.q}
                       </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {(
-                      [
-                        {
-                          label: 'Earned',
-                          val: fmt(q.income),
-                          color: 'text-text',
-                        },
-                        {
-                          label: 'Invested',
-                          val: fmt(q.invested),
-                          color: 'text-[#4a8cff]',
-                        },
-                        {
-                          label: 'Spent',
-                          val: fmt(q.spending),
-                          color: 'text-[#ff4560]',
-                        },
-                        {
-                          label: 'Net',
-                          val: (q.net < 0 ? '−' : '') + fmt(q.net),
-                          color:
-                            q.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
-                        },
-                      ] as { label: string; val: string; color: string }[]
-                    ).map(({ label, val, color }) => (
-                      <div
-                        key={label}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-[10px] text-text-4">{label}</span>
-                        <span
-                          className={`text-xs font-mono font-medium ${color}`}
-                        >
-                          {q.hasData ? val : '—'}
+                      <div className="flex items-center gap-1.5">
+                        {someProjected && (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#f5a623]/10 text-[#f5a623]">
+                            {allProjected ? 'Projected' : 'Partial'}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-text-4">
+                          {Q_RANGES[q.q - 1]}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                  {q.hasData && q.income > 0 && (
-                    <div className="mt-3">
-                      {/* Stacked bar: spending (red) + invested (blue) out of income */}
-                      <div className="h-1.5 rounded-full bg-surface overflow-hidden flex">
-                        <div
-                          className="h-full"
-                          style={{
-                            width: `${Math.min(100, (q.spending / q.income) * 100)}%`,
-                            background: '#ff4560',
-                            opacity: 0.6,
-                          }}
-                        />
-                        <div
-                          className="h-full"
-                          style={{
-                            width: `${Math.min(100 - (q.spending / q.income) * 100, (q.invested / q.income) * 100)}%`,
-                            background: '#4a8cff',
-                            opacity: 0.6,
-                          }}
-                        />
-                      </div>
-                      <p className="text-[9px] text-text-4 mt-1">
-                        {Math.round((q.spending / q.income) * 100)}% spent ·{' '}
-                        {q.savingsRate}% saved
-                      </p>
                     </div>
-                  )}
-                </div>
-              );})}
+                    <div className="space-y-2">
+                      {(
+                        [
+                          {
+                            label: 'Earned',
+                            val: fmt(q.income),
+                            color: 'text-text',
+                          },
+                          {
+                            label: 'Invested',
+                            val: fmt(q.invested),
+                            color: 'text-[#4a8cff]',
+                          },
+                          {
+                            label: 'Spent',
+                            val: fmt(q.spending),
+                            color: 'text-[#ff4560]',
+                          },
+                          {
+                            label: 'Net',
+                            val: (q.net < 0 ? '−' : '') + fmt(q.net),
+                            color:
+                              q.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
+                          },
+                        ] as { label: string; val: string; color: string }[]
+                      ).map(({ label, val, color }) => (
+                        <div
+                          key={label}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-[10px] text-text-4">
+                            {label}
+                          </span>
+                          <span
+                            className={`text-xs font-mono font-medium ${color}`}
+                          >
+                            {q.hasData ? val : '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {q.hasData && q.income > 0 && (
+                      <div className="mt-3">
+                        {/* Stacked bar: spending (red) + invested (blue) out of income */}
+                        <div className="h-1.5 rounded-full bg-surface overflow-hidden flex">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${Math.min(100, (q.spending / q.income) * 100)}%`,
+                              background: '#ff4560',
+                              opacity: 0.6,
+                            }}
+                          />
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${Math.min(100 - (q.spending / q.income) * 100, (q.invested / q.income) * 100)}%`,
+                              background: '#4a8cff',
+                              opacity: 0.6,
+                            }}
+                          />
+                        </div>
+                        <p className="text-[9px] text-text-4 mt-1">
+                          {Math.round((q.spending / q.income) * 100)}% spent ·{' '}
+                          {q.savingsRate}% saved
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

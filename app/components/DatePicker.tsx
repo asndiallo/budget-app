@@ -1,8 +1,9 @@
 'use client';
 
-import { DayPicker } from 'react-day-picker';
 import { format, isValid, parseISO } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
+
+import { DayPicker } from 'react-day-picker';
 
 interface Props {
   value: string; // "YYYY-MM-DD" or ""
@@ -58,7 +59,7 @@ export default function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-[60] bg-surface border border-border rounded-xl shadow-2xl p-3">
+        <div className="absolute left-0 top-full mt-1 z-60 bg-surface border border-border rounded-xl shadow-2xl p-3">
           <DayPicker
             mode="single"
             selected={selected}
@@ -74,17 +75,20 @@ export default function DatePicker({
               month: 'space-y-2',
               month_caption: 'flex items-center justify-center gap-1 pb-1',
               dropdowns: 'flex items-center gap-1',
-              dropdown: 'text-xs bg-bg border border-border rounded px-1.5 py-0.5 text-text focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer',
+              dropdown:
+                'text-xs bg-bg border border-border rounded px-1.5 py-0.5 text-text focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer',
               button_previous: 'hidden',
               button_next: 'hidden',
               month_grid: 'w-full border-collapse',
               weekdays: 'flex',
-              weekday: 'w-8 text-center text-[10px] text-text-4 font-medium pb-1',
+              weekday:
+                'w-8 text-center text-[10px] text-text-4 font-medium pb-1',
               week: 'flex',
               day: 'w-8 h-8 text-center p-0',
               day_button:
                 'w-8 h-8 rounded-lg text-xs transition-colors hover:bg-surface-raised focus:outline-none',
-              selected: '[&>button]:bg-blue-600 [&>button]:text-white [&>button]:hover:bg-blue-500',
+              selected:
+                '[&>button]:bg-blue-600 [&>button]:text-white [&>button]:hover:bg-blue-500',
               today: '[&>button]:font-bold [&>button]:text-[#4a8cff]',
               outside: '[&>button]:text-text-4 [&>button]:opacity-40',
               disabled: '[&>button]:opacity-20 [&>button]:cursor-not-allowed',
@@ -93,7 +97,10 @@ export default function DatePicker({
           {selected && (
             <button
               type="button"
-              onClick={() => { onChange(''); setOpen(false); }}
+              onClick={() => {
+                onChange('');
+                setOpen(false);
+              }}
               className="w-full mt-2 text-[10px] text-text-4 hover:text-[#ff4560] transition-colors text-center"
             >
               Clear

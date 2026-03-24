@@ -31,30 +31,66 @@ interface FieldMatcher {
 
 const FIELD_MATCHERS: FieldMatcher[] = [
   // ── Entitlements ────────────────────────────────────────────────────────
-  { pattern: /\bbase\s*pay\b/i,                      key: 'base_pay',          label: 'Base pay' },
-  { pattern: /\bbas[\s-]rate\b/i,                    key: 'bas',               label: 'BAS' },
-  { pattern: /\bsubsistence\s+allow/i,               key: 'bas',               label: 'BAS' },
-  { pattern: /\bbasic\s+allow\w*\s+sub/i,            key: 'bas',               label: 'BAS' },
-  { pattern: /\bBAS\b(?!.*(?:deduct|with))/i,        key: 'bas',               label: 'BAS' },
+  { pattern: /\bbase\s*pay\b/i, key: 'base_pay', label: 'Base pay' },
+  { pattern: /\bbas[\s-]rate\b/i, key: 'bas', label: 'BAS' },
+  { pattern: /\bsubsistence\s+allow/i, key: 'bas', label: 'BAS' },
+  { pattern: /\bbasic\s+allow\w*\s+sub/i, key: 'bas', label: 'BAS' },
+  { pattern: /\bBAS\b(?!.*(?:deduct|with))/i, key: 'bas', label: 'BAS' },
   // BAH — many variants across branches and formats
-  { pattern: /\bbah\s*w\/\s*dep\b/i,                 key: 'bah',               label: 'BAH w/dep' },
-  { pattern: /\bbah\s*w\/o\s*dep\b/i,                key: 'bah',               label: 'BAH w/o dep' },
-  { pattern: /\bbah\s+type\b/i,                      key: 'bah',               label: 'BAH' },
-  { pattern: /\bbasic\s+allow\w*\s+hous/i,           key: 'bah',               label: 'BAH' },
-  { pattern: /\boha\b/i,                             key: 'bah',               label: 'OHA' },
-  { pattern: /\bbah\b/i,                             key: 'bah',               label: 'BAH' },
+  { pattern: /\bbah\s*w\/\s*dep\b/i, key: 'bah', label: 'BAH w/dep' },
+  { pattern: /\bbah\s*w\/o\s*dep\b/i, key: 'bah', label: 'BAH w/o dep' },
+  { pattern: /\bbah\s+type\b/i, key: 'bah', label: 'BAH' },
+  { pattern: /\bbasic\s+allow\w*\s+hous/i, key: 'bah', label: 'BAH' },
+  { pattern: /\boha\b/i, key: 'bah', label: 'OHA' },
+  { pattern: /\bbah\b/i, key: 'bah', label: 'BAH' },
   // ── Deductions ──────────────────────────────────────────────────────────
-  { pattern: /\bfed(?:eral)?\s+tax(?:es)?\b/i,       key: 'taxes',             label: 'Federal taxes' },
-  { pattern: /\bfed(?:eral)?\s+with(?:hold)?/i,      key: 'taxes',             label: 'Federal taxes' },
-  { pattern: /\bfica[\s-]soc(?:\s+sec(?:urity)?)?\b/i, key: 'fica_soc_security', label: 'FICA-Soc Security' },
-  { pattern: /\bsoc(?:ial)?\s+sec(?:urity)?\b(?!.*fica)/i, key: 'fica_soc_security', label: 'FICA-Soc Security' },
-  { pattern: /\bfica[\s-]medicare\b/i,               key: 'fica_medicare',     label: 'FICA-Medicare' },
-  { pattern: /\bmedicare\b(?!.*part)/i,              key: 'fica_medicare',     label: 'FICA-Medicare' },
-  { pattern: /\bsgli\b/i,                            key: 'sgli',              label: 'SGLI' },
-  { pattern: /\bafrh\b/i,                            key: 'afrh',              label: 'AFRH' },
-  { pattern: /\bmeal\s+deduct/i,                     key: 'meal_deduction',    label: 'Meal deduction' },
-  { pattern: /\bmeal\s+ded\b/i,                      key: 'meal_deduction',    label: 'Meal deduction' },
-  { pattern: /\bsubsistence\s+deduct/i,              key: 'meal_deduction',    label: 'Meal deduction' },
+  {
+    pattern: /\bfed(?:eral)?\s+tax(?:es)?\b/i,
+    key: 'taxes',
+    label: 'Federal taxes',
+  },
+  {
+    pattern: /\bfed(?:eral)?\s+with(?:hold)?/i,
+    key: 'taxes',
+    label: 'Federal taxes',
+  },
+  {
+    pattern: /\bfica[\s-]soc(?:\s+sec(?:urity)?)?\b/i,
+    key: 'fica_soc_security',
+    label: 'FICA-Soc Security',
+  },
+  {
+    pattern: /\bsoc(?:ial)?\s+sec(?:urity)?\b(?!.*fica)/i,
+    key: 'fica_soc_security',
+    label: 'FICA-Soc Security',
+  },
+  {
+    pattern: /\bfica[\s-]medicare\b/i,
+    key: 'fica_medicare',
+    label: 'FICA-Medicare',
+  },
+  {
+    pattern: /\bmedicare\b(?!.*part)/i,
+    key: 'fica_medicare',
+    label: 'FICA-Medicare',
+  },
+  { pattern: /\bsgli\b/i, key: 'sgli', label: 'SGLI' },
+  { pattern: /\bafrh\b/i, key: 'afrh', label: 'AFRH' },
+  {
+    pattern: /\bmeal\s+deduct/i,
+    key: 'meal_deduction',
+    label: 'Meal deduction',
+  },
+  {
+    pattern: /\bmeal\s+ded\b/i,
+    key: 'meal_deduction',
+    label: 'Meal deduction',
+  },
+  {
+    pattern: /\bsubsistence\s+deduct/i,
+    key: 'meal_deduction',
+    label: 'Meal deduction',
+  },
 ];
 
 // TSP handled separately because we derive a rate, not a raw dollar amount
@@ -179,9 +215,17 @@ export function parseLes(text: string): LesParseResult {
   // ── Warnings ─────────────────────────────────────────────────────────────
 
   if (!month) {
-    warnings.push('Pay period date not found — confirm the month before importing');
+    warnings.push(
+      'Pay period date not found — confirm the month before importing',
+    );
   }
-  const criticalFields = ['base_pay', 'bas', 'taxes', 'fica_soc_security', 'fica_medicare'];
+  const criticalFields = [
+    'base_pay',
+    'bas',
+    'taxes',
+    'fica_soc_security',
+    'fica_medicare',
+  ];
   for (const key of criticalFields) {
     if (!(key in fields)) {
       const label = FIELD_MATCHERS.find((m) => m.key === key)?.label ?? key;
@@ -189,18 +233,31 @@ export function parseLes(text: string): LesParseResult {
     }
   }
   if (Object.keys(fields).length === 0) {
-    warnings.push('No recognizable LES fields found — check that the text is a valid DFAS LES');
+    warnings.push(
+      'No recognizable LES fields found — check that the text is a valid DFAS LES',
+    );
   }
 
   // ── Build preview list ────────────────────────────────────────────────────
 
   const FIELD_ORDER = [
-    'base_pay', 'bas', 'bah', 'tsp_rate', 'roth_ira',
-    'taxes', 'fica_soc_security', 'fica_medicare', 'sgli', 'afrh', 'meal_deduction',
+    'base_pay',
+    'bas',
+    'bah',
+    'tsp_rate',
+    'roth_ira',
+    'taxes',
+    'fica_soc_security',
+    'fica_medicare',
+    'sgli',
+    'afrh',
+    'meal_deduction',
   ];
-  const preview = FIELD_ORDER
-    .filter((k) => k in fields)
-    .map((k) => ({ key: k, label: labelMap[k] ?? k, value: fields[k] }));
+  const preview = FIELD_ORDER.filter((k) => k in fields).map((k) => ({
+    key: k,
+    label: labelMap[k] ?? k,
+    value: fields[k],
+  }));
 
   return { month, fields, preview, warnings };
 }

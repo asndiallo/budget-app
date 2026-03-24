@@ -258,7 +258,11 @@ export default function TransactionsPanel({
   async function applyPendingImport() {
     if (!pendingRows.length) return;
     setCommitting(true);
-    const data = await api.transactions.importCsv(pendingRows, month, csvSource);
+    const data = await api.transactions.importCsv(
+      pendingRows,
+      month,
+      csvSource,
+    );
     const monthLabels = (data.months ?? [])
       .sort()
       .map((m) => {
@@ -444,9 +448,17 @@ export default function TransactionsPanel({
             <div>
               <p className="text-sm font-semibold text-text">Review import</p>
               <p className="text-xs text-text-3 mt-0.5">
-                {pendingRows.length} transaction{pendingRows.length !== 1 ? 's' : ''} ·{' '}
+                {pendingRows.length} transaction
+                {pendingRows.length !== 1 ? 's' : ''} ·{' '}
                 <span className="text-amber-400">
-                  {pendingRows.filter((r) => r.category === DEFAULT_CATEGORY || r.category === 'Other').length} uncategorized
+                  {
+                    pendingRows.filter(
+                      (r) =>
+                        r.category === DEFAULT_CATEGORY ||
+                        r.category === 'Other',
+                    ).length
+                  }{' '}
+                  uncategorized
                 </span>
               </p>
             </div>
@@ -468,14 +480,23 @@ export default function TransactionsPanel({
           </div>
           {/* Column headers */}
           <div className="grid grid-cols-[90px_1fr_80px_140px] gap-2 px-4 py-2 bg-surface-raised border-b border-border-dim">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Date</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Description</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4 text-right">Amount</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">Category</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+              Date
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+              Description
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4 text-right">
+              Amount
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+              Category
+            </span>
           </div>
           <div className="max-h-80 overflow-y-auto divide-y divide-border-dim">
             {pendingRows.map((row, i) => {
-              const isUncategorized = row.category === DEFAULT_CATEGORY || row.category === 'Other';
+              const isUncategorized =
+                row.category === DEFAULT_CATEGORY || row.category === 'Other';
               return (
                 <div
                   key={i}
@@ -483,15 +504,26 @@ export default function TransactionsPanel({
                     isUncategorized ? 'bg-amber-500/5' : 'hover:bg-surface/40'
                   }`}
                 >
-                  <span className="text-[11px] font-mono text-text-4 truncate">{row.date || '—'}</span>
-                  <span className="text-xs text-text truncate" title={row.description}>{row.description}</span>
-                  <span className="text-xs font-mono text-text text-right">${row.amount.toFixed(2)}</span>
+                  <span className="text-[11px] font-mono text-text-4 truncate">
+                    {row.date || '—'}
+                  </span>
+                  <span
+                    className="text-xs text-text truncate"
+                    title={row.description}
+                  >
+                    {row.description}
+                  </span>
+                  <span className="text-xs font-mono text-text text-right">
+                    ${row.amount.toFixed(2)}
+                  </span>
                   <select
                     value={row.category}
                     onChange={(e) => {
                       const cat = e.target.value;
                       setPendingRows((prev) =>
-                        prev.map((r, j) => (j === i ? { ...r, category: cat } : r)),
+                        prev.map((r, j) =>
+                          j === i ? { ...r, category: cat } : r,
+                        ),
                       );
                     }}
                     className={`text-xs rounded-lg px-2 py-1 border focus:outline-none focus:border-blue-500 transition-colors cursor-pointer bg-surface ${
@@ -501,7 +533,9 @@ export default function TransactionsPanel({
                     }`}
                   >
                     {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>

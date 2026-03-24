@@ -106,7 +106,9 @@ export default function IncomePanel({
       setSuggestion(null);
       return;
     }
-    setIncome((prev) => (prev ? { ...prev, ...(changed as IncomeConfig) } : prev));
+    setIncome((prev) =>
+      prev ? { ...prev, ...(changed as IncomeConfig) } : prev,
+    );
     await api.income.update(month, changed);
     setSuggestion(null);
     onUpdate();
@@ -212,8 +214,14 @@ export default function IncomePanel({
         ))}
         <div className="flex flex-wrap gap-x-3 gap-y-1 pt-2">
           <ResourceLink href="https://mypay.dfas.mil" label="myPay (LES)" />
-          <ResourceLink href="https://www.dfas.mil/militarymembers/payentitlements/pay-tables/" label="DFAS pay tables" />
-          <ResourceLink href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/" label="BAH calculator" />
+          <ResourceLink
+            href="https://www.dfas.mil/militarymembers/payentitlements/pay-tables/"
+            label="DFAS pay tables"
+          />
+          <ResourceLink
+            href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/"
+            label="BAH calculator"
+          />
         </div>
       </Section>
 

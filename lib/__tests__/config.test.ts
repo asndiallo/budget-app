@@ -1,17 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import {
   CATEGORIES,
   CAT_COLORS,
   CHART_CAT_COLORS,
   CSV_CATEGORY_MAP,
+  DEDUCTION_FIELDS,
   DEFAULT_CATEGORY,
   DEFAULT_GOAL_COLOR,
-  DEDUCTION_FIELDS,
   GOAL_BAR_COLORS,
   GOAL_COLORS,
   GOAL_DOT_COLORS,
   INCOME_FIELDS,
 } from '../config';
+import { describe, expect, it } from 'vitest';
 
 // ── CATEGORIES ────────────────────────────────────────────────────────────────
 
@@ -145,7 +145,10 @@ describe('GOAL_COLORS', () => {
 describe('category color maps', () => {
   it('CAT_COLORS has an entry for every category', () => {
     for (const cat of CATEGORIES) {
-      expect(CAT_COLORS[cat], `CAT_COLORS missing entry for "${cat}"`).toBeDefined();
+      expect(
+        CAT_COLORS[cat],
+        `CAT_COLORS missing entry for "${cat}"`,
+      ).toBeDefined();
     }
   });
 
@@ -160,9 +163,10 @@ describe('category color maps', () => {
 
   it('CHART_CAT_COLORS values are valid hex colors', () => {
     for (const [cat, color] of Object.entries(CHART_CAT_COLORS)) {
-      expect(color, `CHART_CAT_COLORS["${cat}"] is not a valid hex color`).toMatch(
-        /^#[0-9a-f]{3}([0-9a-f]{3})?$/i,
-      );
+      expect(
+        color,
+        `CHART_CAT_COLORS["${cat}"] is not a valid hex color`,
+      ).toMatch(/^#[0-9a-f]{3}([0-9a-f]{3})?$/i);
     }
   });
 });

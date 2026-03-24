@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   ENLISTED_GRADES,
   OFFICER_GRADES,
@@ -12,8 +11,10 @@ import {
   getBasePay,
   isOfficer,
 } from '@/lib/pay-tables';
+
 import type { PayGrade } from '@/lib/pay-tables';
 import type { UserProfile } from '@/lib/types';
+import { useState } from 'react';
 
 // ── Time-in-grade minimums (DoD 1215.08) ─────────────────────────────────────
 // Shown as reference; branch/component may vary.
@@ -54,8 +55,7 @@ function defaultNextGrade(current: string): PayGrade | null {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function rankLabel(grade: PayGrade, branch: string): string {
-  const title =
-    RANK_TITLES[branch as keyof typeof RANK_TITLES]?.[grade];
+  const title = RANK_TITLES[branch as keyof typeof RANK_TITLES]?.[grade];
   return title ? `${grade} · ${title}` : grade;
 }
 
@@ -133,8 +133,19 @@ export default function PromoProjectionPanel({
 
   const tigHint = TIME_IN_GRADE[currentGrade];
 
-  const rows: { label: string; cur: number; promo: number; d: number; note?: string }[] = [
-    { label: 'Base pay', cur: current.basePay, promo: promoted.basePay, d: baseDelta },
+  const rows: {
+    label: string;
+    cur: number;
+    promo: number;
+    d: number;
+    note?: string;
+  }[] = [
+    {
+      label: 'Base pay',
+      cur: current.basePay,
+      promo: promoted.basePay,
+      d: baseDelta,
+    },
     { label: 'BAS', cur: current.bas, promo: promoted.bas, d: basDelta },
     {
       label: 'BAH',
@@ -173,18 +184,23 @@ export default function PromoProjectionPanel({
             <optgroup label="Enlisted">
               {ENLISTED_GRADES.map((g) => (
                 <option key={g} value={g} disabled={g === currentGrade}>
-                  {g}{g === defaultNextGrade(currentGrade) ? ' ★' : ''}
+                  {g}
+                  {g === defaultNextGrade(currentGrade) ? ' ★' : ''}
                 </option>
               ))}
             </optgroup>
             <optgroup label="Warrant">
               {WARRANT_GRADES.map((g) => (
-                <option key={g} value={g} disabled={g === currentGrade}>{g}</option>
+                <option key={g} value={g} disabled={g === currentGrade}>
+                  {g}
+                </option>
               ))}
             </optgroup>
             <optgroup label="Officer">
               {OFFICER_GRADES.map((g) => (
-                <option key={g} value={g} disabled={g === currentGrade}>{g}</option>
+                <option key={g} value={g} disabled={g === currentGrade}>
+                  {g}
+                </option>
               ))}
             </optgroup>
           </select>
@@ -197,7 +213,9 @@ export default function PromoProjectionPanel({
             max="40"
             step="0.5"
             value={yos}
-            onChange={(e) => setYos(Math.max(0, parseFloat(e.target.value) || 0))}
+            onChange={(e) =>
+              setYos(Math.max(0, parseFloat(e.target.value) || 0))
+            }
             className="w-16 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text focus:outline-none focus:border-blue-500 transition-colors text-center"
           />
         </div>
@@ -205,7 +223,8 @@ export default function PromoProjectionPanel({
 
       {atTopGrade && (
         <p className="text-[11px] text-amber-400 mb-3">
-          {currentGrade} is the top grade in this category — select any grade for a what-if scenario.
+          {currentGrade} is the top grade in this category — select any grade
+          for a what-if scenario.
         </p>
       )}
 
@@ -242,9 +261,15 @@ export default function PromoProjectionPanel({
                 {cur > 0 ? fmt(cur) : <span className="text-text-4">—</span>}
               </span>
               <span className="text-xs font-mono text-text text-right">
-                {promo > 0 ? fmt(promo) : <span className="text-text-4">—</span>}
+                {promo > 0 ? (
+                  fmt(promo)
+                ) : (
+                  <span className="text-text-4">—</span>
+                )}
               </span>
-              <span className={`text-xs font-mono text-right font-semibold ${dColor}`}>
+              <span
+                className={`text-xs font-mono text-right font-semibold ${dColor}`}
+              >
                 {dText}
               </span>
             </div>
@@ -261,7 +286,9 @@ export default function PromoProjectionPanel({
             {fmt(promoted.gross)}
           </span>
           <div className="text-right">
-            <p className={`text-xs font-mono font-bold ${delta(grossDelta).color}`}>
+            <p
+              className={`text-xs font-mono font-bold ${delta(grossDelta).color}`}
+            >
               {delta(grossDelta).text}/mo
             </p>
             {grossDelta !== 0 && (
@@ -283,7 +310,9 @@ export default function PromoProjectionPanel({
             <span className="text-[11px] font-mono text-text-3">
               {fmt(current.tspContrib)} → {fmt(promoted.tspContrib)}
             </span>
-            <span className={`text-[11px] font-mono font-semibold ${delta(tspDelta).color}`}>
+            <span
+              className={`text-[11px] font-mono font-semibold ${delta(tspDelta).color}`}
+            >
               {delta(tspDelta).text}/mo
             </span>
           </div>

@@ -1,11 +1,18 @@
 'use client';
 
+import {
+  BrsInputs,
+  BrsResult,
+  calcBrs,
+  dodMatchRate,
+  inferRetirementSystem,
+} from '@/lib/brs-calc';
 import { useEffect, useMemo, useState } from 'react';
-import { BrsInputs, BrsResult, calcBrs, dodMatchRate, inferRetirementSystem } from '@/lib/brs-calc';
-import { api } from '@/lib/api';
-import type { UserProfile } from '@/lib/types';
+
 import type { PayGrade } from '@/lib/pay-tables';
 import { TSP_CONFIG } from '@/lib/config';
+import type { UserProfile } from '@/lib/types';
+import { api } from '@/lib/api';
 
 interface Props {
   user: UserProfile | null;
@@ -37,7 +44,11 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
 
 // ── System badge ──────────────────────────────────────────────────────────────
 
-function SystemBadge({ system }: { system: ReturnType<typeof inferRetirementSystem> }) {
+function SystemBadge({
+  system,
+}: {
+  system: ReturnType<typeof inferRetirementSystem>;
+}) {
   if (system === 'brs')
     return (
       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-[#4a8cff]">
@@ -178,7 +189,11 @@ export default function BrsPanel({ user, month }: Props) {
             min={Math.max(currentYos + 1, 10)}
             max={40}
             value={retYos}
-            onChange={(e) => setRetYos(Math.max(10, Math.min(40, parseInt(e.target.value) || 20)))}
+            onChange={(e) =>
+              setRetYos(
+                Math.max(10, Math.min(40, parseInt(e.target.value) || 20)),
+              )
+            }
             className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
           />
           <span className="text-[11px] text-text-4">YOS</span>
@@ -206,7 +221,11 @@ export default function BrsPanel({ user, month }: Props) {
             max={12}
             step={0.5}
             value={returnPct}
-            onChange={(e) => setReturnPct(Math.max(1, Math.min(12, parseFloat(e.target.value) || 6)))}
+            onChange={(e) =>
+              setReturnPct(
+                Math.max(1, Math.min(12, parseFloat(e.target.value) || 6)),
+              )
+            }
             className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
           />
           <span className="text-[11px] text-text-4">%/yr</span>
@@ -221,7 +240,14 @@ export default function BrsPanel({ user, month }: Props) {
               max={13}
               step={0.5}
               value={contMult}
-              onChange={(e) => setContMult(Math.max(2.5, Math.min(13, parseFloat(e.target.value) || 2.5)))}
+              onChange={(e) =>
+                setContMult(
+                  Math.max(
+                    2.5,
+                    Math.min(13, parseFloat(e.target.value) || 2.5),
+                  ),
+                )
+              }
               className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
             />
             <span className="text-[11px] text-text-4">× base</span>
@@ -305,21 +331,29 @@ export default function BrsPanel({ user, month }: Props) {
       {r.breakEvenMonths !== null ? (
         <div className="rounded-xl border border-border-dim bg-surface-raised/30 px-4 py-3 mb-4 space-y-1">
           <p className="text-xs text-text">
-            <span className="font-semibold text-[#4a8cff]">BRS</span> starts retirement with{' '}
-            <span className="font-mono font-semibold">{fmtK(r.brsWealthAtRetirement - r.legacyWealthAtRetirement)}</span>{' '}
+            <span className="font-semibold text-[#4a8cff]">BRS</span> starts
+            retirement with{' '}
+            <span className="font-mono font-semibold">
+              {fmtK(r.brsWealthAtRetirement - r.legacyWealthAtRetirement)}
+            </span>{' '}
             more in portable wealth.{' '}
-            <span className="font-semibold text-text-2">Legacy</span>'s higher pension (
-            <span className="font-mono">{fmt(r.pensionShortfall)}/mo</span> more) catches up after{' '}
+            <span className="font-semibold text-text-2">Legacy</span>'s higher
+            pension (
+            <span className="font-mono">{fmt(r.pensionShortfall)}/mo</span>{' '}
+            more) catches up after{' '}
             <span className="font-semibold text-text">
               {r.breakEvenYears} years
             </span>{' '}
             of retirement.
           </p>
           <p className="text-[11px] text-text-3">
-            Retiring at {retYos} YOS at age ~{(user?.years_of_service ?? 0) < retYos ? (22 + retYos) : '?'}: legacy
+            Retiring at {retYos} YOS at age ~
+            {(user?.years_of_service ?? 0) < retYos ? 22 + retYos : '?'}: legacy
             surpasses BRS around age{' '}
-            {r.breakEvenYears !== null ? Math.round(22 + retYos + r.breakEvenYears) : '?'}.
-            Average military retiree life expectancy exceeds 80.
+            {r.breakEvenYears !== null
+              ? Math.round(22 + retYos + r.breakEvenYears)
+              : '?'}
+            . Average military retiree life expectancy exceeds 80.
           </p>
         </div>
       ) : (
@@ -333,31 +367,37 @@ export default function BrsPanel({ user, month }: Props) {
       )}
 
       {/* DoD match value highlight (only meaningful for BRS members) */}
-      {r.dodMatchTotalCareer > 0 && (system === 'brs' || system === 'uncertain') && (
-        <div className="rounded-xl border border-border-dim bg-blue-500/5 px-4 py-3 mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-text">Total DoD TSP contributions over career</p>
-            <p className="text-[11px] text-text-3 mt-0.5">
-              {fmt(r.dodMatchMonthly)}/mo × {Math.round((retYos - currentYos) * 12)} months, compounded to{' '}
-              <span className="font-mono font-semibold text-[#4a8cff]">
-                {fmtK(r.tspWithMatch - r.tspWithoutMatch)}
-              </span>{' '}
-              at retirement
-            </p>
+      {r.dodMatchTotalCareer > 0 &&
+        (system === 'brs' || system === 'uncertain') && (
+          <div className="rounded-xl border border-border-dim bg-blue-500/5 px-4 py-3 mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-text">
+                Total DoD TSP contributions over career
+              </p>
+              <p className="text-[11px] text-text-3 mt-0.5">
+                {fmt(r.dodMatchMonthly)}/mo ×{' '}
+                {Math.round((retYos - currentYos) * 12)} months, compounded to{' '}
+                <span className="font-mono font-semibold text-[#4a8cff]">
+                  {fmtK(r.tspWithMatch - r.tspWithoutMatch)}
+                </span>{' '}
+                at retirement
+              </p>
+            </div>
+            <span className="font-mono text-base font-bold text-[#4a8cff] shrink-0 ml-4">
+              {fmtK(r.dodMatchTotalCareer)}
+            </span>
           </div>
-          <span className="font-mono text-base font-bold text-[#4a8cff] shrink-0 ml-4">
-            {fmtK(r.dodMatchTotalCareer)}
-          </span>
-        </div>
-      )}
+        )}
 
       {/* TSP rate nudge */}
       {memberPct < 5 && memberPct >= 0 && system === 'brs' && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 mb-4">
           <p className="text-[11px] text-amber-400">
-            ⚠ You're contributing {memberPct}% — increase to 5% to get the full DoD match (
-            {Math.round(dodMatchRate(0.05) * 100)}% of base pay free). That's{' '}
-            {fmt(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))} more per month from DoD.
+            ⚠ You're contributing {memberPct}% — increase to 5% to get the full
+            DoD match ({Math.round(dodMatchRate(0.05) * 100)}% of base pay
+            free). That's{' '}
+            {fmt(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))}{' '}
+            more per month from DoD.
           </p>
         </div>
       )}
@@ -371,20 +411,44 @@ export default function BrsPanel({ user, month }: Props) {
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
             Assumptions & resources
           </span>
-          <span className="text-text-4 text-xs">{showAssumptions ? '▲' : '▼'}</span>
+          <span className="text-text-4 text-xs">
+            {showAssumptions ? '▲' : '▼'}
+          </span>
         </button>
         {showAssumptions && (
           <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
             <ul className="text-[11px] text-text-3 space-y-0.5 pt-2">
-              <li>· Estimates use your current base pay ({fmt(basePay)}/mo) as a proxy for the High-3 average. Actual retirement pay will be higher due to promotions.</li>
-              <li>· Both scenarios assume the same member TSP contribution rate ({memberPct}%).</li>
-              <li>· Continuation pay figures assume active duty minimum (2.5×); check your branch for current multipliers.</li>
-              <li>· Investment return of {returnPct}% is not guaranteed — TSP L Fund historical returns have ranged 4–9%.</li>
+              <li>
+                · Estimates use your current base pay ({fmt(basePay)}/mo) as a
+                proxy for the High-3 average. Actual retirement pay will be
+                higher due to promotions.
+              </li>
+              <li>
+                · Both scenarios assume the same member TSP contribution rate (
+                {memberPct}%).
+              </li>
+              <li>
+                · Continuation pay figures assume active duty minimum (2.5×);
+                check your branch for current multipliers.
+              </li>
+              <li>
+                · Investment return of {returnPct}% is not guaranteed — TSP L
+                Fund historical returns have ranged 4–9%.
+              </li>
             </ul>
             <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
-              <ExternalLink href="https://militarypay.defense.gov/Pay/Retirement/BRS/" label="BRS overview" />
-              <ExternalLink href="https://www.tsp.gov/planning-for-life-events/it-s-a-military-life/" label="TSP for service members" />
-              <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/saving-investing/blended-retirement-system/" label="MilOneSource BRS guide" />
+              <ExternalLink
+                href="https://militarypay.defense.gov/Pay/Retirement/BRS/"
+                label="BRS overview"
+              />
+              <ExternalLink
+                href="https://www.tsp.gov/planning-for-life-events/it-s-a-military-life/"
+                label="TSP for service members"
+              />
+              <ExternalLink
+                href="https://www.militaryonesource.mil/financial-legal/personal-finance/saving-investing/blended-retirement-system/"
+                label="MilOneSource BRS guide"
+              />
             </div>
           </div>
         )}
