@@ -27,13 +27,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
+import BrsPanel from './components/BrsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
-import BrsPanel from './components/BrsPanel';
 import OverviewPanel from './components/OverviewPanel';
 import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
@@ -173,11 +173,13 @@ export default function Home() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [streak, setStreak] = useState(0);
-  const [isDark, setIsDark] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections'>('pay');
+  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections'>(
+    'pay',
+  );
   const [assetsSub, setAssetsSub] = useState<'assets' | 'debts'>('assets');
   const [goalsSub, setGoalsSub] = useState<'goals' | 'budget'>('goals');
   const restoreRef = useRef<HTMLInputElement>(null);
@@ -185,10 +187,8 @@ export default function Home() {
   useEffect(() => {
     setMonth(currentMonth());
     setYearRange(getYearRange());
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') setIsDark(true);
-    else if (saved === 'light') setIsDark(false);
-    else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
+    setTheme(saved ?? 'system');
     authClient
       .getSession()
       .then(({ data }) => {
@@ -201,8 +201,14 @@ export default function Home() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Always allow Escape to close shortcuts overlay
-      if (e.key === 'Escape') { setShowShortcuts(false); return; }
-      if (e.key === '?') { setShowShortcuts((v) => !v); return; }
+      if (e.key === 'Escape') {
+        setShowShortcuts(false);
+        return;
+      }
+      if (e.key === '?') {
+        setShowShortcuts((v) => !v);
+        return;
+      }
 
       const tag = (e.target as HTMLElement)?.tagName;
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
@@ -212,7 +218,9 @@ export default function Home() {
         e.preventDefault();
         setTab('transactions');
         setTimeout(() => {
-          (document.querySelector('[data-search-input]') as HTMLInputElement)?.focus();
+          (
+            document.querySelector('[data-search-input]') as HTMLInputElement
+          )?.focus();
         }, 50);
         return;
       }
@@ -263,16 +271,16 @@ export default function Home() {
     setTab('transactions');
   }
 
-  function toggleTheme() {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.classList.remove('light');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.add('light');
-      localStorage.setItem('theme', 'light');
-    }
+  function cycleTheme() {
+    setTheme((t) => {
+      const next = t === 'system' ? 'light' : t === 'light' ? 'dark' : 'system';
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      if (next === 'light') root.classList.add('light');
+      else if (next === 'dark') root.classList.add('dark');
+      localStorage.setItem('theme', next);
+      return next;
+    });
   }
 
   const fetchSummary = useCallback(async () => {
@@ -370,11 +378,11 @@ export default function Home() {
             </label>
             <div className="w-px h-4 bg-border mx-0.5" />
             <button
-              onClick={toggleTheme}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={cycleTheme}
+              title={`Theme: ${theme} — click to cycle (system → light → dark)`}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-sm"
             >
-              {isDark ? '☀' : '🌙'}
+              {theme === 'light' ? '☀' : theme === 'dark' ? '🌙' : '◐'}
             </button>
 
             {month && (
@@ -601,7 +609,9 @@ export default function Home() {
                 />
                 {goalsSub === 'goals' && <GoalsPanel />}
                 {goalsSub === 'budget' && (
-                  <BudgetSuggestionsPanel monthlyIncome={summary?.totalIncome} />
+                  <BudgetSuggestionsPanel
+                    monthlyIncome={summary?.totalIncome}
+                  />
                 )}
               </div>
             )}
@@ -626,8 +636,12 @@ export default function Home() {
                   active={assetsSub}
                   onChange={(k) => setAssetsSub(k as typeof assetsSub)}
                 />
-                {assetsSub === 'assets' && <AssetsPanel onUpdate={fetchSummary} />}
-                {assetsSub === 'debts' && <DebtsPanel onUpdate={fetchSummary} />}
+                {assetsSub === 'assets' && (
+                  <AssetsPanel onUpdate={fetchSummary} />
+                )}
+                {assetsSub === 'debts' && (
+                  <DebtsPanel onUpdate={fetchSummary} />
+                )}
               </div>
             )}
 
@@ -666,8 +680,15 @@ export default function Home() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-text">Keyboard shortcuts</h2>
-              <button onClick={() => setShowShortcuts(false)} className="text-text-4 hover:text-text-2 text-xs transition-colors">✕</button>
+              <h2 className="text-sm font-semibold text-text">
+                Keyboard shortcuts
+              </h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                className="text-text-4 hover:text-text-2 text-xs transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <div className="space-y-1 text-xs">
               {[
@@ -677,14 +698,20 @@ export default function Home() {
                 ['?', 'Toggle this help'],
                 ['Esc', 'Close overlay'],
               ].map(([key, desc]) => (
-                <div key={key} className="flex items-center justify-between py-1.5 border-b border-border-dim last:border-0">
-                  <kbd className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface border border-border text-text-2">{key}</kbd>
+                <div
+                  key={key}
+                  className="flex items-center justify-between py-1.5 border-b border-border-dim last:border-0"
+                >
+                  <kbd className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface border border-border text-text-2">
+                    {key}
+                  </kbd>
                   <span className="text-text-3">{desc}</span>
                 </div>
               ))}
             </div>
             <div className="mt-4 text-[10px] text-text-4 text-center">
-              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7 Overview · 8 PCS
+              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth
+              · 6 Calendar · 7 Overview · 8 PCS
             </div>
           </div>
         </div>

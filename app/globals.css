@@ -6,28 +6,10 @@
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-/* ── Design tokens (dark mode default) ───────────────────────────── */
-:root {
-  --bg: #06080f;
-  --surface: #0b0e19;
-  --surface-raised: #141b2e;
-  --surface-blue: #1a2650;
-  --surface-blue-dark: #1f2f63;
-  --border: #1f2d46;
-  --border-dim: #1c2840;
-  --text: #dce4f8;
-  --text-2: #9da8c2;
-  --text-3: #7c88a4;
-  --text-4: #4a5575;
+/* ── Design tokens ────────────────────────────────────────────────── */
 
-  /* Accent glow colors (used for box-shadow) */
-  --glow-green: rgba(0, 217, 138, 0.18);
-  --glow-red: rgba(255, 69, 96, 0.18);
-  --glow-blue: rgba(74, 140, 255, 0.18);
-  --glow-amber: rgba(245, 170, 42, 0.18);
-}
-
-/* ── Light mode overrides ─────────────────────────────────────────── */
+/* Light tokens — default (system light + explicit .light) */
+:root,
 .light {
   --bg: #f4f7ff;
   --surface: #ffffff;
@@ -45,6 +27,48 @@
   --glow-red: rgba(220, 50, 70, 0.1);
   --glow-blue: rgba(50, 100, 230, 0.1);
   --glow-amber: rgba(200, 130, 20, 0.1);
+}
+
+/* Dark tokens — system dark preference (when no explicit class) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --bg: #06080f;
+    --surface: #0b0e19;
+    --surface-raised: #141b2e;
+    --surface-blue: #1a2650;
+    --surface-blue-dark: #1f2f63;
+    --border: #1f2d46;
+    --border-dim: #1c2840;
+    --text: #dce4f8;
+    --text-2: #9da8c2;
+    --text-3: #7c88a4;
+    --text-4: #4a5575;
+
+    --glow-green: rgba(0, 217, 138, 0.18);
+    --glow-red: rgba(255, 69, 96, 0.18);
+    --glow-blue: rgba(74, 140, 255, 0.18);
+    --glow-amber: rgba(245, 170, 42, 0.18);
+  }
+}
+
+/* Explicit dark class — overrides system preference */
+.dark {
+  --bg: #06080f;
+  --surface: #0b0e19;
+  --surface-raised: #141b2e;
+  --surface-blue: #1a2650;
+  --surface-blue-dark: #1f2f63;
+  --border: #1f2d46;
+  --border-dim: #1c2840;
+  --text: #dce4f8;
+  --text-2: #9da8c2;
+  --text-3: #7c88a4;
+  --text-4: #4a5575;
+
+  --glow-green: rgba(0, 217, 138, 0.18);
+  --glow-red: rgba(255, 69, 96, 0.18);
+  --glow-blue: rgba(74, 140, 255, 0.18);
+  --glow-amber: rgba(245, 170, 42, 0.18);
 }
 
 /* ── Expose tokens as Tailwind utilities ─────────────────────────── */
