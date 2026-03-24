@@ -5,6 +5,7 @@ import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
+import LesImportButton from './LesImportButton';
 
 export default function IncomePanel({
   month,
@@ -76,12 +77,25 @@ export default function IncomePanel({
     await saveIncome('tsp_rate', pct / 100);
   }
 
+  async function handleLesImport() {
+    // Re-fetch income and entries after LES import
+    const [data, ents] = await Promise.all([
+      api.income.get(month),
+      api.incomeEntries.list(month),
+    ]);
+    setIncome(data);
+    setTspRateLocal(String(Math.round((data.tsp_rate ?? TSP_CONFIG.rate) * 100)));
+    setEntries(ents);
+    onUpdate();
+  }
+
   return (
     <div className="space-y-6">
       <Section
         title="Military pay"
         total={militaryTotal}
         totalColor="text-text"
+        action={<LesImportButton month={month} onImport={handleLesImport} />}
       >
         {INCOME_FIELDS.map((f) => (
           <Row
@@ -206,12 +220,14 @@ function Section({
   total,
   totalPrefix = '',
   totalColor = 'text-text-2',
+  action,
 }: {
   title: string;
   children: React.ReactNode;
   total?: number;
   totalPrefix?: string;
   totalColor?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div>
@@ -219,11 +235,14 @@ function Section({
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
           {title}
         </h3>
-        {total !== undefined && (
-          <span className={`font-mono text-xs font-semibold ${totalColor}`}>
-            {totalPrefix}${Math.round(total).toLocaleString()}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {action}
+          {total !== undefined && (
+            <span className={`font-mono text-xs font-semibold ${totalColor}`}>
+              {totalPrefix}${Math.round(total).toLocaleString()}
+            </span>
+          )}
+        </div>
       </div>
       {children}
     </div>
