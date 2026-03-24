@@ -210,6 +210,11 @@ export default function IncomePanel({
             onChange={(v) => saveIncome(f.key, v)}
           />
         ))}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 pt-2">
+          <ResourceLink href="https://mypay.dfas.mil" label="myPay (LES)" />
+          <ResourceLink href="https://www.dfas.mil/militarymembers/payentitlements/pay-tables/" label="DFAS pay tables" />
+          <ResourceLink href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/" label="BAH calculator" />
+        </div>
       </Section>
 
       <Section
@@ -222,7 +227,17 @@ export default function IncomePanel({
         <div className="flex items-center py-3 border-b border-border-dim">
           <div className="flex-1">
             <p className="text-sm text-text">TSP</p>
-            <p className="text-[11px] text-text-3 mt-0.5">{TSP_CONFIG.note}</p>
+            <p className="text-[11px] text-text-3 mt-0.5">
+              {TSP_CONFIG.note} ·{' '}
+              <a
+                href="https://www.tsp.gov"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#4a8cff] hover:underline"
+              >
+                tsp.gov
+              </a>
+            </p>
           </div>
           <div className="flex items-center gap-1.5 mr-4">
             <input
@@ -392,5 +407,18 @@ function Row({
         />
       </div>
     </div>
+  );
+}
+
+function ResourceLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[11px] text-text-4 hover:text-[#4a8cff] transition-colors"
+    >
+      ↗ {label}
+    </a>
   );
 }

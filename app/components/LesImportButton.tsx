@@ -97,7 +97,16 @@ export default function LesImportButton({ month, onImport }: Props) {
         <div className="space-y-3">
           <p className="text-[11px] text-text-4 leading-relaxed">
             Paste your LES text below, or upload the <code className="text-text-3">.txt</code> file
-            from myPay. For a PDF: open it, press{' '}
+            from{' '}
+            <a
+              href="https://mypay.dfas.mil"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#4a8cff] hover:underline"
+            >
+              myPay
+            </a>
+            . For a PDF: open it, press{' '}
             <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">⌘A</kbd>{' '}
             then{' '}
             <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">⌘C</kbd>,

@@ -16,6 +16,19 @@ function fmt(n: number) {
   return '$' + Math.round(n).toLocaleString();
 }
 
+function ExternalLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[#4a8cff] hover:underline"
+    >
+      {label} ↗
+    </a>
+  );
+}
+
 function EntitlementRow({
   label,
   amount,
@@ -92,7 +105,8 @@ export default function PcsPanel({ user }: Props) {
         <p className="text-xs text-text-3">
           Estimates your entitlements based on your profile ({grade},{' '}
           {hasDeps ? 'with dependents' : 'no dependents'}). Verify all values at{' '}
-          <span className="text-text-2">move.mil</span> before your move.
+          <a href="https://move.mil" target="_blank" rel="noopener noreferrer" className="text-[#4a8cff] hover:underline">move.mil</a>{' '}
+          before your move.
         </p>
       </div>
 
@@ -220,17 +234,23 @@ export default function PcsPanel({ user }: Props) {
       )}
 
       {/* Reference info */}
-      <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 space-y-1.5">
+      <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
           Quick reference
         </p>
         <ul className="text-[11px] text-text-3 space-y-1 list-none">
-          <li>· DLA is based on BAH at your grade/dependent status — actual rate per JTR 5952</li>
+          <li>· DLA = BAH at higher station (old vs. new), your grade and dependent status — <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="JTR §5952" /></li>
           <li>· Weight allowance per JTR Appendix A. Pro-gear is separate and not counted against HHG limit.</li>
           <li>· TLE: up to 5 nights at losing PDS + 5 at gaining PDS. Requires lodging receipts.</li>
           <li>· MALT rate: ${MALT_RATE_PER_MILE}/mile per POV. Up to {hasDeps ? '2 POVs' : '1 POV'} authorized.</li>
-          <li>· BAH data in this app reflects 2026 DoD rates.</li>
+          <li>· BAH data reflects 2026 DoD rates — <ExternalLink href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/" label="official BAH calculator" /></li>
         </ul>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
+          <ExternalLink href="https://move.mil" label="move.mil — book your move" />
+          <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="Joint Travel Regulations" />
+          <ExternalLink href="https://www.militaryonesource.mil/moving-housing/moving/" label="MilOneSource moving guide" />
+          <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/" label="MilOneSource finances" />
+        </div>
       </div>
     </div>
   );
