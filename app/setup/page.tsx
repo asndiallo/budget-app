@@ -10,6 +10,7 @@ import {
 import type { Branch, Component } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
+import DutyStationSelect from '@/app/components/DutyStationSelect';
 import { useRouter } from 'next/navigation';
 
 type Step = 'credentials' | 'profile' | 'pay-preview';
@@ -20,7 +21,6 @@ interface PayPreview {
   bah: number;
   grossMonthly: number;
   rankTitle: string;
-  installations: { name: string; state: string }[];
 }
 
 export default function SetupPage() {
@@ -43,9 +43,6 @@ export default function SetupPage() {
   const [yos, setYos] = useState(0);
 
   const [preview, setPreview] = useState<PayPreview | null>(null);
-  const [installations, setInstallations] = useState<
-    { name: string; state: string }[]
-  >([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,28 +60,9 @@ export default function SetupPage() {
       .then((r) => r.json())
       .then((d: PayPreview) => {
         setPreview(d);
-        if (d.installations?.length && installations.length === 0) {
-          setInstallations(d.installations);
-        }
       })
       .catch(() => {});
-  }, [
-    step,
-    payGrade,
-    yos,
-    dutyStation,
-    dependents,
-    branch,
-    installations.length,
-  ]);
-
-  // Fetch installation list once
-  useEffect(() => {
-    fetch('/api/pay-lookup?grade=E-3&yos=0&station=&dependents=0&branch=Army')
-      .then((r) => r.json())
-      .then((d: PayPreview) => setInstallations(d.installations ?? []))
-      .catch(() => {});
-  }, []);
+  }, [step, payGrade, yos, dutyStation, dependents, branch]);
 
   function handleCredentialsNext(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -318,18 +296,10 @@ export default function SetupPage() {
             </Field>
 
             <Field label="Duty station">
-              <select
+              <DutyStationSelect
                 value={dutyStation}
-                onChange={(e) => setDutyStation(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">— Other / Off-post —</option>
-                {installations.map((i) => (
-                  <option key={i.name} value={i.name}>
-                    {i.name} ({i.state})
-                  </option>
-                ))}
-              </select>
+                onChange={setDutyStation}
+              />
             </Field>
 
             <Field label="Dependents">

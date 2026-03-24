@@ -8,10 +8,11 @@ import {
   WARRANT_GRADES,
 } from '@/lib/pay-tables';
 import type { Branch, Component, UserProfile } from '@/lib/types';
+import { differenceInMonths, parseISO } from 'date-fns';
 
 import DatePicker from './DatePicker';
+import DutyStationSelect from './DutyStationSelect';
 import { authClient } from '@/lib/auth-client';
-import { differenceInMonths, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -210,7 +211,9 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
                 <label className="block text-[10px] text-text-3 mb-0.5">
                   Years of service
                 </label>
-                <div className={`${inputCls} text-text-3 bg-surface-raised cursor-default select-none`}>
+                <div
+                  className={`${inputCls} text-text-3 bg-surface-raised cursor-default select-none`}
+                >
                   {joinedAt ? `${computedYos()} yrs` : '—'}
                 </div>
               </div>
@@ -246,11 +249,9 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
               <label className="block text-[10px] text-text-3 mb-0.5">
                 Duty station
               </label>
-              <input
+              <DutyStationSelect
                 value={dutyStation}
-                onChange={(e) => setDutyStation(e.target.value)}
-                className={inputCls}
-                placeholder="e.g. JBSA Fort Sam Houston"
+                onChange={setDutyStation}
               />
             </div>
 

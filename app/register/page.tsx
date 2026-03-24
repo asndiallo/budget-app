@@ -1,8 +1,10 @@
 'use client';
 
-import DatePicker from '@/app/components/DatePicker';
-import { authClient } from '@/lib/auth-client';
 import { differenceInMonths, parseISO } from 'date-fns';
+
+import DatePicker from '@/app/components/DatePicker';
+import DutyStationSelect from '@/app/components/DutyStationSelect';
+import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -54,11 +56,11 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
 
   // Step 2 — military profile
-  const [branch, setBranch] = useState('Army');
+  const [branch, setBranch] = useState('Air Force');
   const [component, setComponent] = useState('Active');
   const [payGrade, setPayGrade] = useState('E-3');
   const [mos, setMos] = useState('');
-  const [dutyStation, setDutyStation] = useState('');
+  const [dutyStation, setDutyStation] = useState('JBSA Fort Sam Houston');
   const [bahZip, setBahZip] = useState('');
   const [dependents, setDependents] = useState(0);
   const [joinedAt, setJoinedAt] = useState('');
@@ -255,7 +257,9 @@ export default function RegisterPage() {
                   <label className="block text-xs text-text-3 mb-1">
                     Years of service
                   </label>
-                  <div className={`${inputCls} text-text-3 bg-surface cursor-default`}>
+                  <div
+                    className={`${inputCls} text-text-3 bg-surface cursor-default`}
+                  >
                     {joinedAt ? `${computedYos()} yrs` : '—'}
                   </div>
                 </div>
@@ -278,12 +282,9 @@ export default function RegisterPage() {
                 <label className="block text-xs text-text-3 mb-1">
                   Duty station
                 </label>
-                <input
-                  type="text"
+                <DutyStationSelect
                   value={dutyStation}
-                  onChange={(e) => setDutyStation(e.target.value)}
-                  className={inputCls}
-                  placeholder="Fort Liberty, NC"
+                  onChange={setDutyStation}
                 />
               </div>
 
