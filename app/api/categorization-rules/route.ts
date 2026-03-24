@@ -8,13 +8,9 @@ export async function GET(req: Request) {
     const db = getDb();
     const rows = db
       .prepare(
-        'SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?',
+        'SELECT id, keyword, category FROM categorization_rules WHERE user_id = ? ORDER BY keyword',
       )
-      .all(userId) as {
-      category: string;
-      budget: number;
-      percentage: number | null;
-    }[];
+      .all(userId) as { id: number; keyword: string; category: string }[];
     return NextResponse.json(rows);
   } catch (err) {
     if (err instanceof Response) return err;
@@ -22,15 +18,27 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+export async function POST(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { category, budget, percentage } = await req.json();
-    db.prepare(
-      'INSERT INTO category_budgets (user_id, category, budget, percentage) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, category) DO UPDATE SET budget = excluded.budget, percentage = excluded.percentage',
-    ).run(userId, category, budget ?? 0, percentage ?? null);
-    return NextResponse.json({ ok: true });
+    const { keyword, category } = await req.json();
+    if (!keyword?.trim() || !category) {
+      return NextResponse.json(
+        { error: 'keyword and category required' },
+        { status: 400 },
+      );
+    }
+    const row = db
+      .prepare(
+        'INSERT INTO categorization_rules (user_id, keyword, category) VALUES (?, ?, ?) ON CONFLICT(user_id, keyword) DO UPDATE SET category = excluded.category RETURNING id, keyword, category',
+      )
+      .get(userId, keyword.trim().toLowerCase(), category) as {
+      id: number;
+      keyword: string;
+      category: string;
+    };
+    return NextResponse.json(row);
   } catch (err) {
     if (err instanceof Response) return err;
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -41,10 +49,10 @@ export async function DELETE(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { category } = await req.json();
+    const { id } = await req.json();
     db.prepare(
-      'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
-    ).run(userId, category);
+      'DELETE FROM categorization_rules WHERE user_id = ? AND id = ?',
+    ).run(userId, id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

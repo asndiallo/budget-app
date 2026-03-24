@@ -1,8 +1,8 @@
 'use client';
 
+import type { BillPayment, FixedExpense } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import type { FixedExpense } from '@/lib/types';
 import { api } from '@/lib/api';
 
 function monthlyAmount(f: FixedExpense) {
@@ -10,11 +10,14 @@ function monthlyAmount(f: FixedExpense) {
 }
 
 export default function FixedExpensesPanel({
+  month,
   onUpdate,
 }: {
+  month: string;
   onUpdate: () => void;
 }) {
   const [fixed, setFixed] = useState<FixedExpense[]>([]);
+  const [paidIds, setPaidIds] = useState<Set<number>>(new Set());
   const [newLabel, setNewLabel] = useState('');
   const [newAmt, setNewAmt] = useState('');
   const [newPeriod, setNewPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -22,10 +25,32 @@ export default function FixedExpensesPanel({
   const [newIsInvestment, setNewIsInvestment] = useState(false);
 
   const reload = () => api.fixedExpenses.list().then(setFixed);
+  const reloadPayments = () =>
+    month
+      ? api.billPayments
+          .list(month)
+          .then((rows: BillPayment[]) =>
+            setPaidIds(new Set(rows.map((r) => r.fixed_expense_id))),
+          )
+      : undefined;
 
   useEffect(() => {
     reload();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    reloadPayments();
+  }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function togglePaid(f: FixedExpense) {
+    if (!month) return;
+    if (paidIds.has(f.id)) {
+      await api.billPayments.unmark(f.id, month);
+    } else {
+      await api.billPayments.markPaid(f.id, month);
+    }
+    reloadPayments();
+  }
 
   async function addFixed() {
     if (!newLabel.trim() || !newAmt) return;
@@ -129,10 +154,26 @@ export default function FixedExpensesPanel({
 
       {fixed.map((f) => {
         const mo = monthlyAmount(f);
+        const isPaid = paidIds.has(f.id);
         return (
           <div key={f.id} className="py-3 border-b border-border-dim">
             <div className="flex items-center gap-2">
-              <p className="flex-1 text-sm text-text">{f.label}</p>
+              <button
+                onClick={() => togglePaid(f)}
+                title={isPaid ? 'Mark unpaid' : 'Mark paid'}
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                  isPaid
+                    ? 'border-[#00d98a] bg-[#00d98a]/10 text-[#00d98a]'
+                    : 'border-border text-transparent hover:border-[#00d98a]/60'
+                }`}
+              >
+                <span className="text-[10px] leading-none">✓</span>
+              </button>
+              <p
+                className={`flex-1 text-sm ${isPaid ? 'text-text-3 line-through' : 'text-text'}`}
+              >
+                {f.label}
+              </p>
               <DayField
                 value={f.day_of_month ?? null}
                 onSave={(raw) => updateDayOfMonth(f, raw)}

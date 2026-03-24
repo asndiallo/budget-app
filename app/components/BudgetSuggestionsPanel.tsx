@@ -28,17 +28,31 @@ function usagePct(lastMonth: number, budget: number) {
   return Math.min(100, Math.round((lastMonth / budget) * 100));
 }
 
-export default function BudgetSuggestionsPanel() {
+export default function BudgetSuggestionsPanel({
+  monthlyIncome,
+}: {
+  monthlyIncome?: number;
+}) {
   const [insights, setInsights] = useState<SpendingInsights | null>(null);
-  const [saved, setSaved] = useState<Record<string, number>>({});
+  const [saved, setSaved] = useState<
+    Record<string, { budget: number; percentage?: number | null }>
+  >({});
   const [editingCat, setEditingCat] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editMode, setEditMode] = useState<'$' | '%'>('$');
 
   const reloadBudgets = () =>
     api.categoryBudgets
       .list()
       .then((rows: CategoryBudget[]) =>
-        setSaved(Object.fromEntries(rows.map((r) => [r.category, r.budget]))),
+        setSaved(
+          Object.fromEntries(
+            rows.map((r) => [
+              r.category,
+              { budget: r.budget, percentage: r.percentage },
+            ]),
+          ),
+        ),
       );
 
   useEffect(() => {
@@ -46,9 +60,19 @@ export default function BudgetSuggestionsPanel() {
     reloadBudgets();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startEdit = (cat: string, currentBudget: number) => {
+  const startEdit = (
+    cat: string,
+    currentBudget: number,
+    currentPct?: number | null,
+  ) => {
     setEditingCat(cat);
-    setEditValue(String(Math.round(currentBudget)));
+    if (currentPct != null) {
+      setEditMode('%');
+      setEditValue(String(currentPct));
+    } else {
+      setEditMode('$');
+      setEditValue(String(Math.round(currentBudget)));
+    }
   };
 
   const cancelEdit = () => setEditingCat(null);
@@ -56,7 +80,14 @@ export default function BudgetSuggestionsPanel() {
   async function saveEdit(cat: string) {
     const v = parseFloat(editValue);
     if (!isNaN(v) && v >= 0) {
-      await api.categoryBudgets.set(cat, v);
+      if (editMode === '%') {
+        const computedBudget = monthlyIncome
+          ? Math.round((monthlyIncome * v) / 100)
+          : 0;
+        await api.categoryBudgets.set(cat, computedBudget, v);
+      } else {
+        await api.categoryBudgets.set(cat, v, null);
+      }
       reloadBudgets();
     }
     cancelEdit();
@@ -111,8 +142,12 @@ export default function BudgetSuggestionsPanel() {
             CAT_COLORS[ci.category] ?? 'bg-gray-500/10 text-gray-500';
 
           const hasUserBudget = ci.category in saved;
+          const savedEntry = saved[ci.category];
+          const isPctBudget = savedEntry?.percentage != null;
           const activeBudget = hasUserBudget
-            ? saved[ci.category]
+            ? isPctBudget && monthlyIncome
+              ? Math.round((monthlyIncome * savedEntry.percentage!) / 100)
+              : savedEntry.budget
             : ci.suggestedBudget;
           const pct = usagePct(ci.lastMonth, activeBudget);
           const overBudget = ci.lastMonth > activeBudget && activeBudget > 0;
@@ -157,10 +192,21 @@ export default function BudgetSuggestionsPanel() {
 
               {/* Budget row: view or edit */}
               {isEditing ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-text-3 shrink-0">
-                    Budget $
-                  </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex rounded-lg border border-border overflow-hidden text-[10px]">
+                    <button
+                      onClick={() => setEditMode('$')}
+                      className={`px-2 py-1 transition-colors ${editMode === '$' ? 'bg-surface-raised text-text' : 'text-text-4 hover:text-text-3'}`}
+                    >
+                      $
+                    </button>
+                    <button
+                      onClick={() => setEditMode('%')}
+                      className={`px-2 py-1 transition-colors ${editMode === '%' ? 'bg-surface-raised text-text' : 'text-text-4 hover:text-text-3'}`}
+                    >
+                      %
+                    </button>
+                  </div>
                   <input
                     autoFocus
                     type="number"
@@ -171,8 +217,15 @@ export default function BudgetSuggestionsPanel() {
                       if (e.key === 'Enter') saveEdit(ci.category);
                       if (e.key === 'Escape') cancelEdit();
                     }}
-                    className="w-28 text-sm font-mono bg-surface border border-border rounded-lg px-2.5 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors"
+                    className="w-24 text-sm font-mono bg-surface border border-border rounded-lg px-2.5 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors"
                   />
+                  <span className="text-[10px] text-text-4">
+                    {editMode === '%' && monthlyIncome
+                      ? `≈ ${fmt(Math.round((monthlyIncome * (parseFloat(editValue) || 0)) / 100))}/mo`
+                      : editMode === '%'
+                        ? '% of income'
+                        : ''}
+                  </span>
                   <button
                     onClick={() => saveEdit(ci.category)}
                     className="text-xs px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
@@ -205,6 +258,12 @@ export default function BudgetSuggestionsPanel() {
                     {fmt(activeBudget)}
                   </span>
 
+                  {isPctBudget && (
+                    <span className="text-[10px] text-text-4 shrink-0 font-mono">
+                      {savedEntry.percentage}%
+                    </span>
+                  )}
+
                   {!hasUserBudget && (
                     <span className="text-[10px] text-text-4 shrink-0">
                       suggested
@@ -212,7 +271,13 @@ export default function BudgetSuggestionsPanel() {
                   )}
 
                   <button
-                    onClick={() => startEdit(ci.category, activeBudget)}
+                    onClick={() =>
+                      startEdit(
+                        ci.category,
+                        activeBudget,
+                        savedEntry?.percentage,
+                      )
+                    }
                     className="text-text-3 hover:text-text-2 text-xs transition-colors shrink-0"
                     title="Edit budget"
                   >

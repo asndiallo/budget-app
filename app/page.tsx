@@ -16,18 +16,24 @@ import type {
   IncomeEntry,
   UserProfile,
 } from '@/lib/types';
-import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
+import {
+  currentMonth,
+  formatCurrency,
+  nextMonth,
+  prevMonth,
+} from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
-import OverviewPanel from './components/OverviewPanel';
 import AssetsPanel from './components/AssetsPanel';
+import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
+import OverviewPanel from './components/OverviewPanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import TransactionsPanel from './components/TransactionsPanel';
@@ -74,7 +80,6 @@ function getYearRange() {
   const y = new Date().getFullYear();
   return Array.from({ length: 4 }, (_, i) => y - 2 + i);
 }
-
 
 function calcSummary(
   income: IncomeConfig,
@@ -188,8 +193,7 @@ export default function Home() {
       const tag = (e.target as HTMLElement)?.tagName;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
       if (e.key === 'ArrowLeft') setMonth((m) => (m ? prevMonth(m) : m));
-      if (e.key === 'ArrowRight')
-        setMonth((m) => (m ? nextMonth(m) : m));
+      if (e.key === 'ArrowRight') setMonth((m) => (m ? nextMonth(m) : m));
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -518,7 +522,7 @@ export default function Home() {
             {tab === 'income' && (
               <div className="space-y-8">
                 <IncomePanel month={month} onUpdate={fetchSummary} />
-                <FixedExpensesPanel onUpdate={fetchSummary} />
+                <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
                 <RecurringDetectionPanel onUpdate={fetchSummary} />
                 <ReceivablesPanel month={month} onUpdate={fetchSummary} />
               </div>
@@ -536,7 +540,9 @@ export default function Home() {
                 <div>
                   <SectionLabel>Budget suggestions</SectionLabel>
                   <div className="mt-3">
-                    <BudgetSuggestionsPanel />
+                    <BudgetSuggestionsPanel
+                      monthlyIncome={summary?.totalIncome}
+                    />
                   </div>
                 </div>
               </div>
@@ -548,6 +554,7 @@ export default function Home() {
                   month={month}
                   onCategoryClick={handleCategoryDrill}
                 />
+                <AutoCategorizationPanel />
               </div>
             )}
 
@@ -571,7 +578,9 @@ export default function Home() {
 
             {tab === 'overview' && (
               <OverviewPanel
-                initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
+                initialYear={
+                  month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()
+                }
               />
             )}
           </div>

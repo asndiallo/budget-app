@@ -5,15 +5,20 @@ import { requireAuth } from '@/lib/auth';
 export async function GET(req: Request) {
   try {
     const { userId } = await requireAuth(req);
+    const { searchParams } = new URL(req.url);
+    const month = searchParams.get('month');
+    if (!month)
+      return NextResponse.json({ error: 'month required' }, { status: 400 });
     const db = getDb();
     const rows = db
       .prepare(
-        'SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?',
+        'SELECT id, fixed_expense_id, month, paid_at FROM bill_payments WHERE user_id = ? AND month = ?',
       )
-      .all(userId) as {
-      category: string;
-      budget: number;
-      percentage: number | null;
+      .all(userId, month) as {
+      id: number;
+      fixed_expense_id: number;
+      month: string;
+      paid_at: string;
     }[];
     return NextResponse.json(rows);
   } catch (err) {
@@ -22,14 +27,14 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+export async function POST(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { category, budget, percentage } = await req.json();
+    const { fixed_expense_id, month } = await req.json();
     db.prepare(
-      'INSERT INTO category_budgets (user_id, category, budget, percentage) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, category) DO UPDATE SET budget = excluded.budget, percentage = excluded.percentage',
-    ).run(userId, category, budget ?? 0, percentage ?? null);
+      'INSERT OR IGNORE INTO bill_payments (user_id, fixed_expense_id, month) VALUES (?, ?, ?)',
+    ).run(userId, fixed_expense_id, month);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;
@@ -41,10 +46,10 @@ export async function DELETE(req: Request) {
   try {
     const { userId } = await requireAuth(req);
     const db = getDb();
-    const { category } = await req.json();
+    const { fixed_expense_id, month } = await req.json();
     db.prepare(
-      'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
-    ).run(userId, category);
+      'DELETE FROM bill_payments WHERE user_id = ? AND fixed_expense_id = ? AND month = ?',
+    ).run(userId, fixed_expense_id, month);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Response) return err;

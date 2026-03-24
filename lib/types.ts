@@ -126,6 +126,21 @@ export interface Debt {
 export interface CategoryBudget {
   category: string;
   budget: number;
+  /** If set, budget is computed as this % of monthly income instead of a fixed $ */
+  percentage?: number | null;
+}
+
+export interface BillPayment {
+  id: number;
+  fixed_expense_id: number;
+  month: string;
+  paid_at: string;
+}
+
+export interface CategorizationRule {
+  id: number;
+  keyword: string;
+  category: string;
 }
 
 export interface CategoryInsight {

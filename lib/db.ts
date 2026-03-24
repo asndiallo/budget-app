@@ -135,5 +135,33 @@ function initSchema(db: Database.Database) {
       balance    REAL    NOT NULL DEFAULT 0,
       updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS bill_payments (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id          TEXT    NOT NULL,
+      fixed_expense_id INTEGER NOT NULL,
+      month            TEXT    NOT NULL,
+      paid_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, fixed_expense_id, month)
+    );
+
+    CREATE TABLE IF NOT EXISTS categorization_rules (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id  TEXT    NOT NULL,
+      keyword  TEXT    NOT NULL,
+      category TEXT    NOT NULL,
+      UNIQUE(user_id, keyword)
+    );
   `);
+
+  migrateSchema(db);
+}
+
+function migrateSchema(db: Database.Database) {
+  const cols = db.prepare('PRAGMA table_info(category_budgets)').all() as {
+    name: string;
+  }[];
+  if (!cols.some((c) => c.name === 'percentage')) {
+    db.exec('ALTER TABLE category_budgets ADD COLUMN percentage REAL');
+  }
 }

@@ -194,6 +194,14 @@ function DebtRow({
   onRemove: (id: number) => void;
 }) {
   const isPaidOff = debt.balance === 0;
+  const [showAmort, setShowAmort] = useState(false);
+  const [extraPayment, setExtraPayment] = useState('');
+
+  const extra = parseFloat(extraPayment) || 0;
+  const debtWithExtra: Debt =
+    extra > 0
+      ? { ...debt, monthly_payment: debt.monthly_payment + extra }
+      : debt;
 
   return (
     <div
@@ -245,7 +253,7 @@ function DebtRow({
               const info = calcPayoff(debt);
               if (!info) return null;
               return (
-                <div className="flex gap-4 mt-2 pt-2 border-t border-border-dim flex-wrap">
+                <div className="flex gap-4 mt-2 pt-2 border-t border-border-dim flex-wrap items-center">
                   <span className="text-[11px] text-text-3">
                     Paid off{' '}
                     <span className="text-text font-mono">
@@ -261,9 +269,24 @@ function DebtRow({
                       </span>
                     </span>
                   )}
+                  <button
+                    onClick={() => setShowAmort((v) => !v)}
+                    className="ml-auto text-[11px] text-text-4 hover:text-[#4a8cff] transition-colors"
+                  >
+                    {showAmort ? 'Hide schedule ↑' : 'Show schedule ↓'}
+                  </button>
                 </div>
               );
             })()}
+
+          {showAmort && !isPaidOff && (
+            <AmortizationSchedule
+              debt={debt}
+              extra={extra}
+              extraPayment={extraPayment}
+              onExtraChange={setExtraPayment}
+            />
+          )}
         </div>
         <button
           onClick={() => onRemove(debt.id)}
@@ -274,6 +297,131 @@ function DebtRow({
       </div>
     </div>
   );
+}
+
+function AmortizationSchedule({
+  debt,
+  extra,
+  extraPayment,
+  onExtraChange,
+}: {
+  debt: Debt;
+  extra: number;
+  extraPayment: string;
+  onExtraChange: (v: string) => void;
+}) {
+  const baseInfo = calcPayoff(debt);
+  const withExtra =
+    extra > 0
+      ? calcPayoff({ ...debt, monthly_payment: debt.monthly_payment + extra })
+      : null;
+
+  // Build yearly milestones
+  const milestones = buildYearlyMilestones(debt, extra);
+
+  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border-dim space-y-3">
+      {/* Extra payment input */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-text-3 shrink-0">
+          Extra payment/mo
+        </span>
+        <span className="text-[11px] text-text-3">$</span>
+        <input
+          type="number"
+          min="0"
+          value={extraPayment}
+          onChange={(e) => onExtraChange(e.target.value)}
+          placeholder="0"
+          className="w-20 text-xs font-mono bg-bg border border-border rounded px-2 py-0.5 text-text focus:outline-none focus:border-blue-500 transition-colors"
+        />
+        {withExtra && baseInfo && (
+          <span className="text-[11px] text-[#00d98a] font-mono">
+            saves {fmt(baseInfo.totalInterest - withExtra.totalInterest)} ·{' '}
+            {baseInfo.months - withExtra.months} mo faster
+          </span>
+        )}
+      </div>
+
+      {/* Year-by-year table */}
+      {milestones.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-text-4 border-b border-border-dim">
+                <th className="text-left pb-1 font-medium">Year</th>
+                <th className="text-right pb-1 font-medium">Balance</th>
+                <th className="text-right pb-1 font-medium">Paid</th>
+                <th className="text-right pb-1 font-medium">Interest</th>
+              </tr>
+            </thead>
+            <tbody>
+              {milestones.map((m) => (
+                <tr
+                  key={m.year}
+                  className="border-b border-border-dim/50 hover:bg-surface-raised/30 transition-colors"
+                >
+                  <td className="py-1 text-text-3 font-mono">{m.year}</td>
+                  <td className="py-1 text-right font-mono text-text">
+                    {fmt(m.balance)}
+                  </td>
+                  <td className="py-1 text-right font-mono text-[#4a8cff]">
+                    {fmt(m.principal)}
+                  </td>
+                  <td className="py-1 text-right font-mono text-[#ff4560]/80">
+                    {fmt(m.interest)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface YearlyMilestone {
+  year: number;
+  balance: number;
+  principal: number;
+  interest: number;
+}
+
+function buildYearlyMilestones(
+  debt: Debt,
+  extraPayment: number,
+): YearlyMilestone[] {
+  if (debt.balance <= 0 || debt.monthly_payment <= 0) return [];
+  const monthly = debt.monthly_payment + extraPayment;
+  const r = debt.interest_rate / 100 / 12;
+  if (r > 0 && monthly <= debt.balance * r) return [];
+
+  let balance = debt.balance;
+  const currentYear = new Date().getFullYear();
+  const milestones: YearlyMilestone[] = [];
+
+  for (let yr = 0; yr < 50 && balance > 0.01; yr++) {
+    let yearInterest = 0;
+    let yearPrincipal = 0;
+    for (let mo = 0; mo < 12 && balance > 0.01; mo++) {
+      const interest = balance * r;
+      const principal = Math.min(monthly - interest, balance);
+      yearInterest += interest;
+      yearPrincipal += principal;
+      balance = Math.max(0, balance - principal);
+    }
+    milestones.push({
+      year: currentYear + yr,
+      balance: Math.max(0, balance),
+      principal: Math.round(yearPrincipal),
+      interest: Math.round(yearInterest),
+    });
+    if (balance <= 0.01) break;
+  }
+  return milestones;
 }
 
 function EditableText({

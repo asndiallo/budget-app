@@ -4,7 +4,9 @@
 import type {
   Asset,
   AssetCategory,
+  BillPayment,
   CategoryBudget,
+  CategorizationRule,
   CsvRow,
   Debt,
   FixedExpense,
@@ -214,12 +216,40 @@ export const api = {
 
   categoryBudgets: {
     list: () => fetch('/api/category-budgets').then(asJson<CategoryBudget[]>),
-    set: (category: string, budget: number) =>
-      send('PUT', '/api/category-budgets', { category, budget }).then(
-        asJson<{ ok: boolean }>,
-      ),
+    set: (category: string, budget: number, percentage?: number | null) =>
+      send('PUT', '/api/category-budgets', {
+        category,
+        budget,
+        percentage,
+      }).then(asJson<{ ok: boolean }>),
     remove: (category: string) =>
       send('DELETE', '/api/category-budgets', { category }).then(
+        asJson<{ ok: boolean }>,
+      ),
+  },
+
+  billPayments: {
+    list: (month: string) =>
+      fetch(`/api/bill-payments?month=${month}`).then(asJson<BillPayment[]>),
+    markPaid: (fixed_expense_id: number, month: string) =>
+      send('POST', '/api/bill-payments', { fixed_expense_id, month }).then(
+        asJson<{ ok: boolean }>,
+      ),
+    unmark: (fixed_expense_id: number, month: string) =>
+      send('DELETE', '/api/bill-payments', { fixed_expense_id, month }).then(
+        asJson<{ ok: boolean }>,
+      ),
+  },
+
+  categorizationRules: {
+    list: () =>
+      fetch('/api/categorization-rules').then(asJson<CategorizationRule[]>),
+    add: (keyword: string, category: string) =>
+      send('POST', '/api/categorization-rules', { keyword, category }).then(
+        asJson<CategorizationRule>,
+      ),
+    remove: (id: number) =>
+      send('DELETE', '/api/categorization-rules', { id }).then(
         asJson<{ ok: boolean }>,
       ),
   },

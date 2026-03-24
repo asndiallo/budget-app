@@ -44,6 +44,21 @@ export async function POST(req: Request) {
       source: string;
     };
 
+    // Load user's custom categorization rules
+    const userRules = db
+      .prepare(
+        'SELECT keyword, category FROM categorization_rules WHERE user_id = ?',
+      )
+      .all(userId) as { keyword: string; category: string }[];
+
+    function applyCategory(description: string, csvCategory: string): string {
+      const lower = description.toLowerCase();
+      for (const rule of userRules) {
+        if (lower.includes(rule.keyword)) return rule.category;
+      }
+      return mapCategory(csvCategory);
+    }
+
     const importId = crypto.randomUUID();
     const insert = db.prepare(
       'INSERT OR IGNORE INTO transactions (user_id, description, amount, category, month, source, date, import_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -62,7 +77,7 @@ export async function POST(req: Request) {
           userId,
           row.description,
           Math.abs(row.amount),
-          mapCategory(row.category),
+          applyCategory(row.description, row.category),
           month,
           source || 'Unknown',
           date,
