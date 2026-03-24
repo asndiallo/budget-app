@@ -63,6 +63,7 @@ export default function PcsPanel({ user }: Props) {
   const [distanceMiles, setDistanceMiles] = useState('');
   const [driving, setDriving] = useState(true);
   const [tleDays, setTleDays] = useState(String(TLE_MAX_DAYS));
+  const [showRef, setShowRef] = useState(false);
 
   const results = useMemo(() => {
     const bahFrom = fromStation ? getBAH(fromStation, grade, hasDeps) : 0;
@@ -233,24 +234,34 @@ export default function PcsPanel({ user }: Props) {
         </div>
       )}
 
-      {/* Reference info */}
-      <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
-          Quick reference
-        </p>
-        <ul className="text-[11px] text-text-3 space-y-1 list-none">
-          <li>· DLA = BAH at higher station (old vs. new), your grade and dependent status — <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="JTR §5952" /></li>
-          <li>· Weight allowance per JTR Appendix A. Pro-gear is separate and not counted against HHG limit.</li>
-          <li>· TLE: up to 5 nights at losing PDS + 5 at gaining PDS. Requires lodging receipts.</li>
-          <li>· MALT rate: ${MALT_RATE_PER_MILE}/mile per POV. Up to {hasDeps ? '2 POVs' : '1 POV'} authorized.</li>
-          <li>· BAH data reflects 2026 DoD rates — <ExternalLink href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/" label="official BAH calculator" /></li>
-        </ul>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
-          <ExternalLink href="https://move.mil" label="move.mil — book your move" />
-          <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="Joint Travel Regulations" />
-          <ExternalLink href="https://www.militaryonesource.mil/moving-housing/moving/" label="MilOneSource moving guide" />
-          <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/" label="MilOneSource finances" />
-        </div>
+      {/* Reference info (collapsible) */}
+      <div className="rounded-xl border border-border-dim bg-surface-raised/20 overflow-hidden">
+        <button
+          onClick={() => setShowRef((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+            Quick reference
+          </span>
+          <span className="text-text-4 text-xs">{showRef ? '▲' : '▼'}</span>
+        </button>
+        {showRef && (
+          <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
+            <ul className="text-[11px] text-text-3 space-y-1 list-none pt-2">
+              <li>· DLA = BAH at higher station (old vs. new), your grade and dependent status — <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="JTR §5952" /></li>
+              <li>· Weight allowance per JTR Appendix A. Pro-gear is separate and not counted against HHG limit.</li>
+              <li>· TLE: up to 5 nights at losing PDS + 5 at gaining PDS. Requires lodging receipts.</li>
+              <li>· MALT rate: ${MALT_RATE_PER_MILE}/mile per POV. Up to {hasDeps ? '2 POVs' : '1 POV'} authorized.</li>
+              <li>· BAH data reflects 2026 DoD rates — <ExternalLink href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/" label="official BAH calculator" /></li>
+            </ul>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
+              <ExternalLink href="https://move.mil" label="move.mil — book your move" />
+              <ExternalLink href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/" label="Joint Travel Regulations" />
+              <ExternalLink href="https://www.militaryonesource.mil/moving-housing/moving/" label="MilOneSource moving guide" />
+              <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/" label="MilOneSource finances" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

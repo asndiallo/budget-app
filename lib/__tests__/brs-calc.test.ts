@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { calcBrs, dodMatchRate, inferRetirementSystem } from '../brs-calc';
+import { describe, expect, it } from 'vitest';
 
 // ── dodMatchRate ──────────────────────────────────────────────────────────────
 
@@ -21,8 +21,8 @@ describe('dodMatchRate', () => {
   });
 
   it('caps at 5% even above 5% member rate', () => {
-    expect(dodMatchRate(0.10)).toBeCloseTo(0.05);
-    expect(dodMatchRate(0.20)).toBeCloseTo(0.05);
+    expect(dodMatchRate(0.1)).toBeCloseTo(0.05);
+    expect(dodMatchRate(0.2)).toBeCloseTo(0.05);
   });
 
   it('matches DoD formula at 4% member (1% auto + 3.5% match)', () => {
@@ -181,7 +181,9 @@ describe('calcBrs — wealth at retirement', () => {
 
   it('BRS wealth = tspWithMatch + contPayFv', () => {
     const r = calcBrs(BASE_INPUTS);
-    expect(r.brsWealthAtRetirement).toBeCloseTo(r.tspWithMatch + r.contPayFvAtRetirement);
+    expect(r.brsWealthAtRetirement).toBeCloseTo(
+      r.tspWithMatch + r.contPayFvAtRetirement,
+    );
   });
 });
 

@@ -111,6 +111,7 @@ export default function BrsPanel({ user, month }: Props) {
   const [contMult, setContMult] = useState(2.5);
   const [basePay, setBasePay] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [showAssumptions, setShowAssumptions] = useState(false);
 
   // Fetch actual base pay and TSP rate from income config
   useEffect(() => {
@@ -361,22 +362,32 @@ export default function BrsPanel({ user, month }: Props) {
         </div>
       )}
 
-      {/* Assumptions + resources */}
-      <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
-          Assumptions & resources
-        </p>
-        <ul className="text-[11px] text-text-3 space-y-0.5">
-          <li>· Estimates use your current base pay ({fmt(basePay)}/mo) as a proxy for the High-3 average. Actual retirement pay will be higher due to promotions.</li>
-          <li>· Both scenarios assume the same member TSP contribution rate ({memberPct}%).</li>
-          <li>· Continuation pay figures assume active duty minimum (2.5×); check your branch for current multipliers.</li>
-          <li>· Investment return of {returnPct}% is not guaranteed — TSP L Fund historical returns have ranged 4–9%.</li>
-        </ul>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
-          <ExternalLink href="https://militarypay.defense.gov/Pay/Retirement/BRS/" label="BRS overview" />
-          <ExternalLink href="https://www.tsp.gov/planning-for-life-events/it-s-a-military-life/" label="TSP for service members" />
-          <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/saving-investing/blended-retirement-system/" label="MilOneSource BRS guide" />
-        </div>
+      {/* Assumptions + resources (collapsible) */}
+      <div className="rounded-xl border border-border-dim bg-surface-raised/20 overflow-hidden">
+        <button
+          onClick={() => setShowAssumptions((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+            Assumptions & resources
+          </span>
+          <span className="text-text-4 text-xs">{showAssumptions ? '▲' : '▼'}</span>
+        </button>
+        {showAssumptions && (
+          <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
+            <ul className="text-[11px] text-text-3 space-y-0.5 pt-2">
+              <li>· Estimates use your current base pay ({fmt(basePay)}/mo) as a proxy for the High-3 average. Actual retirement pay will be higher due to promotions.</li>
+              <li>· Both scenarios assume the same member TSP contribution rate ({memberPct}%).</li>
+              <li>· Continuation pay figures assume active duty minimum (2.5×); check your branch for current multipliers.</li>
+              <li>· Investment return of {returnPct}% is not guaranteed — TSP L Fund historical returns have ranged 4–9%.</li>
+            </ul>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
+              <ExternalLink href="https://militarypay.defense.gov/Pay/Retirement/BRS/" label="BRS overview" />
+              <ExternalLink href="https://www.tsp.gov/planning-for-life-events/it-s-a-military-life/" label="TSP for service members" />
+              <ExternalLink href="https://www.militaryonesource.mil/financial-legal/personal-finance/saving-investing/blended-retirement-system/" label="MilOneSource BRS guide" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

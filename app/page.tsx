@@ -177,6 +177,9 @@ export default function Home() {
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections'>('pay');
+  const [assetsSub, setAssetsSub] = useState<'assets' | 'debts'>('assets');
+  const [goalsSub, setGoalsSub] = useState<'goals' | 'budget'>('goals');
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -549,13 +552,34 @@ export default function Home() {
           {/* Panel content */}
           <div className="p-5">
             {tab === 'income' && (
-              <div className="space-y-8">
-                <IncomePanel month={month} onUpdate={fetchSummary} />
-                <PromoProjectionPanel user={user} />
-            <BrsPanel user={user} month={month} />
-                <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
-                <RecurringDetectionPanel onUpdate={fetchSummary} />
-                <ReceivablesPanel month={month} onUpdate={fetchSummary} />
+              <div>
+                <SubNav
+                  options={[
+                    { key: 'pay', label: 'Pay' },
+                    { key: 'bills', label: 'Fixed bills' },
+                    { key: 'projections', label: 'Projections' },
+                  ]}
+                  active={incomeSub}
+                  onChange={(k) => setIncomeSub(k as typeof incomeSub)}
+                />
+                {incomeSub === 'pay' && (
+                  <div className="space-y-8">
+                    <IncomePanel month={month} onUpdate={fetchSummary} />
+                    <ReceivablesPanel month={month} onUpdate={fetchSummary} />
+                  </div>
+                )}
+                {incomeSub === 'bills' && (
+                  <div className="space-y-8">
+                    <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
+                    <RecurringDetectionPanel onUpdate={fetchSummary} />
+                  </div>
+                )}
+                {incomeSub === 'projections' && (
+                  <div className="space-y-8">
+                    <PromoProjectionPanel user={user} />
+                    <BrsPanel user={user} month={month} />
+                  </div>
+                )}
               </div>
             )}
             {tab === 'transactions' && (
@@ -566,16 +590,19 @@ export default function Home() {
               />
             )}
             {tab === 'goals' && (
-              <div className="space-y-8">
-                <GoalsPanel />
-                <div>
-                  <SectionLabel>Budget suggestions</SectionLabel>
-                  <div className="mt-3">
-                    <BudgetSuggestionsPanel
-                      monthlyIncome={summary?.totalIncome}
-                    />
-                  </div>
-                </div>
+              <div>
+                <SubNav
+                  options={[
+                    { key: 'goals', label: 'Goals' },
+                    { key: 'budget', label: 'Budget' },
+                  ]}
+                  active={goalsSub}
+                  onChange={(k) => setGoalsSub(k as typeof goalsSub)}
+                />
+                {goalsSub === 'goals' && <GoalsPanel />}
+                {goalsSub === 'budget' && (
+                  <BudgetSuggestionsPanel monthlyIncome={summary?.totalIncome} />
+                )}
               </div>
             )}
             {tab === 'analytics' && (
@@ -590,9 +617,17 @@ export default function Home() {
             )}
 
             {tab === 'assets' && (
-              <div className="space-y-8">
-                <AssetsPanel onUpdate={fetchSummary} />
-                <DebtsPanel onUpdate={fetchSummary} />
+              <div>
+                <SubNav
+                  options={[
+                    { key: 'assets', label: 'Assets' },
+                    { key: 'debts', label: 'Debts' },
+                  ]}
+                  active={assetsSub}
+                  onChange={(k) => setAssetsSub(k as typeof assetsSub)}
+                />
+                {assetsSub === 'assets' && <AssetsPanel onUpdate={fetchSummary} />}
+                {assetsSub === 'debts' && <DebtsPanel onUpdate={fetchSummary} />}
               </div>
             )}
 
@@ -664,6 +699,35 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
       {children}
     </h3>
+  );
+}
+
+/* ── Sub-tab navigation ───────────────────────────────────────────── */
+function SubNav({
+  options,
+  active,
+  onChange,
+}: {
+  options: { key: string; label: string }[];
+  active: string;
+  onChange: (key: string) => void;
+}) {
+  return (
+    <div className="flex gap-1 mb-5 p-1 bg-surface-raised rounded-xl border border-border w-fit">
+      {options.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            active === key
+              ? 'bg-bg text-text shadow-sm border border-border'
+              : 'text-text-3 hover:text-text-2'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }
 
