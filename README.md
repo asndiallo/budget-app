@@ -1,211 +1,246 @@
-# Budget Tracker — Personal Military Finance App
+# Military Budget Tracker
 
-A self-hosted personal finance app built specifically for U.S. military service members. Tracks pay, deductions, fixed expenses, spending, savings goals, debts, assets, and investments — all in one place, with no cloud dependency.
-
----
-
-## Stack
-
-- **Next.js 16** (App Router) — frontend + API routes in one process
-- **SQLite** (`better-sqlite3`) — local persistent database, zero config
-- **Tailwind CSS 4** — styling with CSS custom property theming
-- **Recharts** — charts and analytics
-- **TypeScript 5** — fully typed throughout
-- **Bun** — package manager and runtime
+A self-hosted personal finance app built for U.S. military service members. It understands your LES — base pay, BAH, BAS, TSP, SGLI — and puts everything in one place, on your own machine, with no subscription and no cloud.
 
 ---
 
-## Setup
+## What it does
+
+- Tracks your full military paycheck: base pay, BAH, BAS, deductions (taxes, FICA, SGLI, AFRH, TSP)
+- Imports your LES directly to auto-fill income fields
+- Shows what you'll earn if you get promoted to the next rank (or any rank)
+- Imports credit card CSVs (Apple Card, Capital One, Navy Federal, Chase) with a review step before saving
+- Tracks fixed bills, savings goals, debts with amortization, and assets
+- Gives you a financial health score and month-over-month trends
+- Runs entirely on your laptop — your data never leaves your machine
+
+---
+
+## Quick start
 
 ### Requirements
 
-- Node.js 18+ or Bun runtime
-- If using mise: `mise use node@20`
+- [Bun](https://bun.sh) (recommended) or Node.js 18+
+- macOS, Linux, or Windows (WSL)
 
-### Install & run
+### Install and run
 
 ```bash
+git clone <repo-url>
+cd budget-app
 bun install
 bun run dev
 ```
 
-Open → <http://localhost:3000>
+Open **<http://localhost:3000>** in your browser.
 
-On first run the app seeds default military pay data (E-3) and creates an `admin` account. Log in and update your profile to match your pay grade, branch, and duty station.
-
-### Your data
-
-All data lives in `budget.db` in the project root.
-
-- **Backup**: copy `budget.db`
-- **Reset**: delete `budget.db` and restart — re-seeds defaults automatically
-- **Full export/restore**: use the JSON backup button in the app header
+> If you don't have Bun: `curl -fsSL https://bun.sh/install | bash`, then restart your terminal.
 
 ---
 
-## Features
+## First-time setup
 
-### Income tab
+The database and all tables are created automatically on first run — no migration command needed.
 
-- **Military pay fields** — Base pay, BAS, BAH, and Other; all inline-editable, auto-save on blur
-- **TSP** — auto-calculated at 20% of base pay (configurable); fund allocation displayed (C/S/I)
-- **Payroll deductions** — Federal taxes, FICA (Social Security + Medicare), SGLI, AFRH, meal deduction
-- **Monthly income entries** — log additional income sources (e.g. extra BAH, special pays) per month
-- **Fixed expenses** — recurring bills with monthly or annual periods; each expense shows the monthly equivalent for annual ones; due-day badge (e.g. "due 15th") for calendar integration; inline notes; toggle individual expenses as **investments** (Roth IRA, brokerage contributions, etc.) so they count toward the Invested metric and savings rate rather than regular committed expenses
-- **Recurring detection** — automatically scans 6 months of transaction history and surfaces charges that appear consistently (Netflix, gym, etc.) as candidates to promote to Fixed Expenses
-- **Receivables** — track money owed to you; record partial payments; marks as fully paid automatically
+When you open the app for the first time:
 
-### Spending tab
+1. **Log in** with the default admin account created on startup:
+   - Email: `admin@example.com`
+   - Password: `admin123`
 
-- **CSV import** — import transactions from any card CSV; Apple Card categories are auto-mapped to budget categories; duplicate detection prevents re-importing the same transactions
-- **Import history** — view past imports with date ranges; delete an entire import batch to undo it
-- **Manual transactions** — add transactions with description, amount, category, date, source, and optional notes; 6-second undo toast after adding
-- **Filter & search** — filter by category or search by description across all months
-- **CSV export** — export the currently filtered transaction list as a CSV for Excel/Sheets analysis
-- **Payment sources** — manage your card/source list; used as labels on transactions
+   To override these, set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` env vars before first run.
 
-### Goals tab
+2. **Update your profile** — click your name in the top-right corner → Edit Profile:
+   - Pay grade, branch, component (Active / Reserve / Guard)
+   - Duty station — needed for accurate BAH lookup
+   - Years of service and dependents
 
-- **Savings goals** — name, target amount, color-coded progress bar
-- **Contribution history** — log each time you add funds with an optional note; full history per goal with timestamps; delete individual contributions (automatically reverses the amount)
-- **Net Worth integration** — goal savings are included in the Net Worth calculation automatically; no duplicate entry needed
+   Or skip this and use the app with default E-3 values for exploration.
 
-### Analytics tab
+3. **Go to the Income tab** and update your pay fields, or click **Import LES** to paste your LES text directly and auto-fill everything.
 
-- **Spending donut** — current month's spending breakdown by category; click a slice to filter the Spending tab
-- **Income · Spending · Net area chart** — 6-month trend
-- **Spending by category bar chart** — stacked 6-month breakdown; click a bar segment to drill into that category
-- **Savings rate line chart** — monthly savings rate over time with a 20% reference line
-- **Spending insights** — category-level averages (3-month and 6-month), trend direction (↑↓ stable), and a suggested monthly budget per category
+4. **Add your fixed expenses** — rent/mortgage (if off-base), subscriptions, car payment, etc.
 
-### Net Worth / Assets tab
+5. **Import a CSV** from your credit card to load your spending history.
 
-- **Assets** — track checking, savings, brokerage, retirement, property, vehicle, and other assets; inline balance editing
-- **Debts** — loans with balance, monthly payment, and interest rate; paid-off debts (balance = 0) are excluded from the Committed total automatically
-- **Financial health score** — composite 0–100 score across emergency fund coverage, savings rate, debt-to-income, net worth trend, and investment consistency
-- **YTD summary** — year-to-date totals for income, invested, spending, and net saved
+> **Creating your own account:** go to `/register` to sign up with your personal details. The first account is auto-promoted to admin; subsequent accounts are regular users.
 
-### Calendar tab
-
-- **Monthly cash flow calendar** — grid view of the current month showing:
-  - Green chips on military pay days (1st and 15th)
-  - Blue chips for bill due dates (from fixed expenses with a due day set)
-  - Red daily spending totals from transactions
-- Click any day to see a breakdown of that day's transactions and bills
-
-### Global
-
-- **Summary bar** — 5 metric cards always visible: Total Income · Invested (TSP + investment fixed expenses) · Committed (fixed expenses + active debt payments) · Spending · Net remaining; each card shows a delta vs. the prior month
-- **Budget allocation bar** — visual breakdown of income: Invested / Committed / Spending / Net
-- **Month selector** — navigate any month/year; all data is month-scoped
-- **Theme** — follows the OS/browser preference by default; toggle manually; preference is saved
-- **Multi-user** — each user has their own isolated data; admin can manage users; role-based access (admin / user / viewer)
-- **Backup & restore** — full JSON export/import from the header
+That's it. The summary bar at the top will now show your income, what's committed, what you've spent, and what's left.
 
 ---
 
-## CSV import
+## Importing your Leave & Earnings Statement (LES)
 
-Any card CSV is supported. Apple Card format is natively mapped. For other cards, map their category names in `CSV_CATEGORY_MAP` in `lib/config.ts`.
+The fastest way to fill in your income data:
 
-**Apple Card export steps:**
+1. Go to **myPay** → download or open your LES PDF
+2. Press `Cmd+A` then `Cmd+C` to select and copy all the text (or save the `.txt` version)
+3. In the app: **Income tab** → **Import LES** → paste the text
+4. Review the extracted fields (base pay, BAH, BAS, TSP rate, deductions)
+5. Confirm the month and click **Apply**
 
-1. Open **Wallet** on iPhone → tap Apple Card
-2. Scroll to bottom → **Export Transactions**
-3. AirDrop or save the CSV to your Mac
-4. In the app: Spending tab → **Upload CSV** → select source card
+The parser handles the standard DFAS two-column myPay format and most single-column variants. If a field isn't detected, a warning tells you which one to fill in manually.
+
+---
+
+## Importing credit card transactions
+
+1. Export a CSV from your card's app or website
+2. **Spending tab** → **Upload CSV** → select your card as the source
+3. A review grid appears — check that categories look right; uncategorized rows are highlighted
+4. Fix any categories using the dropdowns, then click **Import**
+
+Supported formats: Apple Card, Capital One, Navy Federal, Chase. Duplicate transactions are automatically skipped on re-import.
+
+**Apple Card export:**
+
+1. Wallet app on iPhone → tap Apple Card
+2. Scroll down → Export Transactions
+3. AirDrop or save to Mac → import in the app
+
+---
+
+## Promotion projection
+
+Curious what your pay looks like at the next rank?
+
+- **Income tab** → scroll to **Promotion projection**
+- It defaults to your next grade in the same category (E → E, O → O)
+- Change the target grade to model any scenario (e.g. commissioning from E to O)
+- Adjust years of service at promotion to see how time-in affects base pay
+- Shows the delta for base pay, BAS, BAH, and gross — plus TSP impact
+
+---
+
+## Key features by tab
+
+### Income
+
+- Military pay fields (base pay, BAS, BAH) — inline editable, auto-save
+- LES import — paste LES text or upload `.txt` file to auto-fill
+- TSP deduction — configurable rate, shown as dollar amount and percentage
+- Other deductions — federal tax, FICA, SGLI, AFRH, meal deduction
+- Additional income — log extra pays, side income, per diem, etc.
+- Fixed expenses — recurring bills with due dates, monthly/annual toggle, investment flag
+- Bill payment tracker — mark fixed bills as paid each month
+- Promotion projection — side-by-side pay comparison for any rank change
+- Receivables — track money others owe you
+
+### Spending
+
+- CSV import with category review grid
+- Manual transaction entry (description, amount, category, source, notes)
+- Auto-categorization rules — set keywords that automatically categorize matching transactions
+- Filter by category, search across all months
+- Select mode — bulk recategorize or delete multiple transactions
+- Import history — view and undo past import batches
+- CSV export — export filtered transactions for Excel/Sheets
+
+### Goals
+
+- Savings goals with target amounts and color-coded progress bars
+- Log contributions with notes and timestamps
+- Goal balances count toward your Net Worth automatically
+
+### Analytics
+
+- Spending donut by category (click to drill into Spending tab)
+- 6-month income vs. spending trend
+- Savings rate over time with 20% reference line
+- Spending insights — 3-month and 6-month averages per category, trend direction
+- Budget suggestions — set fixed or percentage-of-income budget per category
+
+### Net Worth
+
+- Track assets: checking, savings, brokerage, TSP/retirement, property, vehicles
+- Debt tracking with amortization schedules — shows months to payoff, interest saved with extra payments
+- Financial health score (0–100) across emergency fund, savings rate, debt-to-income, and investment consistency
+- Year-to-date summary
+
+### Calendar
+
+- Monthly calendar showing pay days (1st and 15th), bill due dates, and daily spending totals
+- Click any day to see transactions and bills for that day
+
+### Keyboard shortcuts
+
+| Key       | Action                          |
+| --------- | ------------------------------- |
+| `←` / `→` | Previous / next month           |
+| `1` – `7` | Switch tabs (Income → Overview) |
+| `/`       | Focus transaction search        |
+| `?`       | Show shortcuts help             |
+
+---
+
+## Your data
+
+All data is stored in `budget.db` in the project root. It never leaves your machine.
+
+| Task             | How                                                             |
+| ---------------- | --------------------------------------------------------------- |
+| Backup           | Copy `budget.db`                                                |
+| Restore a backup | Use **Export/Import** button in the app header (JSON format)    |
+| Start fresh      | Delete `budget.db` and restart — app re-seeds with defaults     |
+| Multiple users   | Supported — each user has isolated data; admin manages accounts |
+
+---
+
+## TSP quick reference
+
+- Default contribution shown in the app: **5% of base pay** (the DoD match threshold)
+- To change: Income tab → TSP row → edit the percentage
+- Or import your LES — the rate is detected automatically from your LES deduction line
+- 2026 contribution limit: **$23,500** ($31,000 if age 50+)
+
+Common allocation (L Fund equivalent):
+
+- C Fund 50% · S Fund 30% · I Fund 20%
+
+## Roth IRA
+
+Add your Roth IRA contribution as a Fixed Expense and toggle the **invest** flag. It counts toward your Invested metric and savings rate instead of regular spending.
+
+- 2026 contribution limit: **$7,500** ($625/month)
+
+---
+
+## Running on a shared (home) server
+
+If you want the app always running on a home server or NAS so any device on your network can reach it:
+
+```bash
+# Run on a specific port and bind to all interfaces
+PORT=3000 bun run dev -- -H 0.0.0.0
+```
+
+Then access it from any device at `http://<server-ip>:3000`. For permanent hosting, run it as a `systemd` service or use `pm2`.
 
 ---
 
 ## Configuration
 
-All hardcoded values live in **`lib/config.ts`**. Edit that file to customize without touching components.
+All app constants live in **`lib/config.ts`**. Edit this file to customize behavior without touching components.
 
-| Export                 | What it controls                                                              |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `APP_CONFIG`           | App title, subtitle, transactions tab label                                   |
-| `INCOME_FIELDS`        | Income rows — add a field here and it appears in the Income tab automatically |
-| `TSP_CONFIG`           | TSP contribution rate and fund allocation note                                |
-| `DEDUCTION_FIELDS`     | Payroll deduction rows (taxes, FICA, SGLI, etc.)                              |
-| `CATEGORIES`           | Transaction category list                                                     |
-| `CAT_COLORS`           | Tailwind badge classes per category                                           |
-| `CHART_CAT_COLORS`     | Hex colors for Recharts charts per category                                   |
-| `CSV_CATEGORY_MAP`     | Source CSV category → internal category mapping                               |
-| `GOAL_COLORS`          | Available goal color palette                                                  |
-| `SEED_INCOME`          | Default income values seeded on first run                                     |
-| `SEED_FIXED_EXPENSES`  | Default fixed expenses seeded on first run                                    |
-| `SEED_GOALS`           | Default savings goals seeded on first run                                     |
-| `SEED_PAYMENT_SOURCES` | Default card/source list seeded on first run                                  |
-| `SEED_DEBTS`           | Default debt entries seeded on first run                                      |
+| Export                | Controls                                                         |
+| --------------------- | ---------------------------------------------------------------- |
+| `APP_CONFIG`          | App title, subtitle, tab label                                   |
+| `INCOME_FIELDS`       | Income rows — add a field here and it shows up in the Income tab |
+| `TSP_CONFIG`          | Default TSP rate and fund allocation note                        |
+| `DEDUCTION_FIELDS`    | Deduction rows (taxes, FICA, SGLI, etc.)                         |
+| `CATEGORIES`          | Transaction categories                                           |
+| `CSV_CATEGORY_MAP`    | Map source CSV categories to internal categories                 |
+| `SEED_INCOME`         | Default income values on first run                               |
+| `SEED_FIXED_EXPENSES` | Default fixed expenses on first run                              |
 
 ---
 
-## Project structure
+## Tech stack
 
-```txt
-app/
-  page.tsx                        # Root shell — tabs, summary bar, month selector
-  login/                          # Login page
-  components/
-    IncomePanel.tsx                # Pay, deductions, income entries
-    FixedExpensesPanel.tsx         # Fixed expenses with due day, notes, investment toggle
-    RecurringDetectionPanel.tsx    # Recurring charge detection from transaction history
-    TransactionsPanel.tsx          # CSV import, manual entry, search/filter, export
-    GoalsPanel.tsx                 # Savings goals with contribution history
-    DebtsPanel.tsx                 # Loans and debt tracking
-    AssetsPanel.tsx                # Asset tracking by category
-    AnalyticsPanel.tsx             # Charts: donut, area, bar, savings rate, insights
-    CashFlowCalendar.tsx           # Monthly calendar with pay days, bills, spending
-    ReceivablesPanel.tsx           # Money owed tracking
-    YtdPanel.tsx                   # Year-to-date summary
-    BudgetSuggestionsPanel.tsx     # AI-style budget suggestions from spending data
-    MonthlyBudgetStatus.tsx        # Budget vs. actual per category
-    UserNav.tsx                    # Profile dropdown, logout
-  api/
-    auth/                          # login, logout, me, profile, register
-    income/                        # Monthly income config
-    income-entries/                # Extra income entries per month
-    fixed-expenses/                # Recurring expenses
-    transactions/                  # Spending transactions
-    csv-import/                    # CSV batch import with dedup
-    import-history/                # Import batch management
-    goals/                         # Savings goals
-    goal-contributions/            # Goal contribution log
-    assets/                        # Asset tracking
-    debts/                         # Debt/loan tracking
-    receivables/                   # Receivables tracking
-    payment-sources/               # Card/source management
-    category-budgets/              # Per-category budget limits
-    analytics/                     # Multi-month chart data
-    insights/                      # Spending insights + category analysis
-    health-score/                  # Financial health score
-    ytd/                           # Year-to-date summary
-    recurring/                     # Recurring charge detection
-    streak/                        # Logging streak
-    pay-lookup/                    # Military pay table lookup
-    backup/                        # JSON export/import
-    users/                         # User management (admin)
-
-lib/
-  config.ts     # All app constants — single source of truth
-  types.ts      # Shared TypeScript interfaces
-  db.ts         # SQLite schema + seed data
-  income.ts     # Server-side income calculation helpers
-  api.ts        # Typed client-side API layer
-  auth.ts       # Auth helpers (JWT / session)
-  utils.ts      # Pure utilities
-```
-
----
-
-## TSP reference
-
-- Default contribution: 20% of base pay (configurable via `TSP_CONFIG.rate`)
-- Default allocation: C Fund 70% · S Fund 20% · I Fund 10%
-
-## Roth IRA
-
-Roth IRA is treated as a **fixed investment expense** — add it in the Fixed Expenses panel and toggle the **invest** flag. It will count toward the Invested metric and savings rate rather than regular committed spending.
-
-- Max annual contribution (2025): $7,000 → ~$583/month
-- Suggested allocation: Fidelity FZROX 80% / FZILX 20%
+- **Next.js 16** (App Router) — frontend + API routes in one process
+- **SQLite** (`better-sqlite3`) — local database, zero config
+- **Tailwind CSS 4** — CSS custom property theming
+- **Recharts** — charts
+- **Better Auth** — session-based auth
+- **TypeScript 5** — fully typed
+- **Bun** — package manager and runtime
