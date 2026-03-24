@@ -1,34 +1,8 @@
-import { CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '@/lib/config';
-
 import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { mapCategory, parseDate } from '@/lib/csv-utils';
 import { requireAuth } from '@/lib/auth';
-
-function parseDate(dateStr: string): { month: string; date: string } | null {
-  if (!dateStr) return null;
-  const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slash) {
-    const [, m, d, y] = slash;
-    const date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    return { month: `${y}-${m.padStart(2, '0')}`, date };
-  }
-  const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso)
-    return {
-      month: `${iso[1]}-${iso[2]}`,
-      date: `${iso[1]}-${iso[2]}-${iso[3]}`,
-    };
-  return null;
-}
-
-function mapCategory(raw: string): string {
-  const lower = (raw || '').toLowerCase();
-  for (const [key, val] of Object.entries(CSV_CATEGORY_MAP)) {
-    if (lower.includes(key)) return val;
-  }
-  return DEFAULT_CATEGORY;
-}
 
 export async function POST(req: Request) {
   try {
