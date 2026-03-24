@@ -60,6 +60,7 @@ export const auth = betterAuth({
       component: { type: 'string', defaultValue: 'Active', input: true },
       dependents: { type: 'number', defaultValue: 0, input: true },
       years_of_service: { type: 'number', defaultValue: 0, input: true },
+      joined_at: { type: 'string', defaultValue: '', input: true },
     },
   },
 

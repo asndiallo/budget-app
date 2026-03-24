@@ -9,7 +9,9 @@ import {
 } from '@/lib/pay-tables';
 import type { Branch, Component, UserProfile } from '@/lib/types';
 
+import DatePicker from './DatePicker';
 import { authClient } from '@/lib/auth-client';
+import { differenceInMonths, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -33,7 +35,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
   const [dutyStation, setDutyStation] = useState(user.duty_station);
   const [component, setComponent] = useState<Component>(user.component);
   const [dependents, setDependents] = useState(user.dependents);
-  const [yos, setYos] = useState(user.years_of_service);
+  const [joinedAt, setJoinedAt] = useState(user.joined_at ?? '');
   const [reseedIncome, setReseedIncome] = useState(false);
 
   async function handleLogout() {
@@ -57,7 +59,8 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
           duty_station: dutyStation,
           component,
           dependents,
-          years_of_service: yos,
+          years_of_service: computedYos(),
+          joined_at: joinedAt,
           reseed_income: reseedIncome,
         }),
       });
@@ -69,6 +72,17 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
     }
   }
 
+  /** Years of service derived from join date, rounded to nearest 0.5 */
+  function computedYos(): number {
+    if (!joinedAt) return 0;
+    try {
+      const months = differenceInMonths(new Date(), parseISO(joinedAt));
+      return Math.round((months / 12) * 2) / 2; // nearest 0.5
+    } catch {
+      return 0;
+    }
+  }
+
   const gradeLabel = `${user.pay_grade} · ${user.branch}`;
 
   return (
@@ -76,21 +90,19 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
       {/* Trigger */}
       <button
         onClick={() => setPanel(panel === 'profile' ? 'none' : 'profile')}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-(--bg-card) transition-colors border border-transparent hover:border-border"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors border border-transparent hover:border-border"
       >
         <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
           {(user.name || user.email).charAt(0).toUpperCase()}
         </div>
         <div className="text-left hidden sm:block">
-          <p className="text-xs font-medium text-(--text-primary) leading-tight">
+          <p className="text-xs font-medium text-text leading-tight">
             {user.name || user.email}
           </p>
-          <p className="text-[10px] text-(--text-muted) leading-tight">
-            {gradeLabel}
-          </p>
+          <p className="text-[10px] text-text-3 leading-tight">{gradeLabel}</p>
         </div>
         <svg
-          className="w-3 h-3 text-(--text-muted)"
+          className="w-3 h-3 text-text-3"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -106,9 +118,9 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
       {/* Dropdown panel */}
       {panel === 'profile' && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-(--bg-card) border border-border rounded-xl shadow-xl z-50 p-4">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl z-50 p-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-(--text-primary)">
+            <h3 className="text-sm font-semibold text-text">
               Military Profile
             </h3>
             <span
@@ -126,7 +138,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
           <form onSubmit={handleSaveProfile} className="space-y-3">
             <div>
-              <label className="block text-[10px] text-(--text-muted) mb-0.5">
+              <label className="block text-[10px] text-text-3 mb-0.5">
                 Display name
               </label>
               <input
@@ -138,7 +150,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
+                <label className="block text-[10px] text-text-3 mb-0.5">
                   Branch
                 </label>
                 <select
@@ -152,7 +164,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
+                <label className="block text-[10px] text-text-3 mb-0.5">
                   Component
                 </label>
                 <select
@@ -169,7 +181,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
+                <label className="block text-[10px] text-text-3 mb-0.5">
                   Pay grade
                 </label>
                 <select
@@ -195,47 +207,28 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
-                  YOS
+                <label className="block text-[10px] text-text-3 mb-0.5">
+                  Years of service
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={40}
-                  step={0.5}
-                  value={yos}
-                  onChange={(e) => setYos(parseFloat(e.target.value) || 0)}
-                  className={inputCls}
-                />
+                <div className={`${inputCls} text-text-3 bg-surface-raised cursor-default select-none`}>
+                  {joinedAt ? `${computedYos()} yrs` : '—'}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] text-(--text-muted) mb-0.5">
-                Duty station
-              </label>
-              <input
-                value={dutyStation}
-                onChange={(e) => setDutyStation(e.target.value)}
-                className={inputCls}
-                placeholder="e.g. JBSA Fort Sam Houston"
-              />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
-                  MOS / Rate
+                <label className="block text-[10px] text-text-3 mb-0.5">
+                  Service start
                 </label>
-                <input
-                  value={mos}
-                  onChange={(e) => setMos(e.target.value.toUpperCase())}
-                  className={inputCls}
-                  placeholder="4N0"
+                <DatePicker
+                  value={joinedAt}
+                  onChange={setJoinedAt}
+                  placeholder="Select date"
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-(--text-muted) mb-0.5">
+                <label className="block text-[10px] text-text-3 mb-0.5">
                   Dependents
                 </label>
                 <select
@@ -249,15 +242,39 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
               </div>
             </div>
 
+            <div>
+              <label className="block text-[10px] text-text-3 mb-0.5">
+                Duty station
+              </label>
+              <input
+                value={dutyStation}
+                onChange={(e) => setDutyStation(e.target.value)}
+                className={inputCls}
+                placeholder="e.g. JBSA Fort Sam Houston"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-text-3 mb-0.5">
+                MOS / Rate / AFSC
+              </label>
+              <input
+                value={mos}
+                onChange={(e) => setMos(e.target.value.toUpperCase())}
+                className={inputCls}
+                placeholder="4N0"
+              />
+            </div>
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={reseedIncome}
                 onChange={(e) => setReseedIncome(e.target.checked)}
-                className="rounded"
+                className="accent-[#4a8cff]"
               />
-              <span className="text-xs text-(--text-muted)">
-                Update income from 2025 pay tables
+              <span className="text-xs text-text-3">
+                Recalculate income from pay tables
               </span>
             </label>
 
@@ -265,14 +282,14 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50"
+                className="flex-1 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 transition-colors"
               >
                 {saving ? 'Saving…' : 'Save profile'}
               </button>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-3 py-1.5 text-xs rounded-lg border border-border text-(--text-muted) hover:text-red-400 hover:border-red-400 transition-colors"
+                className="px-3 py-1.5 text-xs rounded-lg border border-border text-text-3 hover:text-[#ff4560] hover:border-[#ff4560]/40 transition-colors"
               >
                 Sign out
               </button>
@@ -285,4 +302,4 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 }
 
 const inputCls =
-  'w-full px-2 py-1 text-xs rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500';
+  'w-full px-2 py-1 text-xs rounded-lg bg-bg border border-border text-text focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors';

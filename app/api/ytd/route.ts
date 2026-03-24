@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { YtdSummary } from '@/lib/types';
 import { computeMonthlyFinancials } from '@/lib/income';
-import { currentMonth } from '@/lib/utils';
+import { currentMonth, isBeforeMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
@@ -32,6 +32,11 @@ export async function GET(req: Request) {
       spendingRows.map((r) => [r.month, r.total]),
     );
 
+    const userRow = db
+      .prepare('SELECT joined_at FROM users WHERE id = ?')
+      .get(userId) as { joined_at: string | null };
+    const joinedAt = userRow?.joined_at || null;
+
     const investmentFixedMonthly = (
       db
         .prepare(
@@ -46,6 +51,7 @@ export async function GET(req: Request) {
     let monthsRecorded = 0;
 
     for (const mo of months) {
+      if (joinedAt && isBeforeMonth(mo, joinedAt)) continue;
       const { totalIncome: inc, tsp } = computeMonthlyFinancials(
         db,
         mo,

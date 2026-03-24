@@ -20,6 +20,7 @@ export async function PATCH(req: Request) {
       component,
       dependents,
       years_of_service,
+      joined_at,
       reseed_income,
     } = body;
 
@@ -36,6 +37,7 @@ export async function PATCH(req: Request) {
         component: component,
         dependents: dependents,
         years_of_service: years_of_service,
+        joined_at: joined_at,
       },
     });
 

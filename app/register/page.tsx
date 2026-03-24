@@ -1,6 +1,8 @@
 'use client';
 
+import DatePicker from '@/app/components/DatePicker';
 import { authClient } from '@/lib/auth-client';
+import { differenceInMonths, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -59,7 +61,17 @@ export default function RegisterPage() {
   const [dutyStation, setDutyStation] = useState('');
   const [bahZip, setBahZip] = useState('');
   const [dependents, setDependents] = useState(0);
-  const [yos, setYos] = useState(0);
+  const [joinedAt, setJoinedAt] = useState('');
+
+  function computedYos(): number {
+    if (!joinedAt) return 0;
+    try {
+      const months = differenceInMonths(new Date(), parseISO(joinedAt));
+      return Math.round((months / 12) * 2) / 2;
+    } catch {
+      return 0;
+    }
+  }
 
   function handleStep1(e: React.FormEvent) {
     e.preventDefault();
@@ -88,7 +100,8 @@ export default function RegisterPage() {
         duty_station: dutyStation,
         bah_zip: bahZip,
         dependents,
-        years_of_service: yos,
+        years_of_service: computedYos(),
+        joined_at: joinedAt,
       });
       if (err) {
         setError(err.message ?? 'Registration failed');
@@ -242,14 +255,9 @@ export default function RegisterPage() {
                   <label className="block text-xs text-text-3 mb-1">
                     Years of service
                   </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={40}
-                    value={yos}
-                    onChange={(e) => setYos(Number(e.target.value))}
-                    className={inputCls}
-                  />
+                  <div className={`${inputCls} text-text-3 bg-surface cursor-default`}>
+                    {joinedAt ? `${computedYos()} yrs` : '—'}
+                  </div>
                 </div>
               </div>
 
@@ -305,6 +313,20 @@ export default function RegisterPage() {
                     className={inputCls}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-text-3 mb-1">
+                  Service start date
+                </label>
+                <DatePicker
+                  value={joinedAt}
+                  onChange={setJoinedAt}
+                  placeholder="When did you enlist?"
+                />
+                <p className="text-[10px] text-text-4 mt-1">
+                  Income won't be shown for months before this date.
+                </p>
               </div>
 
               <p className="text-xs text-text-3">

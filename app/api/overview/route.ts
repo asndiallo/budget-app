@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { YearOverview } from '@/lib/types';
 import { computeMonthlyFinancials } from '@/lib/income';
+import { currentMonth, isFutureMonth, isBeforeMonth } from '@/lib/utils';
 import { getDb } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
@@ -18,6 +19,12 @@ export async function GET(req: Request) {
       (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
     );
     const placeholders = months.map(() => '?').join(',');
+
+    // Fetch join date from user profile
+    const userRow = db
+      .prepare('SELECT joined_at FROM users WHERE id = ?')
+      .get(userId) as { joined_at: string | null };
+    const joinedAt = userRow?.joined_at || null; // "YYYY-MM" or null
 
     const spendingRows = db
       .prepare(
@@ -46,14 +53,22 @@ export async function GET(req: Request) {
       spendingRows.map((r) => [r.month, r.total]),
     );
 
+    const today = currentMonth();
+
     const monthly = months.map((mo) => {
-      const { totalIncome: income, tsp } = computeMonthlyFinancials(
-        db,
-        mo,
-        userId,
-      );
+      const projected = isFutureMonth(mo);
+      const preService = joinedAt ? isBeforeMonth(mo, joinedAt) : false;
+
+      // No military income before service start
+      const { totalIncome: income, tsp } = preService
+        ? { totalIncome: 0, tsp: 0 }
+        : computeMonthlyFinancials(db, mo, userId);
+
       const spending = spendingByMonth[mo] ?? 0;
-      const hasData = income > 0 || spending > 0;
+      const hasData = preService
+        ? false
+        : income > 0 || (!projected && spending > 0);
+
       const invested = hasData ? tsp + investmentFixed : 0;
       const net = income - invested - spending;
       const savingsRate =
@@ -70,19 +85,24 @@ export async function GET(req: Request) {
         net: Math.round(net),
         savingsRate,
         hasData,
+        projected,
+        preService,
       };
     });
 
+    // Avoid double-calling computeMonthlyFinancials — rebuild from monthly array
     const quarters = [1, 2, 3, 4].map((q) => {
       const slice = monthly.slice((q - 1) * 3, q * 3);
-      const hasData = slice.some((m) => m.hasData);
-      const income = slice.reduce((s, m) => s + (m.hasData ? m.income : 0), 0);
+      const hasData = slice.some((m) => m.hasData && !m.projected);
+      const income = slice
+        .filter((m) => !m.preService)
+        .reduce((s, m) => s + m.income, 0);
       const invested = slice.reduce(
         (s, m) => s + (m.hasData ? m.invested : 0),
         0,
       );
       const spending = slice.reduce(
-        (s, m) => s + (m.hasData ? m.spending : 0),
+        (s, m) => s + (m.projected ? 0 : m.spending),
         0,
       );
       const net = income - invested - spending;
@@ -102,10 +122,15 @@ export async function GET(req: Request) {
       };
     });
 
-    const monthsWithData = monthly.filter((m) => m.hasData).length;
-    const annualIncome = quarters.reduce((s, q) => s + q.income, 0);
-    const annualInvested = quarters.reduce((s, q) => s + q.invested, 0);
-    const annualSpending = quarters.reduce((s, q) => s + q.spending, 0);
+    // Annual totals use only actual (non-projected, non-pre-service) months
+    const actualMonths = monthly.filter((m) => !m.projected && !m.preService);
+    const monthsWithData = actualMonths.filter((m) => m.hasData).length;
+    const annualIncome = actualMonths.reduce((s, m) => s + m.income, 0);
+    const annualInvested = actualMonths.reduce(
+      (s, m) => s + (m.hasData ? m.invested : 0),
+      0,
+    );
+    const annualSpending = actualMonths.reduce((s, m) => s + m.spending, 0);
     const annualNet = annualIncome - annualInvested - annualSpending;
     const annualSavingsRate =
       annualIncome > 0
@@ -113,6 +138,9 @@ export async function GET(req: Request) {
             ((annualInvested + Math.max(0, annualNet)) / annualIncome) * 100,
           )
         : 0;
+
+    // Suppress unused variable warning
+    void today;
 
     return NextResponse.json<YearOverview>({
       year,

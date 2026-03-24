@@ -64,10 +64,13 @@ export default function OverviewPanel({
 
   const chartData = data?.monthly.map((m, i) => ({
     name: MONTH_ABBR[i],
-    income: m.hasData ? m.income : null,
-    spending: m.hasData ? m.spending : null,
-    invested: m.hasData ? m.invested : null,
-    rate: m.hasData && m.income > 0 ? m.savingsRate : null,
+    // Projected months show income only (spending = 0 = future)
+    income: m.hasData || m.projected ? m.income : null,
+    spending: m.hasData && !m.projected ? m.spending : null,
+    invested: (m.hasData || m.projected) && !m.preService ? m.invested : null,
+    rate:
+      (m.hasData || m.projected) && m.income > 0 ? m.savingsRate : null,
+    projected: m.projected,
   }));
 
   const maxCat = data?.categories[0]?.total ?? 1;
@@ -287,20 +290,35 @@ export default function OverviewPanel({
               Quarterly
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {data.quarters.map((q) => (
+              {data.quarters.map((q) => {
+                const qMonthly = data.monthly.slice((q.q - 1) * 3, q.q * 3);
+                const allProjected = qMonthly.every((m) => m.projected);
+                const someProjected = qMonthly.some((m) => m.projected);
+                return (
                 <div
                   key={q.q}
-                  className={`bg-bg rounded-xl border border-border p-4 transition-opacity ${
-                    !q.hasData ? 'opacity-40' : ''
+                  className={`bg-bg rounded-xl border p-4 transition-opacity ${
+                    allProjected
+                      ? 'border-dashed border-border opacity-60'
+                      : !q.hasData
+                        ? 'border-border opacity-40'
+                        : 'border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-semibold text-text">
                       Q{q.q}
                     </span>
-                    <span className="text-[10px] text-text-4">
-                      {Q_RANGES[q.q - 1]}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {someProjected && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#f5a623]/10 text-[#f5a623]">
+                          {allProjected ? 'Projected' : 'Partial'}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-text-4">
+                        {Q_RANGES[q.q - 1]}
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     {(
@@ -369,7 +387,7 @@ export default function OverviewPanel({
                     </div>
                   )}
                 </div>
-              ))}
+              );})}
             </div>
           </div>
 

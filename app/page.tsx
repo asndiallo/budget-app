@@ -16,7 +16,7 @@ import type {
   IncomeEntry,
   UserProfile,
 } from '@/lib/types';
-import { currentMonth, formatCurrency } from '@/lib/utils';
+import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
@@ -75,15 +75,6 @@ function getYearRange() {
   return Array.from({ length: 4 }, (_, i) => y - 2 + i);
 }
 
-function prevMonth(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
-}
-
-function nextMonth(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
-}
 
 function calcSummary(
   income: IncomeConfig,
@@ -189,6 +180,19 @@ export default function Home() {
         if (data?.user?.id) setUser(data.user as unknown as UserProfile);
       })
       .catch(() => {});
+  }, []);
+
+  // Keyboard navigation: ← → to move between months
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (e.key === 'ArrowLeft') setMonth((m) => (m ? prevMonth(m) : m));
+      if (e.key === 'ArrowRight')
+        setMonth((m) => (m ? nextMonth(m) : m));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   async function handleExport() {
@@ -339,6 +343,15 @@ export default function Home() {
 
             {month && (
               <div className="flex items-center gap-0.5 ml-1">
+                {month !== currentMonth() && (
+                  <button
+                    onClick={() => setMonth(currentMonth())}
+                    className="text-[10px] text-[#4a8cff] hover:text-[#4a8cff]/70 transition-colors mr-1 font-medium"
+                    title="Jump to current month"
+                  >
+                    Today
+                  </button>
+                )}
                 <button
                   onClick={() => setMonth(prevMonth(month))}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"

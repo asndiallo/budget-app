@@ -25,6 +25,8 @@ export interface UserProfile {
   component: Component;
   dependents: number; // 0 = without, 1+ = with
   years_of_service: number;
+  /** Military service start month: "YYYY-MM" or empty string */
+  joined_at: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,6 +198,10 @@ export interface MonthlyPoint {
   net: number;
   savingsRate: number;
   hasData: boolean;
+  /** True for months after the current month — income is a projection, spending is 0 */
+  projected: boolean;
+  /** True for months before the user's service start date */
+  preService: boolean;
 }
 
 export interface QuarterSummary {
