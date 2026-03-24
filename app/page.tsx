@@ -34,6 +34,7 @@ import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import IncomePanel from './components/IncomePanel';
 import OverviewPanel from './components/OverviewPanel';
+import PromoProjectionPanel from './components/PromoProjectionPanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import TransactionsPanel from './components/TransactionsPanel';
@@ -522,6 +523,7 @@ export default function Home() {
             {tab === 'income' && (
               <div className="space-y-8">
                 <IncomePanel month={month} onUpdate={fetchSummary} />
+                <PromoProjectionPanel user={user} />
                 <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
                 <RecurringDetectionPanel onUpdate={fetchSummary} />
                 <ReceivablesPanel month={month} onUpdate={fetchSummary} />
