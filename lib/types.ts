@@ -187,3 +187,39 @@ export interface YtdSummary {
   /** totalIncome − totalInvested − totalSpending */
   netSaved: number;
 }
+
+export interface MonthlyPoint {
+  month: string;
+  income: number;
+  invested: number;
+  spending: number;
+  net: number;
+  savingsRate: number;
+  hasData: boolean;
+}
+
+export interface QuarterSummary {
+  q: number;
+  months: string[];
+  income: number;
+  invested: number;
+  spending: number;
+  net: number;
+  savingsRate: number;
+  hasData: boolean;
+}
+
+export interface YearOverview {
+  year: number;
+  annual: {
+    income: number;
+    invested: number;
+    spending: number;
+    net: number;
+    savingsRate: number;
+    monthsWithData: number;
+  };
+  quarters: QuarterSummary[];
+  monthly: MonthlyPoint[];
+  categories: { category: string; total: number }[];
+}

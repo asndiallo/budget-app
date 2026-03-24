@@ -20,6 +20,7 @@ import { currentMonth, formatCurrency } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
+import OverviewPanel from './components/OverviewPanel';
 import AssetsPanel from './components/AssetsPanel';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
@@ -41,7 +42,8 @@ type Tab =
   | 'goals'
   | 'analytics'
   | 'assets'
-  | 'calendar';
+  | 'calendar'
+  | 'overview';
 
 interface Summary {
   totalIncome: number;
@@ -145,6 +147,7 @@ const TAB_ICONS: Record<Tab, string> = {
   analytics: '⊞',
   assets: '◇',
   calendar: '▦',
+  overview: '◉',
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -154,6 +157,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'analytics', label: 'Analytics' },
   { key: 'assets', label: 'Net Worth' },
   { key: 'calendar', label: 'Calendar' },
+  { key: 'overview', label: 'Overview' },
 ];
 
 export default function Home() {
@@ -549,6 +553,12 @@ export default function Home() {
                     ? summary.net + summary.committed + summary.spending
                     : undefined
                 }
+              />
+            )}
+
+            {tab === 'overview' && (
+              <OverviewPanel
+                initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
               />
             )}
           </div>

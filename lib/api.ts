@@ -18,6 +18,7 @@ import type {
   SpendingInsights,
   Transaction,
   UserProfile,
+  YearOverview,
   YtdSummary,
 } from './types';
 
@@ -109,9 +110,13 @@ export const api = {
     remove: (id: number) =>
       send('DELETE', '/api/transactions', { id }).then(asJson<{ ok: boolean }>),
     bulkDelete: (ids: number[]) =>
-      send('DELETE', '/api/transactions', { ids }).then(asJson<{ ok: boolean }>),
+      send('DELETE', '/api/transactions', { ids }).then(
+        asJson<{ ok: boolean }>,
+      ),
     bulkRecategorize: (ids: number[], category: string) =>
-      send('PATCH', '/api/transactions', { ids, category }).then(asJson<{ ok: boolean }>),
+      send('PATCH', '/api/transactions', { ids, category }).then(
+        asJson<{ ok: boolean }>,
+      ),
     importCsv: (rows: CsvRow[], month: string, source: string) =>
       send('POST', '/api/csv-import', { rows, month, source }).then(
         asJson<{ ok: boolean; imported: number; months: string[] }>,
@@ -200,6 +205,11 @@ export const api = {
   ytd: {
     get: (month: string) =>
       fetch(`/api/ytd?month=${month}`).then(asJson<YtdSummary>),
+  },
+
+  overview: {
+    get: (year: number) =>
+      fetch(`/api/overview?year=${year}`).then(asJson<YearOverview>),
   },
 
   categoryBudgets: {
