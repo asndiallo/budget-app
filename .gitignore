@@ -37,3 +37,6 @@ next-env.d.ts
 
 # SQLite — db file is personal data, WAL files are transient
 *.db*
+
+# Claude AI local settings
+.claude/
