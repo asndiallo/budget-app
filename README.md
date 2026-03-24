@@ -235,6 +235,29 @@ All app constants live in **`lib/config.ts`**. Edit this file to customize behav
 
 ---
 
+## Testing
+
+```bash
+bun run test             # run all tests once
+bun run test:watch       # watch mode (re-runs on file change)
+bun run test:coverage    # run with coverage report
+```
+
+Tests live in `lib/__tests__/` and cover all critical financial logic:
+
+| File                 | What it tests                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `pay-tables.test.ts` | `getBasePay`, `getBAS`, `getBAH`, `isOfficer`, `getRankTitle`, data integrity of all 13 installations and 24 pay grades |
+| `les-parser.test.ts` | LES field extraction, date parsing, TSP rate derivation, warnings, CRLF handling                                        |
+| `utils.test.ts`      | Month navigation, date comparisons, currency formatting, CSV line parsing                                               |
+| `csv-utils.test.ts`  | `parseDate` (MM/DD/YYYY, ISO, edge cases), `mapCategory` (all mappings, case insensitivity, integrity check)            |
+| `income.test.ts`     | `computeMonthlyFinancials` TSP math (rates, rounding, fallback), `totalIncome` field aggregation                        |
+| `config.test.ts`     | Config integrity: no duplicate field keys, all color maps complete, CSV map values valid, hex color format              |
+
+**238 tests, ~99% statement coverage** across all core libraries. Pay table assertions are pinned to exact 2026 DoD values — if rates are updated in `lib/pay-tables.ts`, the corresponding tests will fail immediately to flag the discrepancy.
+
+---
+
 ## Tech stack
 
 - **Next.js 16** (App Router) — frontend + API routes in one process
@@ -244,3 +267,4 @@ All app constants live in **`lib/config.ts`**. Edit this file to customize behav
 - **Better Auth** — session-based auth
 - **TypeScript 5** — fully typed
 - **Bun** — package manager and runtime
+- **Vitest** — unit tests
