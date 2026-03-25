@@ -442,7 +442,7 @@ export default function BrsPanel({ user, month }: Props) {
                 label="BRS overview"
               />
               <ExternalLink
-                href="https://www.tsp.gov/planning-for-life-events/it-s-a-military-life/"
+                href="https://www.tsp.gov/changes-in-your-career/preparing-for-active-duty-or-tdy/"
                 label="TSP for service members"
               />
               <ExternalLink

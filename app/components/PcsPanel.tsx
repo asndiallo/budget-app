@@ -128,12 +128,12 @@ export default function PcsPanel({ user }: Props) {
           Estimates your entitlements based on your profile ({grade},{' '}
           {hasDeps ? 'with dependents' : 'no dependents'}). Verify all values at{' '}
           <a
-            href="https://move.mil"
+            href="https://my.move.mil"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#4a8cff] hover:underline"
           >
-            move.mil
+            my.move.mil
           </a>{' '}
           before your move.
         </p>
@@ -304,7 +304,7 @@ export default function PcsPanel({ user }: Props) {
                 · DLA = BAH at higher station (old vs. new), your grade and
                 dependent status —{' '}
                 <ExternalLink
-                  href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/"
+                  href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
                   label="JTR §5952"
                 />
               </li>
@@ -323,7 +323,7 @@ export default function PcsPanel({ user }: Props) {
               <li>
                 · BAH data reflects 2026 DoD rates —{' '}
                 <ExternalLink
-                  href="https://militarypay.defense.gov/Pay/Basic-Allowance-for-Housing/"
+                  href="https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/"
                   label="official BAH calculator"
                 />
               </li>
@@ -334,7 +334,7 @@ export default function PcsPanel({ user }: Props) {
                 label="move.mil — book your move"
               />
               <ExternalLink
-                href="https://www.travel.dod.mil/Policy-And-Regulations/Joint-Travel-Regulations/"
+                href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
                 label="Joint Travel Regulations"
               />
               <ExternalLink
