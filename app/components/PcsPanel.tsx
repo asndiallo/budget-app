@@ -11,28 +11,14 @@ import { getBAH, isOfficer } from '@/lib/pay-tables';
 import { useMemo, useState } from 'react';
 
 import DutyStationSelect from './DutyStationSelect';
+import ExternalLink from './ExternalLink';
 import type { PayGrade } from '@/lib/pay-tables';
 import type { UserProfile } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
+import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
 
 interface Props {
   user: UserProfile | null;
-}
-
-function fmt(n: number) {
-  return '$' + Math.round(n).toLocaleString();
-}
-
-function ExternalLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-[#4a8cff] hover:underline"
-    >
-      {label} ↗
-    </a>
-  );
 }
 
 function EntitlementRow({
@@ -54,7 +40,7 @@ function EntitlementRow({
         {sub && <p className="text-[11px] text-text-4 mt-0.5">{sub}</p>}
       </div>
       <span className="font-mono text-sm text-text shrink-0">
-        {amount === null ? '—' : fmt(amount)}
+        {amount === null ? '—' : formatCurrency(amount)}
       </span>
     </div>
   );
@@ -121,7 +107,7 @@ export default function PcsPanel({ user }: Props) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1">
+        <h3 className={`${LABEL_CLS} mb-1`}>
           PCS Move Planner
         </h3>
         <p className="text-xs text-text-3">
@@ -141,7 +127,7 @@ export default function PcsPanel({ user }: Props) {
 
       {/* Inputs */}
       <div className="bg-surface-raised/40 rounded-xl border border-border p-4 space-y-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <p className={LABEL_CLS}>
           Move details
         </p>
 
@@ -165,7 +151,7 @@ export default function PcsPanel({ user }: Props) {
               value={distanceMiles}
               onChange={(e) => setDistanceMiles(e.target.value)}
               placeholder="e.g. 1200"
-              className="w-full text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`w-full ${INPUT_CLS}`}
             />
           </div>
           <div className="space-y-1">
@@ -178,7 +164,7 @@ export default function PcsPanel({ user }: Props) {
               max={TLE_MAX_DAYS}
               value={tleDays}
               onChange={(e) => setTleDays(e.target.value)}
-              className="w-full text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors"
+              className={`w-full ${INPUT_CLS}`}
             />
           </div>
         </div>
@@ -200,7 +186,7 @@ export default function PcsPanel({ user }: Props) {
       {/* Results */}
       {ready ? (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+          <p className={`${LABEL_CLS} mb-3`}>
             Estimated entitlements
           </p>
 
@@ -249,7 +235,7 @@ export default function PcsPanel({ user }: Props) {
           <EntitlementRow
             label="TLE — Temporary Lodging Expense"
             amount={results.tle}
-            note={`${fmt(results.dailyRate)}/night × ${results.days} night${results.days !== 1 ? 's' : ''} (max ${TLE_MAX_DAYS})`}
+            note={`${formatCurrency(results.dailyRate)}/night × ${results.days} night${results.days !== 1 ? 's' : ''} (max ${TLE_MAX_DAYS})`}
             sub="Actual reimbursement requires receipts"
           />
 
@@ -270,7 +256,7 @@ export default function PcsPanel({ user }: Props) {
               Estimated cash entitlements
             </span>
             <span className="font-mono text-base font-semibold text-[#00d98a]">
-              {fmt(results.total)}
+              {formatCurrency(results.total)}
             </span>
           </div>
           <p className="text-[11px] text-text-4 mt-1">
@@ -292,7 +278,7 @@ export default function PcsPanel({ user }: Props) {
           onClick={() => setShowRef((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
         >
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          <span className={LABEL_CLS}>
             Quick reference
           </span>
           <span className="text-text-4 text-xs">{showRef ? '▲' : '▼'}</span>

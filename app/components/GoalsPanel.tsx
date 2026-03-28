@@ -1,10 +1,13 @@
 'use client';
 
 import {
+  BTN_BLUE_CLS,
   DEFAULT_GOAL_COLOR,
   GOAL_BAR_COLORS,
   GOAL_COLORS,
   GOAL_DOT_COLORS,
+  INPUT_CLS,
+  LABEL_CLS,
 } from '@/lib/config';
 import type { Goal, GoalContribution, SpendingInsights } from '@/lib/types';
 import { useEffect, useState } from 'react';
@@ -188,7 +191,7 @@ export default function GoalsPanel() {
                   }}
                 />
               )}
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
+              <p className={`${LABEL_CLS} mb-1.5`}>
                 {label}
               </p>
               <p className={`font-mono text-lg font-semibold ${color}`}>
@@ -312,7 +315,7 @@ export default function GoalsPanel() {
                     </button>
                     <button
                       onClick={() => saveEdit(g)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+                      className={`text-xs px-3 py-1.5 ${BTN_BLUE_CLS}`}
                     >
                       Save
                     </button>
@@ -485,7 +488,7 @@ export default function GoalsPanel() {
 
       {/* New goal form */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+        <h3 className={`${LABEL_CLS} mb-3`}>
           New goal
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -494,7 +497,7 @@ export default function GoalsPanel() {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Goal name"
-            className="flex-1 min-w-40 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`flex-1 min-w-40 ${INPUT_CLS}`}
           />
           <input
             value={newTarget}
@@ -502,12 +505,12 @@ export default function GoalsPanel() {
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Target $"
             type="number"
-            className="w-28 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`w-28 font-mono ${INPUT_CLS}`}
           />
           <select
             value={newColor}
             onChange={(e) => setNewColor(e.target.value)}
-            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+            className={`${INPUT_CLS} cursor-pointer`}
           >
             {GOAL_COLORS.map((c) => (
               <option key={c} value={c}>
@@ -517,7 +520,7 @@ export default function GoalsPanel() {
           </select>
           <button
             onClick={addGoal}
-            className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
           >
             + Add
           </button>
@@ -565,7 +568,7 @@ function ContributionRow({
       />
       <button
         onClick={submit}
-        className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+        className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
       >
         Save
       </button>

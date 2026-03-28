@@ -15,6 +15,8 @@ import {
 import type { PayGrade } from '@/lib/pay-tables';
 import type { UserProfile } from '@/lib/types';
 import { useState } from 'react';
+import { formatCurrency } from '@/lib/utils';
+import { LABEL_CLS } from '@/lib/config';
 
 // ── Time-in-grade minimums (DoD 1215.08) ─────────────────────────────────────
 // Shown as reference; branch/component may vary.
@@ -57,10 +59,6 @@ function defaultNextGrade(current: string): PayGrade | null {
 function rankLabel(grade: PayGrade, branch: string): string {
   const title = RANK_TITLES[branch as keyof typeof RANK_TITLES]?.[grade];
   return title ? `${grade} · ${title}` : grade;
-}
-
-function fmt(n: number): string {
-  return '$' + Math.round(n).toLocaleString();
 }
 
 function delta(n: number): { text: string; color: string } {
@@ -160,7 +158,7 @@ export default function PromoProjectionPanel({
     <div>
       {/* Section header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           Promotion projection
         </h3>
       </div>
@@ -258,11 +256,11 @@ export default function PromoProjectionPanel({
                 )}
               </div>
               <span className="text-xs font-mono text-text text-right">
-                {cur > 0 ? fmt(cur) : <span className="text-text-4">—</span>}
+                {cur > 0 ? formatCurrency(cur) : <span className="text-text-4">—</span>}
               </span>
               <span className="text-xs font-mono text-text text-right">
                 {promo > 0 ? (
-                  fmt(promo)
+                  formatCurrency(promo)
                 ) : (
                   <span className="text-text-4">—</span>
                 )}
@@ -280,10 +278,10 @@ export default function PromoProjectionPanel({
         <div className="grid grid-cols-4 px-4 py-3 bg-surface items-center">
           <span className="text-xs font-semibold text-text">Gross</span>
           <span className="text-xs font-mono font-semibold text-text text-right">
-            {fmt(current.gross)}
+            {formatCurrency(current.gross)}
           </span>
           <span className="text-xs font-mono font-semibold text-[#4a8cff] text-right">
-            {fmt(promoted.gross)}
+            {formatCurrency(promoted.gross)}
           </span>
           <div className="text-right">
             <p
@@ -308,7 +306,7 @@ export default function PromoProjectionPanel({
           </span>
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-mono text-text-3">
-              {fmt(current.tspContrib)} → {fmt(promoted.tspContrib)}
+              {formatCurrency(current.tspContrib)} → {formatCurrency(promoted.tspContrib)}
             </span>
             <span
               className={`text-[11px] font-mono font-semibold ${delta(tspDelta).color}`}

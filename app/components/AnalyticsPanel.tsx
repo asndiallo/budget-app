@@ -20,8 +20,7 @@ import {
 } from 'recharts';
 import { CATEGORIES, CHART_CAT_COLORS } from '@/lib/config';
 import { useEffect, useState } from 'react';
-
-const fmt = (v: number) => '$' + Math.round(v).toLocaleString();
+import { formatCurrency } from '@/lib/utils';
 
 interface MonthData {
   month: string;
@@ -92,7 +91,7 @@ export default function AnalyticsPanel({
         <ChartCard
           title={`${current.label} · by category`}
           subtitle={
-            donutData.length > 0 ? `${fmt(totalSpending)} total` : undefined
+            donutData.length > 0 ? `${formatCurrency(totalSpending)} total` : undefined
           }
         >
           {donutData.length === 0 ? (
@@ -121,7 +120,7 @@ export default function AnalyticsPanel({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v) => fmt(v as number)}
+                  formatter={(v) => formatCurrency(v as number)}
                   contentStyle={tooltipStyle}
                 />
                 <Legend
@@ -172,7 +171,7 @@ export default function AnalyticsPanel({
                 width={44}
               />
               <Tooltip
-                formatter={(v) => fmt(v as number)}
+                formatter={(v) => formatCurrency(v as number)}
                 contentStyle={tooltipStyle}
               />
               <Legend
@@ -241,7 +240,7 @@ export default function AnalyticsPanel({
                 width={56}
               />
               <Tooltip
-                formatter={(v, name) => [fmt(v as number), name as string]}
+                formatter={(v, name) => [formatCurrency(v as number), name as string]}
                 contentStyle={tooltipStyle}
               />
               <Legend

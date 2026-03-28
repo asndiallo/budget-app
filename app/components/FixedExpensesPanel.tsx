@@ -4,6 +4,7 @@ import type { BillPayment, FixedExpense } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
+import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
 
 function monthlyAmount(f: FixedExpense) {
   return f.period === 'annual' ? f.amount / 12 : f.amount;
@@ -55,14 +56,14 @@ export default function FixedExpensesPanel({
   async function addFixed() {
     if (!newLabel.trim() || !newAmt) return;
     const dom = newDay ? parseInt(newDay) : null;
-    await api.fixedExpenses.add(
-      newLabel.trim(),
-      parseFloat(newAmt),
-      newPeriod,
-      dom,
-      null,
-      newIsInvestment,
-    );
+    await api.fixedExpenses.add({
+      label: newLabel.trim(),
+      amount: parseFloat(newAmt),
+      period: newPeriod,
+      day_of_month: dom,
+      notes: null,
+      is_investment: newIsInvestment,
+    });
     setNewLabel('');
     setNewAmt('');
     setNewPeriod('monthly');
@@ -80,29 +81,29 @@ export default function FixedExpensesPanel({
 
   async function togglePeriod(f: FixedExpense) {
     const period = f.period === 'annual' ? 'monthly' : 'annual';
-    await api.fixedExpenses.update(
-      f.id,
-      f.label,
-      f.amount,
+    await api.fixedExpenses.update({
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
       period,
-      f.day_of_month,
-      f.notes,
-      !!f.is_investment,
-    );
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+    });
     reload();
     onUpdate();
   }
 
   async function toggleInvestment(f: FixedExpense) {
-    await api.fixedExpenses.update(
-      f.id,
-      f.label,
-      f.amount,
-      f.period,
-      f.day_of_month,
-      f.notes,
-      !f.is_investment,
-    );
+    await api.fixedExpenses.update({
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !f.is_investment,
+    });
     reload();
     onUpdate();
   }
@@ -110,29 +111,29 @@ export default function FixedExpensesPanel({
   async function updateDayOfMonth(f: FixedExpense, raw: string) {
     const dom = raw.trim() ? parseInt(raw) : null;
     if (dom !== null && (dom < 1 || dom > 31)) return;
-    await api.fixedExpenses.update(
-      f.id,
-      f.label,
-      f.amount,
-      f.period,
-      dom,
-      f.notes,
-      !!f.is_investment,
-    );
+    await api.fixedExpenses.update({
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: dom,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+    });
     reload();
     onUpdate();
   }
 
   async function updateNotes(f: FixedExpense, notes: string) {
-    await api.fixedExpenses.update(
-      f.id,
-      f.label,
-      f.amount,
-      f.period,
-      f.day_of_month,
-      notes || null,
-      !!f.is_investment,
-    );
+    await api.fixedExpenses.update({
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: notes || null,
+      is_investment: !!f.is_investment,
+    });
     reload();
     onUpdate();
   }
@@ -142,7 +143,7 @@ export default function FixedExpensesPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           Fixed expenses
         </h3>
         {fixed.length > 0 && (
@@ -234,7 +235,7 @@ export default function FixedExpensesPanel({
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Label"
-          className="flex-1 min-w-32 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`flex-1 min-w-32 ${INPUT_CLS}`}
         />
         <input
           value={newAmt}
@@ -242,7 +243,7 @@ export default function FixedExpensesPanel({
           onKeyDown={(e) => e.key === 'Enter' && addFixed()}
           placeholder="$"
           type="number"
-          className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`w-20 font-mono ${INPUT_CLS}`}
         />
         <input
           value={newDay}
@@ -252,7 +253,7 @@ export default function FixedExpensesPanel({
           min={1}
           max={31}
           title="Day of month bill is due (optional)"
-          className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`w-20 font-mono ${INPUT_CLS}`}
         />
         <select
           value={newPeriod}

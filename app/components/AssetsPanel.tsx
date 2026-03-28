@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import EditableText from './EditableText';
+import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 
 const CATEGORIES: AssetCategory[] = [
   'Checking',
@@ -96,7 +98,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           Assets
         </h3>
         {totalAssets > 0 && (
@@ -142,12 +144,12 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addAsset()}
               placeholder="Label (e.g. Chase Checking)"
-              className="flex-1 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 ${INPUT_CLS}`}
             />
             <select
               value={newCat}
               onChange={(e) => setNewCat(e.target.value as AssetCategory)}
-              className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors"
+              className={INPUT_CLS}
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -163,7 +165,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
               onKeyDown={(e) => e.key === 'Enter' && addAsset()}
               placeholder="Balance $"
               type="number"
-              className="flex-1 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 font-mono ${INPUT_CLS}`}
             />
           </div>
           <div className="flex gap-2 justify-end">
@@ -175,7 +177,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
             </button>
             <button
               onClick={addAsset}
-              className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+              className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
             >
               Add
             </button>
@@ -240,52 +242,6 @@ function AssetRow({
         ✕
       </button>
     </div>
-  );
-}
-
-function EditableText({
-  value,
-  className,
-  onSave,
-}: {
-  value: string;
-  className?: string;
-  onSave: (v: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          onSave(draft);
-          setEditing(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onSave(draft);
-            setEditing(false);
-          }
-          if (e.key === 'Escape') {
-            setDraft(value);
-            setEditing(false);
-          }
-        }}
-        className={`${className} border-b border-[#4a8cff]/50 bg-transparent outline-none`}
-      />
-    );
-  }
-  return (
-    <span
-      className={`${className} cursor-pointer hover:opacity-70 transition-opacity`}
-      onClick={() => setEditing(true)}
-    >
-      {value}
-    </span>
   );
 }
 

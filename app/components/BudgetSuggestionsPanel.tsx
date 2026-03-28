@@ -1,6 +1,6 @@
 'use client';
 
-import { CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
+import { BTN_BLUE_CLS, CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
 import type {
   CategoryBudget,
   CategoryInsight,
@@ -9,6 +9,7 @@ import type {
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
 
 const TREND_META: Record<
   CategoryInsight['trend'],
@@ -18,10 +19,6 @@ const TREND_META: Record<
   down: { icon: '↓', label: 'Trending down', className: 'text-[#00d98a]' },
   stable: { icon: '→', label: 'Stable', className: 'text-text-3' },
 };
-
-function fmt(n: number) {
-  return `$${Math.round(n).toLocaleString()}`;
-}
 
 function usagePct(lastMonth: number, budget: number) {
   if (budget === 0) return 0;
@@ -128,7 +125,7 @@ export default function BudgetSuggestionsPanel({
           </span>{' '}
           months · avg{' '}
           <span className="text-text font-mono font-semibold">
-            {fmt(avgMonthlyExpenses)}/mo
+            {formatCurrency(avgMonthlyExpenses)}/mo
           </span>
         </p>
       </div>
@@ -176,7 +173,10 @@ export default function BudgetSuggestionsPanel({
 
                 <div className="ml-auto flex items-center gap-3 text-xs font-mono">
                   <span className="text-text-3">
-                    avg <span className="text-text-2">{fmt(ci.avg3m)}</span>
+                    avg{' '}
+                    <span className="text-text-2">
+                      {formatCurrency(ci.avg3m)}
+                    </span>
                   </span>
                   <span
                     className={
@@ -185,7 +185,7 @@ export default function BudgetSuggestionsPanel({
                         : 'text-text-2'
                     }
                   >
-                    last {fmt(ci.lastMonth)}
+                    last {formatCurrency(ci.lastMonth)}
                   </span>
                 </div>
               </div>
@@ -221,14 +221,14 @@ export default function BudgetSuggestionsPanel({
                   />
                   <span className="text-[10px] text-text-4">
                     {editMode === '%' && monthlyIncome
-                      ? `≈ ${fmt(Math.round((monthlyIncome * (parseFloat(editValue) || 0)) / 100))}/mo`
+                      ? `≈ ${formatCurrency(Math.round((monthlyIncome * (parseFloat(editValue) || 0)) / 100))}/mo`
                       : editMode === '%'
                         ? '% of income'
                         : ''}
                   </span>
                   <button
                     onClick={() => saveEdit(ci.category)}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+                    className={`text-xs px-2.5 py-1 ${BTN_BLUE_CLS}`}
                   >
                     Save
                   </button>
@@ -255,7 +255,7 @@ export default function BudgetSuggestionsPanel({
                   <span
                     className={`text-xs font-mono font-semibold shrink-0 ${overBudget ? 'text-[#ff4560]' : 'text-text'}`}
                   >
-                    {fmt(activeBudget)}
+                    {formatCurrency(activeBudget)}
                   </span>
 
                   {isPctBudget && (
@@ -300,7 +300,7 @@ export default function BudgetSuggestionsPanel({
                 <p className="mt-1.5 text-[10px] text-[#ff4560]">
                   Over budget by{' '}
                   <span className="font-mono font-semibold">
-                    {fmt(ci.lastMonth - activeBudget)}
+                    {formatCurrency(ci.lastMonth - activeBudget)}
                   </span>{' '}
                   last month
                 </p>

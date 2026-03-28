@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react';
 
 import type { YearOverview } from '@/lib/types';
 import { api } from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
+import { LABEL_CLS } from '@/lib/config';
 
 const MONTH_ABBR = [
   'Jan',
@@ -31,7 +33,6 @@ const MONTH_ABBR = [
 ];
 const Q_RANGES = ['Jan – Mar', 'Apr – Jun', 'Jul – Sep', 'Oct – Dec'];
 
-const fmt = (n: number) => '$' + Math.abs(Math.round(n)).toLocaleString();
 const fmtK = (n: number) => {
   const abs = Math.abs(n);
   return abs >= 1000
@@ -105,7 +106,7 @@ export default function OverviewPanel({
         <>
           {/* Annual summary */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+            <p className={`${LABEL_CLS} mb-3`}>
               {year} · {data.annual.monthsWithData}{' '}
               {data.annual.monthsWithData === 1 ? 'month' : 'months'} recorded
             </p>
@@ -114,26 +115,26 @@ export default function OverviewPanel({
                 [
                   {
                     label: 'Earned',
-                    value: fmt(data.annual.income),
+                    value: formatCurrency(data.annual.income),
                     color: 'text-text',
                     accent: null,
                   },
                   {
                     label: 'Invested',
-                    value: fmt(data.annual.invested),
+                    value: formatCurrency(data.annual.invested),
                     color: 'text-[#4a8cff]',
                     accent: '#4a8cff',
                   },
                   {
                     label: 'Spent',
-                    value: fmt(data.annual.spending),
+                    value: formatCurrency(data.annual.spending),
                     color: 'text-[#ff4560]',
                     accent: '#ff4560',
                   },
                   {
                     label: 'Net Saved',
                     value:
-                      (data.annual.net < 0 ? '−' : '') + fmt(data.annual.net),
+                      (data.annual.net < 0 ? '−' : '') + formatCurrency(data.annual.net),
                     color:
                       data.annual.net >= 0
                         ? 'text-[#00d98a]'
@@ -165,7 +166,7 @@ export default function OverviewPanel({
                       }}
                     />
                   )}
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
+                  <p className={`${LABEL_CLS} mb-1.5`}>
                     {label}
                   </p>
                   <p className={`font-mono text-base font-semibold ${color}`}>
@@ -178,7 +179,7 @@ export default function OverviewPanel({
 
           {/* Monthly chart */}
           <div className="bg-bg rounded-xl border border-border p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-4">
+            <p className={`${LABEL_CLS} mb-4`}>
               Monthly Breakdown
             </p>
             <ResponsiveContainer width="100%" height={200}>
@@ -223,7 +224,7 @@ export default function OverviewPanel({
                     const n = Number(value);
                     const k = String(name ?? '');
                     if (k === 'rate') return [`${n}%`, 'Savings Rate'];
-                    return [fmt(n), k.charAt(0).toUpperCase() + k.slice(1)];
+                    return [formatCurrency(n), k.charAt(0).toUpperCase() + k.slice(1)];
                   }}
                 />
                 <Bar
@@ -285,7 +286,7 @@ export default function OverviewPanel({
 
           {/* Quarterly breakdown */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+            <p className={`${LABEL_CLS} mb-3`}>
               Quarterly
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -324,22 +325,22 @@ export default function OverviewPanel({
                         [
                           {
                             label: 'Earned',
-                            val: fmt(q.income),
+                            val: formatCurrency(q.income),
                             color: 'text-text',
                           },
                           {
                             label: 'Invested',
-                            val: fmt(q.invested),
+                            val: formatCurrency(q.invested),
                             color: 'text-[#4a8cff]',
                           },
                           {
                             label: 'Spent',
-                            val: fmt(q.spending),
+                            val: formatCurrency(q.spending),
                             color: 'text-[#ff4560]',
                           },
                           {
                             label: 'Net',
-                            val: (q.net < 0 ? '−' : '') + fmt(q.net),
+                            val: (q.net < 0 ? '−' : '') + formatCurrency(q.net),
                             color:
                               q.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
                           },
@@ -396,7 +397,7 @@ export default function OverviewPanel({
           {/* Top categories */}
           {data.categories.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+              <p className={`${LABEL_CLS} mb-3`}>
                 Spending by Category
               </p>
               <div className="bg-bg rounded-xl border border-border p-4 space-y-3.5">
@@ -409,7 +410,7 @@ export default function OverviewPanel({
                           {Math.round((total / data.annual.spending) * 100)}%
                         </span>
                         <span className="text-xs font-mono text-text-2 w-20 text-right">
-                          {fmt(total)}
+                          {formatCurrency(total)}
                         </span>
                       </div>
                     </div>

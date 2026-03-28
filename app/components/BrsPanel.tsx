@@ -10,7 +10,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import type { PayGrade } from '@/lib/pay-tables';
-import { TSP_CONFIG } from '@/lib/config';
+import { TSP_CONFIG, LABEL_CLS } from '@/lib/config';
 import type { UserProfile } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -19,27 +19,13 @@ interface Props {
   month: string;
 }
 
+import ExternalLink from './ExternalLink';
+import { formatCurrency } from '@/lib/utils';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return '$' + Math.round(n).toLocaleString();
-}
-
 function fmtK(n: number) {
-  return n >= 1000 ? '$' + (n / 1000).toFixed(0) + 'k' : fmt(n);
-}
-
-function ExternalLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-[#4a8cff] hover:underline"
-    >
-      {label} ↗
-    </a>
-  );
+  return n >= 1000 ? '$' + (n / 1000).toFixed(0) + 'k' : formatCurrency(n);
 }
 
 // ── System badge ──────────────────────────────────────────────────────────────
@@ -174,7 +160,7 @@ export default function BrsPanel({ user, month }: Props) {
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           BRS vs Legacy High-3
         </h3>
         <SystemBadge system={system} />
@@ -277,9 +263,9 @@ export default function BrsPanel({ user, month }: Props) {
         />
         <CompRow
           label={`Monthly pension at ${retYos} YOS`}
-          legacy={fmt(r.legacyPension)}
-          brs={fmt(r.brsPension)}
-          note={`Based on current base pay ${fmt(basePay)}/mo as proxy`}
+          legacy={formatCurrency(r.legacyPension)}
+          brs={formatCurrency(r.brsPension)}
+          note={`Based on current base pay ${formatCurrency(basePay)}/mo as proxy`}
           winner={pensionWinner}
         />
 
@@ -287,7 +273,7 @@ export default function BrsPanel({ user, month }: Props) {
         <CompRow
           label="DoD TSP match"
           legacy="None"
-          brs={`${dodPct}% of base = ${fmt(r.dodMatchMonthly)}/mo`}
+          brs={`${dodPct}% of base = ${formatCurrency(r.dodMatchMonthly)}/mo`}
           note="1% auto + match up to 4% (requires ≥5% member contribution for full match)"
         />
         <CompRow
@@ -303,7 +289,7 @@ export default function BrsPanel({ user, month }: Props) {
           <CompRow
             label="Continuation pay (at 12 YOS)"
             legacy="—"
-            brs={`${fmt(r.contPayLumpSum)} lump sum → ${fmtK(r.contPayFvAtRetirement)} at retirement`}
+            brs={`${formatCurrency(r.contPayLumpSum)} lump sum → ${fmtK(r.contPayFvAtRetirement)} at retirement`}
             note={`${contMult}× base pay (min 2.5×; varies by branch/career field)`}
           />
         )}
@@ -339,7 +325,7 @@ export default function BrsPanel({ user, month }: Props) {
             more in portable wealth.{' '}
             <span className="font-semibold text-text-2">Legacy</span>'s higher
             pension (
-            <span className="font-mono">{fmt(r.pensionShortfall)}/mo</span>{' '}
+            <span className="font-mono">{formatCurrency(r.pensionShortfall)}/mo</span>{' '}
             more) catches up after{' '}
             <span className="font-semibold text-text">
               {r.breakEvenYears} years
@@ -375,7 +361,7 @@ export default function BrsPanel({ user, month }: Props) {
                 Total DoD TSP contributions over career
               </p>
               <p className="text-[11px] text-text-3 mt-0.5">
-                {fmt(r.dodMatchMonthly)}/mo ×{' '}
+                {formatCurrency(r.dodMatchMonthly)}/mo ×{' '}
                 {Math.round((retYos - currentYos) * 12)} months, compounded to{' '}
                 <span className="font-mono font-semibold text-[#4a8cff]">
                   {fmtK(r.tspWithMatch - r.tspWithoutMatch)}
@@ -396,7 +382,7 @@ export default function BrsPanel({ user, month }: Props) {
             ⚠ You're contributing {memberPct}% — increase to 5% to get the full
             DoD match ({Math.round(dodMatchRate(0.05) * 100)}% of base pay
             free). That's{' '}
-            {fmt(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))}{' '}
+            {formatCurrency(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))}{' '}
             more per month from DoD.
           </p>
         </div>
@@ -408,7 +394,7 @@ export default function BrsPanel({ user, month }: Props) {
           onClick={() => setShowAssumptions((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
         >
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          <span className={LABEL_CLS}>
             Assumptions & resources
           </span>
           <span className="text-text-4 text-xs">
@@ -419,7 +405,7 @@ export default function BrsPanel({ user, month }: Props) {
           <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
             <ul className="text-[11px] text-text-3 space-y-0.5 pt-2">
               <li>
-                · Estimates use your current base pay ({fmt(basePay)}/mo) as a
+                · Estimates use your current base pay ({formatCurrency(basePay)}/mo) as a
                 proxy for the High-3 average. Actual retirement pay will be
                 higher due to promotions.
               </li>

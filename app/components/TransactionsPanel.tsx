@@ -1,6 +1,6 @@
 'use client';
 
-import { CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY } from '@/lib/config';
+import { BTN_BLUE_CLS, CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import type { PaymentSource, Transaction } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -634,7 +634,7 @@ export default function TransactionsPanel({
               />
               <button
                 onClick={addCard}
-                className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+                className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
               >
                 + Add
               </button>
@@ -730,7 +730,7 @@ export default function TransactionsPanel({
       {/* Transaction list */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+          <h3 className={LABEL_CLS}>
             {isSearching ? 'Search results' : 'Transactions'}
           </h3>
           <div className="flex items-center gap-3">
@@ -791,7 +791,7 @@ export default function TransactionsPanel({
                 </select>
                 <button
                   onClick={bulkRecategorize}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors whitespace-nowrap"
+                  className={`text-xs px-2.5 py-1 ${BTN_BLUE_CLS} whitespace-nowrap`}
                 >
                   Re-categorize
                 </button>
@@ -842,7 +842,7 @@ export default function TransactionsPanel({
 
       {/* Add transaction */}
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+        <h3 className={`${LABEL_CLS} mb-3`}>
           Add manually
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -851,7 +851,7 @@ export default function TransactionsPanel({
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="Description"
-            className="flex-1 min-w-40 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`flex-1 min-w-40 ${INPUT_CLS}`}
           />
           <input
             value={amt}
@@ -859,12 +859,12 @@ export default function TransactionsPanel({
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`w-20 font-mono ${INPUT_CLS}`}
           />
           <select
             value={cat}
             onChange={(e) => setCat(e.target.value)}
-            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+            className={`${INPUT_CLS} cursor-pointer`}
           >
             {CATEGORIES.map((c) => (
               <option key={c}>{c}</option>
@@ -873,7 +873,7 @@ export default function TransactionsPanel({
           <select
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            className="text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+            className={`${INPUT_CLS} cursor-pointer`}
           >
             <option value="manual">Manual</option>
             {sources.map((s) => (
@@ -884,7 +884,7 @@ export default function TransactionsPanel({
           </select>
           <button
             onClick={addTx}
-            className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
           >
             + Add
           </button>

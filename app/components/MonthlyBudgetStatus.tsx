@@ -1,6 +1,6 @@
 'use client';
 
-import { CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
+import { CAT_COLORS, CHART_CAT_COLORS, LABEL_CLS } from '@/lib/config';
 import type {
   CategoryBudget,
   SpendingInsights,
@@ -66,7 +66,7 @@ export default function MonthlyBudgetStatus({ month }: { month: string }) {
 
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
+      <h3 className={`${LABEL_CLS} mb-3`}>
         Budget status — this month
       </h3>
       <div className="space-y-2.5">

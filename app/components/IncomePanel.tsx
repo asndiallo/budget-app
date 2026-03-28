@@ -1,6 +1,6 @@
 'use client';
 
-import { DEDUCTION_FIELDS, INCOME_FIELDS, TSP_CONFIG } from '@/lib/config';
+import { BTN_BLUE_CLS, DEDUCTION_FIELDS, INCOME_FIELDS, INPUT_CLS, LABEL_CLS, TSP_CONFIG } from '@/lib/config';
 import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
@@ -41,12 +41,12 @@ export default function IncomePanel({
 
   async function addEntry() {
     if (!newDesc.trim() || !newAmt) return;
-    await api.incomeEntries.add(
-      newDesc.trim(),
-      parseFloat(newAmt),
+    await api.incomeEntries.add({
+      description: newDesc.trim(),
+      amount: parseFloat(newAmt),
       month,
-      newSource || 'Other',
-    );
+      source: newSource || 'Other',
+    });
     setNewDesc('');
     setNewAmt('');
     setNewSource('');
@@ -312,7 +312,7 @@ export default function IncomePanel({
             onChange={(e) => setNewDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Description"
-            className="flex-1 min-w-36 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`flex-1 min-w-36 ${INPUT_CLS}`}
           />
           <input
             value={newAmt}
@@ -320,18 +320,18 @@ export default function IncomePanel({
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="$"
             type="number"
-            className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`w-20 font-mono ${INPUT_CLS}`}
           />
           <input
             value={newSource}
             onChange={(e) => setNewSource(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Source (optional)"
-            className="flex-1 min-w-28 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+            className={`flex-1 min-w-28 ${INPUT_CLS}`}
           />
           <button
             onClick={addEntry}
-            className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
           >
             + Add
           </button>
@@ -359,7 +359,7 @@ function Section({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           {title}
         </h3>
         <div className="flex items-center gap-3">

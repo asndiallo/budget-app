@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 
 import type { YtdSummary } from '@/lib/types';
 import { api } from '@/lib/api';
-
-const fmt = (n: number) => '$' + Math.abs(Math.round(n)).toLocaleString();
+import { formatCurrency } from '@/lib/utils';
+import { LABEL_CLS } from '@/lib/config';
 
 export default function YtdPanel({ month }: { month: string }) {
   const [ytd, setYtd] = useState<YtdSummary | null>(null);
@@ -20,25 +20,25 @@ export default function YtdPanel({ month }: { month: string }) {
   const cards = [
     {
       label: 'Earned',
-      value: fmt(ytd.totalIncome),
+      value: formatCurrency(ytd.totalIncome),
       color: 'text-text',
       accent: 'transparent',
     },
     {
       label: 'Invested',
-      value: fmt(ytd.totalInvested),
+      value: formatCurrency(ytd.totalInvested),
       color: 'text-[#4a8cff]',
       accent: '#4a8cff',
     },
     {
       label: 'Spent',
-      value: fmt(ytd.totalSpending),
+      value: formatCurrency(ytd.totalSpending),
       color: 'text-[#ff4560]',
       accent: '#ff4560',
     },
     {
       label: 'Net saved',
-      value: (ytd.netSaved < 0 ? '-' : '') + fmt(ytd.netSaved),
+      value: (ytd.netSaved < 0 ? '-' : '') + formatCurrency(ytd.netSaved),
       color: ytd.netSaved >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
       accent: ytd.netSaved >= 0 ? '#00d98a' : '#ff4560',
     },
@@ -69,7 +69,7 @@ export default function YtdPanel({ month }: { month: string }) {
                 }}
               />
             )}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-1.5">
+            <p className={`${LABEL_CLS} mb-1.5`}>
               {label}
             </p>
             <p className={`font-mono text-base font-semibold ${color}`}>

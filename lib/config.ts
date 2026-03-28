@@ -1,6 +1,21 @@
 // Central configuration — every hardcoded value lives here.
 // To add a category, field, color, or seed entry: edit this file only.
 
+// ─── Shared Tailwind class strings ───────────────────────────────────────────
+// Keep these in sync with tailwind.config.js content array (./lib/**).
+
+/** Section / field label: small caps, muted colour. */
+export const LABEL_CLS =
+  'text-[10px] font-semibold uppercase tracking-widest text-text-3';
+
+/** Standard single-line text/select input. */
+export const INPUT_CLS =
+  'text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors';
+
+/** Blue pill button (add size + padding prefix, e.g. `text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`). */
+export const BTN_BLUE_CLS =
+  'rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors';
+
 // ─── App meta ─────────────────────────────────────────────────────────────────
 
 export const APP_CONFIG = {
@@ -117,6 +132,18 @@ export const CSV_CATEGORY_MAP: Record<string, string> = {
   personal: 'Other',
   'fees & adjustments': 'Other',
 };
+
+// ─── Asset categories ─────────────────────────────────────────────────────────
+
+export const ASSET_CATEGORIES = [
+  'Checking',
+  'Savings',
+  'Brokerage',
+  'Retirement',
+  'Property',
+  'Vehicle',
+  'Other',
+] as const;
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
 

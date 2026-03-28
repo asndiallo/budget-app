@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 
 import type { Receivable } from '@/lib/types';
 import { api } from '@/lib/api';
+import EditableText from './EditableText';
+import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 
 export default function ReceivablesPanel({
   month,
@@ -27,12 +29,12 @@ export default function ReceivablesPanel({
 
   async function addReceivable() {
     if (!newName.trim() || !newAmt) return;
-    await api.receivables.add(
-      newName.trim(),
-      newDesc.trim(),
-      parseFloat(newAmt),
-      month,
-    );
+    await api.receivables.add({
+      name: newName.trim(),
+      description: newDesc.trim(),
+      amount: parseFloat(newAmt),
+      month_created: month,
+    });
     setNewName('');
     setNewDesc('');
     setNewAmt('');
@@ -78,7 +80,7 @@ export default function ReceivablesPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           Receivables
         </h3>
         {outstanding.length > 0 && (
@@ -172,7 +174,7 @@ export default function ReceivablesPanel({
                 />
                 <button
                   onClick={() => submitPayment(r)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+                  className={`text-xs px-3 py-1.5 ${BTN_BLUE_CLS}`}
                 >
                   Confirm
                 </button>
@@ -226,14 +228,14 @@ export default function ReceivablesPanel({
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="Name"
-          className="w-28 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`w-28 ${INPUT_CLS}`}
         />
         <input
           value={newDesc}
           onChange={(e) => setNewDesc(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="What for? (optional)"
-          className="flex-1 min-w-32 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`flex-1 min-w-32 ${INPUT_CLS}`}
         />
         <input
           value={newAmt}
@@ -241,11 +243,11 @@ export default function ReceivablesPanel({
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="$"
           type="number"
-          className="w-20 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`w-20 font-mono ${INPUT_CLS}`}
         />
         <button
           onClick={addReceivable}
-          className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
+          className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
         >
           + Add
         </button>
@@ -260,59 +262,6 @@ function formatMonth(m: string) {
     month: 'short',
     year: 'numeric',
   });
-}
-
-function EditableText({
-  value,
-  placeholder,
-  className,
-  onSave,
-}: {
-  value: string;
-  placeholder?: string;
-  className?: string;
-  onSave: (v: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          onSave(draft);
-          setEditing(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onSave(draft);
-            setEditing(false);
-          }
-          if (e.key === 'Escape') {
-            setDraft(value);
-            setEditing(false);
-          }
-        }}
-        className={`${className} border-b border-[#4a8cff]/50 bg-transparent outline-none w-full`}
-      />
-    );
-  }
-  return (
-    <p
-      className={`${className} cursor-pointer hover:opacity-70 transition-opacity truncate ${!value ? 'opacity-30' : ''}`}
-      onClick={() => setEditing(true)}
-      title="Click to edit"
-    >
-      {value || placeholder}
-    </p>
-  );
 }
 
 function EditableNumber({

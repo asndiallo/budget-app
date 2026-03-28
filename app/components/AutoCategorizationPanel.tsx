@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { CATEGORIES } from '@/lib/config';
+import { CATEGORIES, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import type { CategorizationRule } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -32,7 +32,7 @@ export default function AutoCategorizationPanel() {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+        <h3 className={LABEL_CLS}>
           Auto-categorization rules
         </h3>
         {rules.length > 0 && (
@@ -79,7 +79,7 @@ export default function AutoCategorizationPanel() {
           onChange={(e) => setNewKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addRule()}
           placeholder="keyword (e.g. mcdonald)"
-          className="flex-1 min-w-32 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className={`flex-1 min-w-32 ${INPUT_CLS}`}
         />
         <select
           value={newCategory}

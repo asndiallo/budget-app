@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { CAT_COLORS } from '@/lib/config';
+import { BTN_BLUE_CLS, CAT_COLORS } from '@/lib/config';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -62,7 +62,7 @@ export default function RecurringDetectionPanel({
 
   async function addToFixed(c: Candidate) {
     setAdding(c.normalized_key);
-    await api.fixedExpenses.add(c.description, c.avg_amount, 'monthly');
+    await api.fixedExpenses.add({ label: c.description, amount: c.avg_amount, period: 'monthly' });
     dismiss(c.normalized_key);
     setAdding(null);
     onUpdate();
@@ -129,7 +129,7 @@ export default function RecurringDetectionPanel({
                   <button
                     onClick={() => addToFixed(c)}
                     disabled={isAdding}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors disabled:opacity-50"
+                    className={`text-[11px] px-2.5 py-1 ${BTN_BLUE_CLS} disabled:opacity-50`}
                   >
                     {isAdding ? '…' : '+ Fixed'}
                   </button>

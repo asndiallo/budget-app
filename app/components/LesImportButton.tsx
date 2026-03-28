@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { parseLes, type LesParseResult } from '@/lib/les-parser';
 import { api } from '@/lib/api';
+import { LABEL_CLS } from '@/lib/config';
 
 interface Props {
   month: string;
@@ -150,7 +151,7 @@ export default function LesImportButton({ month, onImport }: Props) {
         <div className="space-y-3">
           {/* Detected fields */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-2">
+            <p className={`${LABEL_CLS} mb-2`}>
               Extracted fields ({result.preview.length})
             </p>
             <div className="rounded-lg border border-border overflow-hidden">

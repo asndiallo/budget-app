@@ -1,8 +1,10 @@
 'use client';
 
+import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import { useEffect, useState } from 'react';
 
 import type { Debt } from '@/lib/types';
+import EditableText from './EditableText';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -64,9 +66,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
-          Debts & loans
-        </h3>
+        <h3 className={LABEL_CLS}>Debts & loans</h3>
         {activeTotal > 0 && (
           <span className="font-mono text-xs text-[#f5aa2a]">
             {formatCurrency(activeTotal)}/mo committed
@@ -95,13 +95,13 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Label (e.g. Car Loan)"
-              className="flex-1 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 ${INPUT_CLS}`}
             />
             <input
               value={newLender}
               onChange={(e) => setNewLender(e.target.value)}
               placeholder="Lender"
-              className="flex-1 text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 ${INPUT_CLS}`}
             />
           </div>
           <div className="flex gap-2">
@@ -110,21 +110,21 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
               onChange={(e) => setNewBalance(e.target.value)}
               placeholder="Balance $"
               type="number"
-              className="flex-1 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 font-mono ${INPUT_CLS}`}
             />
             <input
               value={newPayment}
               onChange={(e) => setNewPayment(e.target.value)}
               placeholder="Monthly $"
               type="number"
-              className="flex-1 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`flex-1 font-mono ${INPUT_CLS}`}
             />
             <input
               value={newRate}
               onChange={(e) => setNewRate(e.target.value)}
               placeholder="Rate %"
               type="number"
-              className="w-24 text-sm font-mono bg-bg border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+              className={`w-24 font-mono ${INPUT_CLS}`}
             />
           </div>
           <div className="flex gap-2 justify-end">
@@ -134,10 +134,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
             >
               Cancel
             </button>
-            <button
-              onClick={addDebt}
-              className="text-sm px-3 py-1.5 rounded-lg bg-surface-blue text-[#4a8cff] hover:bg-surface-blue-dark transition-colors"
-            >
+            <button onClick={addDebt} className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}>
               Add
             </button>
           </div>
@@ -319,8 +316,6 @@ function AmortizationSchedule({
   // Build yearly milestones
   const milestones = buildYearlyMilestones(debt, extra);
 
-  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
-
   return (
     <div className="mt-3 pt-3 border-t border-border-dim space-y-3">
       {/* Extra payment input */}
@@ -339,7 +334,8 @@ function AmortizationSchedule({
         />
         {withExtra && baseInfo && (
           <span className="text-[11px] text-[#00d98a] font-mono">
-            saves {fmt(baseInfo.totalInterest - withExtra.totalInterest)} ·{' '}
+            saves{' '}
+            {formatCurrency(baseInfo.totalInterest - withExtra.totalInterest)} ·{' '}
             {baseInfo.months - withExtra.months} mo faster
           </span>
         )}
@@ -365,13 +361,13 @@ function AmortizationSchedule({
                 >
                   <td className="py-1 text-text-3 font-mono">{m.year}</td>
                   <td className="py-1 text-right font-mono text-text">
-                    {fmt(m.balance)}
+                    {formatCurrency(m.balance)}
                   </td>
                   <td className="py-1 text-right font-mono text-[#4a8cff]">
-                    {fmt(m.principal)}
+                    {formatCurrency(m.principal)}
                   </td>
                   <td className="py-1 text-right font-mono text-[#ff4560]/80">
-                    {fmt(m.interest)}
+                    {formatCurrency(m.interest)}
                   </td>
                 </tr>
               ))}
@@ -422,52 +418,6 @@ function buildYearlyMilestones(
     if (balance <= 0.01) break;
   }
   return milestones;
-}
-
-function EditableText({
-  value,
-  className,
-  onSave,
-}: {
-  value: string;
-  className?: string;
-  onSave: (v: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          onSave(draft);
-          setEditing(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onSave(draft);
-            setEditing(false);
-          }
-          if (e.key === 'Escape') {
-            setDraft(value);
-            setEditing(false);
-          }
-        }}
-        className={`${className} border-b border-[#4a8cff]/50 bg-transparent outline-none`}
-      />
-    );
-  }
-  return (
-    <span
-      className={`${className} cursor-pointer hover:opacity-70 transition-opacity`}
-      onClick={() => setEditing(true)}
-    >
-      {value}
-    </span>
-  );
 }
 
 function Field({
@@ -608,8 +558,6 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
   const bestOrder = best === 'avalanche' ? avalancheOrder : snowballOrder;
   const saved = current.totalInterest - bestResult.totalInterest;
 
-  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
-
   const rows = [
     {
       label: 'Avalanche',
@@ -629,9 +577,7 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
 
   return (
     <div className="mt-4 pt-4 border-t border-border-dim">
-      <h4 className="text-[10px] font-semibold uppercase tracking-widest text-text-3 mb-3">
-        Payoff strategy
-      </h4>
+      <h4 className={`${LABEL_CLS} mb-3`}>Payoff strategy</h4>
       <div className="grid grid-cols-2 gap-2">
         {rows.map(({ label, sub, result, order: ord, isBest }) => (
           <div
@@ -652,7 +598,7 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
             </div>
             <p className="text-[11px] text-text-3 mb-2">{sub}</p>
             <p className="text-xs font-mono text-text-2">
-              {fmt(result.totalInterest)}{' '}
+              {formatCurrency(result.totalInterest)}{' '}
               <span className="text-text-4">interest · {result.months} mo</span>
             </p>
             <p className="text-[10px] text-text-4 mt-1">
@@ -666,8 +612,8 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
       {saved > 50 && (
         <p className="text-[11px] text-[#00d98a] mt-2">
           {best === 'avalanche' ? 'Avalanche' : 'Snowball'} saves{' '}
-          <span className="font-mono">{fmt(saved)}</span> in interest vs current
-          order.
+          <span className="font-mono">{formatCurrency(saved)}</span> in interest
+          vs current order.
         </p>
       )}
     </div>
