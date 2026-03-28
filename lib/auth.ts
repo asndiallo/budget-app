@@ -125,62 +125,37 @@ export const auth = betterAuth({
             roth_ira: 0,
           };
 
-          const ins = db.prepare(
+          const seedRows = (sql: string, rows: unknown[][]): void => {
+            const stmt = db.prepare(sql);
+            db.transaction(() => {
+              for (const vals of rows) stmt.run(userId, ...vals);
+            })();
+          };
+
+          seedRows(
             'INSERT OR IGNORE INTO income_config (user_id, month, key, value) VALUES (?, ?, ?, ?)',
+            Object.entries(incomeSeed).map(([key, value]) => ['0000-00', key, value]),
           );
-          db.transaction(() => {
-            for (const [key, value] of Object.entries(incomeSeed))
-              ins.run(userId, '0000-00', key, value);
-          })();
 
-          // Seed fixed expenses
-          const fxIns = db.prepare(
+          seedRows(
             'INSERT INTO fixed_expenses (user_id, label, amount, period) VALUES (?, ?, ?, ?)',
+            SEED_FIXED_EXPENSES.map(({ label, amount, period }) => [label, amount, period]),
           );
-          db.transaction(() => {
-            for (const { label, amount, period } of SEED_FIXED_EXPENSES)
-              fxIns.run(userId, label, amount, period);
-          })();
 
-          // Seed goals
-          const goIns = db.prepare(
+          seedRows(
             'INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)',
+            SEED_GOALS.map(({ name, target, saved, color }) => [name, target, saved, color]),
           );
-          db.transaction(() => {
-            for (const { name, target, saved, color } of SEED_GOALS)
-              goIns.run(userId, name, target, saved, color);
-          })();
 
-          // Seed payment sources
-          const psIns = db.prepare(
+          seedRows(
             'INSERT INTO payment_sources (user_id, label) VALUES (?, ?)',
+            SEED_PAYMENT_SOURCES.map(({ label }) => [label]),
           );
-          db.transaction(() => {
-            for (const { label } of SEED_PAYMENT_SOURCES)
-              psIns.run(userId, label);
-          })();
 
-          // Seed debts
-          const dtIns = db.prepare(
+          seedRows(
             'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
+            SEED_DEBTS.map(({ label, lender, balance, monthly_payment, interest_rate }) => [label, lender, balance, monthly_payment, interest_rate]),
           );
-          db.transaction(() => {
-            for (const {
-              label,
-              lender,
-              balance,
-              monthly_payment,
-              interest_rate,
-            } of SEED_DEBTS)
-              dtIns.run(
-                userId,
-                label,
-                lender,
-                balance,
-                monthly_payment,
-                interest_rate,
-              );
-          })();
         },
       },
     },

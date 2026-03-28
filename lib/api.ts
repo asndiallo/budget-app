@@ -55,44 +55,32 @@ export const api = {
 
   fixedExpenses: {
     list: () => fetch('/api/fixed-expenses').then(asJson<FixedExpense[]>),
-    add: (
-      label: string,
-      amount: number,
-      period: 'monthly' | 'annual' = 'monthly',
-      day_of_month?: number | null,
-      notes?: string | null,
-      is_investment?: boolean,
-    ) =>
+    add: (data: {
+      label: string;
+      amount: number;
+      period?: 'monthly' | 'annual';
+      day_of_month?: number | null;
+      notes?: string | null;
+      is_investment?: boolean;
+    }) =>
       send('POST', '/api/fixed-expenses', {
-        label,
-        amount,
-        period,
-        day_of_month,
-        notes,
-        is_investment,
+        period: 'monthly',
+        ...data,
       }).then(asJson<FixedExpense>),
     remove: (id: number) =>
       send('DELETE', '/api/fixed-expenses', { id }).then(
         asJson<{ ok: boolean }>,
       ),
-    update: (
-      id: number,
-      label: string,
-      amount: number,
-      period: 'monthly' | 'annual',
-      day_of_month?: number | null,
-      notes?: string | null,
-      is_investment?: boolean,
-    ) =>
-      send('PATCH', '/api/fixed-expenses', {
-        id,
-        label,
-        amount,
-        period,
-        day_of_month,
-        notes,
-        is_investment,
-      }).then(asJson<{ ok: boolean }>),
+    update: (data: {
+      id: number;
+      label: string;
+      amount: number;
+      period: 'monthly' | 'annual';
+      day_of_month?: number | null;
+      notes?: string | null;
+      is_investment?: boolean;
+    }) =>
+      send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
   },
 
   transactions: {
@@ -285,13 +273,13 @@ export const api = {
   incomeEntries: {
     list: (month: string) =>
       fetch(`/api/income-entries?month=${month}`).then(asJson<IncomeEntry[]>),
-    add: (description: string, amount: number, month: string, source: string) =>
-      send('POST', '/api/income-entries', {
-        description,
-        amount,
-        month,
-        source,
-      }).then(asJson<IncomeEntry>),
+    add: (data: {
+      description: string;
+      amount: number;
+      month: string;
+      source: string;
+    }) =>
+      send('POST', '/api/income-entries', data).then(asJson<IncomeEntry>),
     remove: (id: number) =>
       send('DELETE', '/api/income-entries', { id }).then(
         asJson<{ ok: boolean }>,
@@ -328,18 +316,13 @@ export const api = {
 
   receivables: {
     list: () => fetch('/api/receivables').then(asJson<Receivable[]>),
-    add: (
-      name: string,
-      description: string,
-      amount: number,
-      month_created: string,
-    ) =>
-      send('POST', '/api/receivables', {
-        name,
-        description,
-        amount,
-        month_created,
-      }).then(asJson<Receivable>),
+    add: (data: {
+      name: string;
+      description: string;
+      amount: number;
+      month_created: string;
+    }) =>
+      send('POST', '/api/receivables', data).then(asJson<Receivable>),
     update: (
       id: number,
       data: Partial<Pick<Receivable, 'name' | 'description' | 'amount'>>,

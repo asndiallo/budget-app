@@ -195,6 +195,18 @@ export interface HealthScore {
   components: HealthScoreComponent[];
 }
 
+// ── Dashboard summary (computed client-side from income + fixed + transactions) ─
+
+export interface Summary {
+  totalIncome: number;
+  tsp: number;
+  investmentFixed: number;
+  committed: number;
+  spending: number;
+  net: number;
+  savingsRate: number;
+}
+
 export interface YtdSummary {
   year: number;
   monthsRecorded: number;
