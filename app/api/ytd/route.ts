@@ -1,81 +1,70 @@
+import { currentMonth, isBeforeMonth } from '@/lib/utils';
+
 import { NextResponse } from 'next/server';
 import type { YtdSummary } from '@/lib/types';
 import { computeMonthlyFinancials } from '@/lib/income';
-import { currentMonth, isBeforeMonth } from '@/lib/utils';
-import { getDb } from '@/lib/db';
-import { requireAuth } from '@/lib/auth';
+import { withAuth } from '@/lib/route-helpers';
 
-export async function GET(req: Request) {
-  try {
-    const { userId } = await requireAuth(req);
-    const db = getDb();
-    const { searchParams } = new URL(req.url);
-    const month = searchParams.get('month') || currentMonth();
+export const GET = withAuth(async (req, { userId, db }) => {
+  const { searchParams } = new URL(req.url);
+  const month = searchParams.get('month') || currentMonth();
 
-    const year = month.slice(0, 4);
-    const [, m] = month.split('-').map(Number);
-    const months = Array.from(
-      { length: m },
-      (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
-    );
+  const year = month.slice(0, 4);
+  const [, m] = month.split('-').map(Number);
+  const months = Array.from(
+    { length: m },
+    (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
+  );
 
-    const spendingRows = db
+  const spendingRows = db
+    .prepare(
+      `SELECT month, SUM(amount) AS total
+       FROM transactions
+       WHERE user_id = ? AND month IN (${months.map(() => '?').join(',')})
+       GROUP BY month`,
+    )
+    .all(userId, ...months) as { month: string; total: number }[];
+
+  const spendingByMonth = Object.fromEntries(
+    spendingRows.map((r) => [r.month, r.total]),
+  );
+
+  const userRow = db
+    .prepare('SELECT joined_at FROM users WHERE id = ?')
+    .get(userId) as { joined_at: string | null };
+  const joinedAt = userRow?.joined_at || null;
+
+  const investmentFixedMonthly = (
+    db
       .prepare(
-        `SELECT month, SUM(amount) AS total
-         FROM transactions
-         WHERE user_id = ? AND month IN (${months.map(() => '?').join(',')})
-         GROUP BY month`,
+        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
       )
-      .all(userId, ...months) as { month: string; total: number }[];
+      .get(userId) as { s: number }
+  ).s;
 
-    const spendingByMonth = Object.fromEntries(
-      spendingRows.map((r) => [r.month, r.total]),
-    );
+  let totalIncome = 0;
+  let totalInvested = 0;
+  let totalSpending = 0;
+  let monthsRecorded = 0;
 
-    const userRow = db
-      .prepare('SELECT joined_at FROM users WHERE id = ?')
-      .get(userId) as { joined_at: string | null };
-    const joinedAt = userRow?.joined_at || null;
-
-    const investmentFixedMonthly = (
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-        )
-        .get(userId) as { s: number }
-    ).s;
-
-    let totalIncome = 0;
-    let totalInvested = 0;
-    let totalSpending = 0;
-    let monthsRecorded = 0;
-
-    for (const mo of months) {
-      if (joinedAt && isBeforeMonth(mo, joinedAt)) continue;
-      const { totalIncome: inc, tsp } = computeMonthlyFinancials(
-        db,
-        mo,
-        userId,
-      );
-      const spending = spendingByMonth[mo] ?? 0;
-      if (inc > 0 || spending > 0) {
-        totalIncome += inc;
-        totalInvested += tsp + investmentFixedMonthly;
-        totalSpending += spending;
-        monthsRecorded++;
-      }
+  for (const mo of months) {
+    if (joinedAt && isBeforeMonth(mo, joinedAt)) continue;
+    const { totalIncome: inc, tsp } = computeMonthlyFinancials(db, mo, userId);
+    const spending = spendingByMonth[mo] ?? 0;
+    if (inc > 0 || spending > 0) {
+      totalIncome += inc;
+      totalInvested += tsp + investmentFixedMonthly;
+      totalSpending += spending;
+      monthsRecorded++;
     }
-
-    return NextResponse.json<YtdSummary>({
-      year: parseInt(year),
-      monthsRecorded,
-      totalIncome: Math.round(totalIncome),
-      totalInvested: Math.round(totalInvested),
-      totalSpending: Math.round(totalSpending),
-      netSaved: Math.round(totalIncome - totalInvested - totalSpending),
-    });
-  } catch (err) {
-    if (err instanceof Response) return err;
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
-}
+
+  return NextResponse.json<YtdSummary>({
+    year: parseInt(year),
+    monthsRecorded,
+    totalIncome: Math.round(totalIncome),
+    totalInvested: Math.round(totalInvested),
+    totalSpending: Math.round(totalSpending),
+    netSaved: Math.round(totalIncome - totalInvested - totalSpending),
+  });
+});

@@ -1,53 +1,31 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-import { requireAuth } from '@/lib/auth';
+import { withAuth } from '@/lib/route-helpers';
 
-export async function GET(req: Request) {
-  try {
-    const { userId } = await requireAuth(req);
-    const db = getDb();
-    const rows = db
-      .prepare(
-        'SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?',
-      )
-      .all(userId) as {
-      category: string;
-      budget: number;
-      percentage: number | null;
-    }[];
-    return NextResponse.json(rows);
-  } catch (err) {
-    if (err instanceof Response) return err;
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
-}
+export const GET = withAuth(async (_req, { userId, db }) => {
+  const rows = db
+    .prepare(
+      'SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?',
+    )
+    .all(userId) as {
+    category: string;
+    budget: number;
+    percentage: number | null;
+  }[];
+  return NextResponse.json(rows);
+});
 
-export async function PUT(req: Request) {
-  try {
-    const { userId } = await requireAuth(req);
-    const db = getDb();
-    const { category, budget, percentage } = await req.json();
-    db.prepare(
-      'INSERT INTO category_budgets (user_id, category, budget, percentage) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, category) DO UPDATE SET budget = excluded.budget, percentage = excluded.percentage',
-    ).run(userId, category, budget ?? 0, percentage ?? null);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    if (err instanceof Response) return err;
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
-}
+export const PUT = withAuth(async (req, { userId, db }) => {
+  const { category, budget, percentage } = await req.json();
+  db.prepare(
+    'INSERT INTO category_budgets (user_id, category, budget, percentage) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, category) DO UPDATE SET budget = excluded.budget, percentage = excluded.percentage',
+  ).run(userId, category, budget ?? 0, percentage ?? null);
+  return NextResponse.json({ ok: true });
+});
 
-export async function DELETE(req: Request) {
-  try {
-    const { userId } = await requireAuth(req);
-    const db = getDb();
-    const { category } = await req.json();
-    db.prepare(
-      'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
-    ).run(userId, category);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    if (err instanceof Response) return err;
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
-}
+export const DELETE = withAuth(async (req, { userId, db }) => {
+  const { category } = await req.json();
+  db.prepare(
+    'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
+  ).run(userId, category);
+  return NextResponse.json({ ok: true });
+});
