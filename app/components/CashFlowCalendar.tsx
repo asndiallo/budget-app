@@ -9,6 +9,23 @@ import { formatCurrency } from '@/lib/utils';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PAY_DAYS = [1, 15];
+const DUE_SOON_WINDOW = 5;
+
+/**
+ * Military pay hits on the 1st and 15th. If either falls on a weekend,
+ * DFAS deposits on the preceding Friday.
+ * Returns null when the adjusted day falls into the prior month (e.g. the 1st is Saturday).
+ */
+function adjustedPayDay(
+  nominalDay: number,
+  year: number,
+  month: number,
+): number | null {
+  const dow = new Date(year, month - 1, nominalDay).getDay();
+  const adjusted =
+    dow === 6 ? nominalDay - 1 : dow === 0 ? nominalDay - 2 : nominalDay;
+  return adjusted >= 1 ? adjusted : null;
+}
 
 function buildWeeks(month: string): (number | null)[][] {
   const [y, m] = month.split('-').map(Number);
@@ -68,6 +85,34 @@ export default function CashFlowCalendar({
       ? today.getDate()
       : null;
 
+  // Weekend-adjusted pay days
+  const [y, m] = month.split('-').map(Number);
+  const actualPayDays = PAY_DAYS.map((d) => ({
+    nominal: d,
+    actual: adjustedPayDay(d, y, m),
+  }));
+  const payDaySet = new Set(
+    actualPayDays.filter((p) => p.actual !== null).map((p) => p.actual!),
+  );
+  const anyPayShifted = actualPayDays.some(
+    (p) => p.actual !== null && p.actual !== p.nominal,
+  );
+
+  // Days with bills due within DUE_SOON_WINDOW days of today (current month only)
+  const dueSoonDays = new Set(
+    todayDay === null
+      ? []
+      : fixedExpenses
+          .filter(
+            (f) =>
+              f.day_of_month !== null &&
+              f.day_of_month !== undefined &&
+              f.day_of_month >= todayDay &&
+              f.day_of_month <= todayDay + DUE_SOON_WINDOW,
+          )
+          .map((f) => f.day_of_month!),
+  );
+
   // Index transactions and bills by day
   const txsByDay: Record<number, Transaction[]> = {};
   const spendByDay: Record<number, number> = {};
@@ -92,7 +137,9 @@ export default function CashFlowCalendar({
 
   const selectedTxs = selectedDay ? txsByDay[selectedDay] || [] : [];
   const selectedBills = selectedDay ? billsByDay[selectedDay] || [] : [];
-  const isPayDay = selectedDay ? PAY_DAYS.includes(selectedDay) : false;
+  const isPayDay = selectedDay ? payDaySet.has(selectedDay) : false;
+  const isSelectedDueSoon =
+    selectedDay !== null && dueSoonDays.has(selectedDay);
 
   // Summary totals
   const totalSpend = Object.values(spendByDay).reduce((s, v) => s + v, 0);
@@ -107,13 +154,19 @@ export default function CashFlowCalendar({
         {hasIncome && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-[#00d98a] inline-block" />
-            Pay days (1st &amp; 15th)
+            {anyPayShifted ? 'Pay days (adjusted)' : 'Pay days (1st & 15th)'}
           </span>
         )}
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-[#4a8cff] inline-block" />
           Bill due
         </span>
+        {todayDay !== null && dueSoonDays.size > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+            Due soon
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-[#ff4560] inline-block" />
           Spending
@@ -146,9 +199,10 @@ export default function CashFlowCalendar({
 
               const spend = spendByDay[day] || 0;
               const bills = billsByDay[day] || [];
-              const isPay = PAY_DAYS.includes(day);
+              const isPay = payDaySet.has(day);
               const isToday = day === todayDay;
               const isSelected = day === selectedDay;
+              const isDueSoonDay = dueSoonDays.has(day) && bills.length > 0;
               const hasDots =
                 spend > 0 || bills.length > 0 || (isPay && hasIncome);
 
@@ -161,9 +215,11 @@ export default function CashFlowCalendar({
                       ? 'border-[#4a8cff] bg-surface-blue'
                       : isToday
                         ? 'border-[#4a8cff]/40 bg-surface'
-                        : hasDots
-                          ? 'border-border bg-surface hover:border-[#4a8cff]/30'
-                          : 'border-border-dim bg-surface hover:border-border'
+                        : isDueSoonDay
+                          ? 'border-amber-400/50 bg-amber-500/5 hover:border-amber-400/80'
+                          : hasDots
+                            ? 'border-border bg-surface hover:border-[#4a8cff]/30'
+                            : 'border-border-dim bg-surface hover:border-border'
                   }`}
                 >
                   <span
@@ -261,6 +317,9 @@ export default function CashFlowCalendar({
                 </span>
               )}
             </div>
+          )}
+          {isSelectedDueSoon && selectedBills.length > 0 && (
+            <p className="text-[10px] text-amber-400 mb-1">Bills due within {DUE_SOON_WINDOW} days</p>
           )}
 
           {selectedBills.map((b) => (

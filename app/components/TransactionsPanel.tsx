@@ -187,6 +187,19 @@ export default function TransactionsPanel({
     const debitIdx = headers.findIndex((h) => h === 'debit');
     const creditIdx = headers.findIndex((h) => h === 'credit');
     const isCapitalOne = debitIdx >= 0 && creditIdx >= 0 && !isNavyFed;
+    // USAA: has 'original description' and 'status' columns
+    const origDescIdx = headers.findIndex((h) => h === 'original description');
+    const statusIdx = headers.findIndex((h) => h === 'status');
+    const isUsaa = origDescIdx >= 0 && statusIdx >= 0;
+    // BofA bank: has 'running bal.' column
+    const runningBalIdx = headers.findIndex((h) =>
+      h.includes('running bal'),
+    );
+    const isBofaBank = runningBalIdx >= 0;
+    // BofA credit: has 'reference number' and 'payee' columns
+    const refNumIdx = headers.findIndex((h) => h === 'reference number');
+    const payeeIdx = headers.findIndex((h) => h === 'payee');
+    const isBofaCredit = refNumIdx >= 0 && payeeIdx >= 0;
 
     const dateIdx = headers.findIndex(
       (h) => h.includes('transaction date') || h === 'date',
@@ -206,6 +219,43 @@ export default function TransactionsPanel({
         vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||
         'Unknown';
       const isTaptap = description.toLowerCase().includes('taptap');
+
+      if (isUsaa) {
+        // USAA: negative amounts = debits (expenses), positive = credits
+        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 2] || '0').replace(/[^0-9.-]/g, '');
+        const rawNum = parseFloat(rawAmt);
+        if (rawNum >= 0) continue; // skip credits/deposits
+        const amount = Math.abs(rawNum);
+        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
+        const category = isTaptap ? 'Family' : vals[catIdx >= 0 ? catIdx : 3] || DEFAULT_CATEGORY;
+        if (amount > 0) rows.push({ description, amount, category, date });
+        continue;
+      }
+
+      if (isBofaBank) {
+        // BofA bank: Date, Description, Amount, Running Bal.
+        // negative Amount = withdrawal (expense)
+        const rawAmt = (vals[2] || '0').replace(/[^0-9.-]/g, '');
+        const rawNum = parseFloat(rawAmt);
+        if (rawNum >= 0) continue; // skip deposits
+        const amount = Math.abs(rawNum);
+        const date = vals[0] || '';
+        if (amount > 0) rows.push({ description: vals[1] || 'Unknown', amount, category: DEFAULT_CATEGORY, date });
+        continue;
+      }
+
+      if (isBofaCredit) {
+        // BofA credit: Transaction Date, Posted Date, Reference Number, Payee, Address, Amount
+        // negative Amount = charge (expense)
+        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(/[^0-9.-]/g, '');
+        const rawNum = parseFloat(rawAmt);
+        if (rawNum >= 0) continue; // skip payments/credits
+        const amount = Math.abs(rawNum);
+        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
+        const desc = vals[payeeIdx] || 'Unknown';
+        if (amount > 0) rows.push({ description: desc, amount, category: DEFAULT_CATEGORY, date });
+        continue;
+      }
 
       if (isCapitalOne) {
         // Skip credits/payments — only keep rows with a debit value
@@ -393,7 +443,7 @@ export default function TransactionsPanel({
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-text">Import CSV</p>
             <p className="text-xs text-text-3 mt-0.5">
-              Apple Card · Chase · Capital One · Navy Federal
+              Apple Card · Chase · Capital One · Navy Federal · USAA · BofA
             </p>
             {sources.length > 0 && (
               <select

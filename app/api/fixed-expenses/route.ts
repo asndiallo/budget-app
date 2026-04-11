@@ -11,16 +11,17 @@ export const GET = withAuth(async (_req, { userId, db }) => {
 });
 
 export const POST = withAuth(async (req, { userId, db }) => {
-  const { label, amount, period, day_of_month, notes, is_investment } =
+  const { label, amount, period, day_of_month, notes, is_investment, goal_id } =
     await req.json();
   const p = period === 'annual' ? 'annual' : 'monthly';
   const dom = day_of_month ? Number(day_of_month) : null;
   const inv = is_investment ? 1 : 0;
+  const gid = goal_id ? Number(goal_id) : null;
   const result = db
     .prepare(
-      'INSERT INTO fixed_expenses (user_id, label, amount, period, day_of_month, notes, is_investment) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO fixed_expenses (user_id, label, amount, period, day_of_month, notes, is_investment, goal_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     )
-    .run(userId, label, amount, p, dom, notes ?? null, inv);
+    .run(userId, label, amount, p, dom, notes ?? null, inv, gid);
   return NextResponse.json({
     id: result.lastInsertRowid,
     label,
@@ -29,16 +30,18 @@ export const POST = withAuth(async (req, { userId, db }) => {
     day_of_month: dom,
     notes: notes ?? null,
     is_investment: inv,
+    goal_id: gid,
     active: 1,
   });
 });
 
 export const PATCH = withAuth(async (req, { userId, db }) => {
-  const { id, label, amount, period, day_of_month, notes, is_investment } =
+  const { id, label, amount, period, day_of_month, notes, is_investment, goal_id } =
     await req.json();
   const dom = day_of_month ? Number(day_of_month) : null;
+  const gid = goal_id ? Number(goal_id) : null;
   db.prepare(
-    'UPDATE fixed_expenses SET label = ?, amount = ?, period = ?, day_of_month = ?, notes = ?, is_investment = ? WHERE id = ? AND user_id = ?',
+    'UPDATE fixed_expenses SET label = ?, amount = ?, period = ?, day_of_month = ?, notes = ?, is_investment = ?, goal_id = ? WHERE id = ? AND user_id = ?',
   ).run(
     label,
     amount,
@@ -46,6 +49,7 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
     dom,
     notes ?? null,
     is_investment ? 1 : 0,
+    gid,
     id,
     userId,
   );

@@ -1,10 +1,12 @@
 'use client';
 
-import type { BillPayment, FixedExpense } from '@/lib/types';
+import type { BillPayment, FixedExpense, Goal } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
+
+const DUE_SOON_WINDOW = 5;
 
 function monthlyAmount(f: FixedExpense) {
   return f.period === 'annual' ? f.amount / 12 : f.amount;
@@ -18,14 +20,17 @@ export default function FixedExpensesPanel({
   onUpdate: () => void;
 }) {
   const [fixed, setFixed] = useState<FixedExpense[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [paidIds, setPaidIds] = useState<Set<number>>(new Set());
   const [newLabel, setNewLabel] = useState('');
   const [newAmt, setNewAmt] = useState('');
   const [newPeriod, setNewPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [newDay, setNewDay] = useState('');
   const [newIsInvestment, setNewIsInvestment] = useState(false);
+  const [newGoalId, setNewGoalId] = useState<number | null>(null);
 
   const reload = () => api.fixedExpenses.list().then(setFixed);
+  const reloadGoals = () => api.goals.list().then(setGoals);
   const reloadPayments = () =>
     month
       ? api.billPayments
@@ -37,6 +42,7 @@ export default function FixedExpensesPanel({
 
   useEffect(() => {
     reload();
+    reloadGoals();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -49,6 +55,14 @@ export default function FixedExpensesPanel({
       await api.billPayments.unmark(f.id, month);
     } else {
       await api.billPayments.markPaid(f.id, month);
+      // Auto-contribute to linked goal when marking paid
+      if (f.goal_id) {
+        await api.goalContributions.add(
+          f.goal_id,
+          monthlyAmount(f),
+          `Auto: ${f.label} (${month})`,
+        );
+      }
     }
     reloadPayments();
   }
@@ -63,12 +77,14 @@ export default function FixedExpensesPanel({
       day_of_month: dom,
       notes: null,
       is_investment: newIsInvestment,
+      goal_id: newGoalId,
     });
     setNewLabel('');
     setNewAmt('');
     setNewPeriod('monthly');
     setNewDay('');
     setNewIsInvestment(false);
+    setNewGoalId(null);
     reload();
     onUpdate();
   }
@@ -89,6 +105,7 @@ export default function FixedExpensesPanel({
       day_of_month: f.day_of_month,
       notes: f.notes,
       is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
     });
     reload();
     onUpdate();
@@ -103,6 +120,7 @@ export default function FixedExpensesPanel({
       day_of_month: f.day_of_month,
       notes: f.notes,
       is_investment: !f.is_investment,
+      goal_id: f.goal_id,
     });
     reload();
     onUpdate();
@@ -119,6 +137,7 @@ export default function FixedExpensesPanel({
       day_of_month: dom,
       notes: f.notes,
       is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
     });
     reload();
     onUpdate();
@@ -133,12 +152,39 @@ export default function FixedExpensesPanel({
       day_of_month: f.day_of_month,
       notes: notes || null,
       is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
     });
     reload();
     onUpdate();
   }
 
+  async function updateGoalId(f: FixedExpense, goalId: number | null) {
+    await api.fixedExpenses.update({
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+      goal_id: goalId,
+    });
+    reload();
+  }
+
   const total = fixed.reduce((s, f) => s + monthlyAmount(f), 0);
+
+  const today = new Date();
+  const todayMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const todayDay = todayMonth === month ? today.getDate() : null;
+
+  function isDueSoon(f: FixedExpense): boolean {
+    if (!todayDay || !f.day_of_month || paidIds.has(f.id)) return false;
+    return (
+      f.day_of_month >= todayDay &&
+      f.day_of_month <= todayDay + DUE_SOON_WINDOW
+    );
+  }
 
   return (
     <div>
@@ -175,6 +221,11 @@ export default function FixedExpensesPanel({
               >
                 {f.label}
               </p>
+              {isDueSoon(f) && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium shrink-0">
+                  soon
+                </span>
+              )}
               <DayField
                 value={f.day_of_month ?? null}
                 onSave={(raw) => updateDayOfMonth(f, raw)}
@@ -226,6 +277,14 @@ export default function FixedExpensesPanel({
               value={f.notes ?? null}
               onSave={(v) => updateNotes(f, v)}
             />
+            {/* Goal link (only shown when goals exist or a goal is already linked) */}
+            {(goals.length > 0 || f.goal_id) && (
+              <GoalField
+                value={f.goal_id ?? null}
+                goals={goals}
+                onSave={(gid) => updateGoalId(f, gid)}
+              />
+            )}
           </div>
         );
       })}
@@ -274,6 +333,23 @@ export default function FixedExpensesPanel({
         >
           invest
         </button>
+        {goals.length > 0 && (
+          <select
+            value={newGoalId ?? ''}
+            onChange={(e) =>
+              setNewGoalId(e.target.value ? Number(e.target.value) : null)
+            }
+            title="Link to a savings goal"
+            className="text-[11px] bg-bg border border-border rounded-lg px-2 py-1.5 text-text-3 focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+          >
+            <option value="">no goal</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           onClick={addFixed}
           className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors"
@@ -345,6 +421,57 @@ function DayField({
     >
       {value ? `due ${ordinal(value)}` : '+ due'}
     </button>
+  );
+}
+
+function GoalField({
+  value,
+  goals,
+  onSave,
+}: {
+  value: number | null;
+  goals: Goal[];
+  onSave: (goalId: number | null) => void;
+}) {
+  const linked = goals.find((g) => g.id === value);
+  const [editing, setEditing] = useState(false);
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className={`mt-0.5 text-[11px] text-left transition-colors ${
+          linked
+            ? 'text-[#4a8cff] hover:text-[#4a8cff]/80'
+            : 'text-text-4 hover:text-text-3'
+        }`}
+        title={linked ? 'Linked goal — click to change' : 'Link to a savings goal'}
+      >
+        {linked ? `→ goal: ${linked.name}` : '+ link goal'}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 flex items-center gap-1">
+      <select
+        autoFocus
+        value={value ?? ''}
+        onChange={(e) => {
+          onSave(e.target.value ? Number(e.target.value) : null);
+          setEditing(false);
+        }}
+        onBlur={() => setEditing(false)}
+        className="text-[11px] bg-bg border border-[#4a8cff]/50 rounded px-1.5 py-0.5 text-text outline-none cursor-pointer"
+      >
+        <option value="">— unlink —</option>
+        {goals.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
