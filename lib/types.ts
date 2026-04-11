@@ -53,6 +53,15 @@ export interface FixedExpense {
   day_of_month?: number | null;
   notes?: string | null;
   is_investment?: number | null;
+  goal_id?: number | null;
+}
+
+export interface LeaveEvent {
+  id: number;
+  taken_at: string; // YYYY-MM-DD
+  days: number;
+  note?: string | null;
+  created_at: string;
 }
 
 export interface GoalContribution {

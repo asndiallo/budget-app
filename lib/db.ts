@@ -152,16 +152,48 @@ function initSchema(db: Database.Database) {
       category TEXT    NOT NULL,
       UNIQUE(user_id, keyword)
     );
+
+    -- Leave balance: one row per user, updated in-place (kept for backwards compat)
+    CREATE TABLE IF NOT EXISTS leave_tracker (
+      user_id      TEXT NOT NULL PRIMARY KEY,
+      balance_days REAL NOT NULL DEFAULT 0,
+      updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Leave events: individual leave periods taken
+    CREATE TABLE IF NOT EXISTS leave_events (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    TEXT    NOT NULL,
+      taken_at   TEXT    NOT NULL, -- YYYY-MM-DD start date of leave
+      days       REAL    NOT NULL,
+      note       TEXT,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   migrateSchema(db);
 }
 
 function migrateSchema(db: Database.Database) {
-  const cols = db.prepare('PRAGMA table_info(category_budgets)').all() as {
+  const cbCols = db.prepare('PRAGMA table_info(category_budgets)').all() as {
     name: string;
   }[];
-  if (!cols.some((c) => c.name === 'percentage')) {
+  if (!cbCols.some((c) => c.name === 'percentage')) {
     db.exec('ALTER TABLE category_budgets ADD COLUMN percentage REAL');
+  }
+
+  const feCols = db.prepare('PRAGMA table_info(fixed_expenses)').all() as {
+    name: string;
+  }[];
+  if (!feCols.some((c) => c.name === 'goal_id')) {
+    db.exec('ALTER TABLE fixed_expenses ADD COLUMN goal_id INTEGER');
+  }
+
+  // Leave tracker: add les_period column (YYYY-MM-DD end of the LES period)
+  const ltCols = db.prepare('PRAGMA table_info(leave_tracker)').all() as {
+    name: string;
+  }[];
+  if (!ltCols.some((c) => c.name === 'les_period')) {
+    db.exec("ALTER TABLE leave_tracker ADD COLUMN les_period TEXT");
   }
 }

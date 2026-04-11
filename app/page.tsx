@@ -4,6 +4,7 @@ import {
   APP_CONFIG,
   DEDUCTION_FIELDS,
   INCOME_FIELDS,
+  SPECIAL_PAY_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
 import type {
@@ -29,6 +30,8 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BrsPanel from './components/BrsPanel';
+import GiBillPanel from './components/GiBillPanel';
+import SdpPanel from './components/SdpPanel';
 import BudgetBar from './components/BudgetBar';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
@@ -37,6 +40,7 @@ import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GoalsPanel from './components/GoalsPanel';
 import HealthScoreCard from './components/HealthScoreCard';
 import IncomePanel from './components/IncomePanel';
+import LeavePanel from './components/LeavePanel';
 import MetricCard from './components/MetricCard';
 import NetWorthCard from './components/NetWorthCard';
 import OverviewPanel from './components/OverviewPanel';
@@ -92,7 +96,7 @@ function calcSummary(
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round(base * tspRate);
-  const militaryIncome = INCOME_FIELDS.reduce(
+  const militaryIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
     (s, f) => s + (income[f.key] || 0),
     0,
   );
@@ -117,8 +121,14 @@ function calcSummary(
     .reduce((s, d) => s + d.monthly_payment, 0);
   const committed = fixedExpenses + debtPayments;
   const spending = txs.reduce((s, t) => s + t.amount, 0);
+  // When deployed to a combat zone, federal income tax is excluded for enlisted.
+  const combatZone = !!income.combat_zone;
   const deductions =
-    tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
+    tsp +
+    DEDUCTION_FIELDS.reduce(
+      (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
+      0,
+    );
   const net = totalIncome - deductions - committed - spending;
   const savingsRate =
     totalIncome > 0
@@ -165,6 +175,7 @@ export default function Home() {
   const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [prevSummary, setPrevSummary] = useState<Summary | null>(null);
+  const [currentIncome, setCurrentIncome] = useState<IncomeConfig | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -289,7 +300,7 @@ export default function Home() {
     const pm = prevMonth(month);
     const [income, fixed, txs, debts, entries, pIncome, pTxs, pEntries] =
       await Promise.all([
-        api.income.get(month),
+        api.income.get(month).then((d) => { setCurrentIncome(d); return d; }),
         api.fixedExpenses.list(),
         api.transactions.list(month),
         api.debts.list(),
@@ -575,6 +586,7 @@ export default function Home() {
                   <div className="space-y-8">
                     <IncomePanel month={month} onUpdate={fetchSummary} />
                     <ReceivablesPanel month={month} onUpdate={fetchSummary} />
+                    <LeavePanel basePay={currentIncome?.base_pay ?? 0} joinedAt={user?.joined_at ?? ''} />
                   </div>
                 )}
                 {incomeSub === 'bills' && (
@@ -587,6 +599,8 @@ export default function Home() {
                   <div className="space-y-8">
                     <PromoProjectionPanel user={user} />
                     <BrsPanel user={user} month={month} />
+                    <SdpPanel />
+                    <GiBillPanel yearsOfService={user?.years_of_service ?? 0} />
                   </div>
                 )}
               </div>

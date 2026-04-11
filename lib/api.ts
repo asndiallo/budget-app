@@ -62,6 +62,7 @@ export const api = {
       day_of_month?: number | null;
       notes?: string | null;
       is_investment?: boolean;
+      goal_id?: number | null;
     }) =>
       send('POST', '/api/fixed-expenses', {
         period: 'monthly',
@@ -79,6 +80,7 @@ export const api = {
       day_of_month?: number | null;
       notes?: string | null;
       is_investment?: boolean;
+      goal_id?: number | null;
     }) =>
       send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
   },
@@ -303,6 +305,35 @@ export const api = {
     remove: (importId: string) =>
       send('DELETE', '/api/import-history', { importId }).then(
         asJson<{ ok: boolean; deleted: number }>,
+      ),
+  },
+
+  leave: {
+    get: () =>
+      fetch('/api/leave').then(
+        (r) =>
+          r.json() as Promise<{
+            events: import('./types').LeaveEvent[];
+            joined_at: string;
+            anchor: {
+              balance_days: number;
+              les_period: string;
+              imported_at: string;
+            } | null;
+          }>,
+      ),
+    addEvent: (taken_at: string, days: number, note?: string | null) =>
+      send('POST', '/api/leave', { taken_at, days, note }).then(
+        (r) => r.json() as Promise<import('./types').LeaveEvent>,
+      ),
+    removeEvent: (id: number) =>
+      send('DELETE', '/api/leave', { id }).then(
+        (r) => r.json() as Promise<{ ok: boolean }>,
+      ),
+    /** Set the LES anchor (balance as of the end of the LES period) */
+    setLesAnchor: (balance_days: number, les_period: string) =>
+      send('PATCH', '/api/leave', { balance_days, les_period }).then(
+        (r) => r.json() as Promise<{ ok: boolean }>,
       ),
   },
 
