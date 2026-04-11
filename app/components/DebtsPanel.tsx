@@ -5,8 +5,12 @@ import { useEffect, useState } from 'react';
 
 import type { Debt } from '@/lib/types';
 import EditableText from './EditableText';
+import ExternalLink from './ExternalLink';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+
+// SCRA caps pre-service debt interest at 6% while on active duty
+const SCRA_CAP = 6;
 
 export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -193,6 +197,8 @@ function DebtRow({
   const isPaidOff = debt.balance === 0;
   const [showAmort, setShowAmort] = useState(false);
   const [extraPayment, setExtraPayment] = useState('');
+  const scraMayApply =
+    !isPaidOff && debt.interest_rate > SCRA_CAP && debt.balance > 0;
 
   const extra = parseFloat(extraPayment) || 0;
   const debtWithExtra: Debt =
@@ -283,6 +289,23 @@ function DebtRow({
               extraPayment={extraPayment}
               onExtraChange={setExtraPayment}
             />
+          )}
+
+          {scraMayApply && (
+            <div className="mt-2 pt-2 border-t border-border-dim flex items-start gap-2">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-[#4a8cff] shrink-0 mt-0.5">
+                SCRA
+              </span>
+              <p className="text-[11px] text-text-3 leading-snug">
+                Rate {debt.interest_rate}% may be reducible to {SCRA_CAP}% on pre-service
+                debts under the Servicemembers Civil Relief Act — send written notice to
+                your lender.{' '}
+                <ExternalLink
+                  href="https://www.militaryonesource.mil/financial-legal/legal/servicemembers-civil-relief-act/"
+                  label="Learn more"
+                />
+              </p>
+            </div>
           )}
         </div>
         <button

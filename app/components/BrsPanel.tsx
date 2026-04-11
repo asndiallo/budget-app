@@ -22,6 +22,10 @@ interface Props {
 import ExternalLink from './ExternalLink';
 import { formatCurrency } from '@/lib/utils';
 
+// 2026 IRS elective deferral limits
+const TSP_LIMIT_REGULAR = 23_500;
+const TSP_CATCH_UP = 7_500; // age 50+
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtK(n: number) {
@@ -387,6 +391,54 @@ export default function BrsPanel({ user, month }: Props) {
           </p>
         </div>
       )}
+
+      {/* TSP annual contribution limit tracker */}
+      {basePay > 0 && memberPct > 0 && (() => {
+        const monthlyContrib = Math.round(basePay * inputs.tspRate);
+        const annualContrib = monthlyContrib * 12;
+        const limit = TSP_LIMIT_REGULAR;
+        const pctOfLimit = Math.min(annualContrib / limit, 1);
+        const monthsToHitLimit = annualContrib > 0
+          ? Math.ceil(limit / monthlyContrib)
+          : null;
+        const overLimit = annualContrib > limit;
+
+        return (
+          <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 mb-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className={LABEL_CLS}>2026 TSP elective deferral limit</p>
+              <span className="font-mono text-xs text-text-3">
+                {formatCurrency(limit)}/yr
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-surface-raised overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${overLimit ? 'bg-amber-400' : 'bg-gradient-to-r from-[#4a8cff] to-[#00d98a]'}`}
+                style={{ width: `${Math.min(pctOfLimit * 100, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[11px] text-text-4">
+              <span>
+                Your rate: {formatCurrency(monthlyContrib)}/mo ={' '}
+                {formatCurrency(annualContrib)}/yr
+                {' '}({Math.round(pctOfLimit * 100)}% of limit)
+              </span>
+              {!overLimit && monthsToHitLimit && (
+                <span>Hits limit in ~{monthsToHitLimit} mo</span>
+              )}
+              {overLimit && (
+                <span className="text-amber-400">
+                  Exceeds IRS limit by {formatCurrency(annualContrib - limit)}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-text-4">
+              Age 50+ catch-up: +{formatCurrency(TSP_CATCH_UP)}/yr additional allowed.
+              DoD matching contributions don&apos;t count against the employee limit.
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Assumptions + resources (collapsible) */}
       <div className="rounded-xl border border-border-dim bg-surface-raised/20 overflow-hidden">

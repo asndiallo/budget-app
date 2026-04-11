@@ -1,6 +1,6 @@
 // Server-only helpers for income calculations — shared across API routes.
 
-import { INCOME_FIELDS, TSP_CONFIG } from './config';
+import { INCOME_FIELDS, SPECIAL_PAY_FIELDS, TSP_CONFIG } from './config';
 
 import { getDb } from './db';
 
@@ -33,7 +33,7 @@ export function computeMonthlyFinancials(
 ): { totalIncome: number; tsp: number } {
   const config = incomeForMonth(db, month, userId);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
-  const totalIncome = INCOME_FIELDS.reduce(
+  const totalIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
     (s, f) => s + (config[f.key] ?? 0),
     0,
   );

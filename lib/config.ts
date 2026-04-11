@@ -39,6 +39,40 @@ export const INCOME_FIELDS: FieldConfig[] = [
   { key: 'other', label: 'Other' },
 ];
 
+/** Special & incentive pays — added on top of base military pay. */
+export const SPECIAL_PAY_FIELDS: FieldConfig[] = [
+  {
+    key: 'flight_pay',
+    label: 'Aviation / flight pay',
+    note: 'ACIP — pilots up to $850/mo, crew up to $250/mo',
+  },
+  {
+    key: 'hazardous_duty_pay',
+    label: 'Hazardous duty pay',
+    note: 'HDZP — varies by type ($150–$250/mo)',
+  },
+  {
+    key: 'jump_pay',
+    label: 'Parachute / jump pay',
+    note: '$150/mo, $225/mo for HALO/jumpmaster',
+  },
+  {
+    key: 'hostile_fire_idp',
+    label: 'Hostile fire / IDP',
+    note: '$225/mo when serving in a designated combat or IDP area',
+  },
+  {
+    key: 'sdap',
+    label: 'Special duty assignment pay',
+    note: 'SDAP — drill sergeants, recruiters, DSF ($75–$600/mo)',
+  },
+  {
+    key: 'sep',
+    label: 'Incentive / reenlistment bonus',
+    note: 'SRB or other bonus — enter monthly amortized amount',
+  },
+];
+
 export const TSP_CONFIG = {
   rate: 0.2,
   label: 'TSP — 20% of base',

@@ -134,17 +134,30 @@ export const auth = betterAuth({
 
           seedRows(
             'INSERT OR IGNORE INTO income_config (user_id, month, key, value) VALUES (?, ?, ?, ?)',
-            Object.entries(incomeSeed).map(([key, value]) => ['0000-00', key, value]),
+            Object.entries(incomeSeed).map(([key, value]) => [
+              '0000-00',
+              key,
+              value,
+            ]),
           );
 
           seedRows(
             'INSERT INTO fixed_expenses (user_id, label, amount, period) VALUES (?, ?, ?, ?)',
-            SEED_FIXED_EXPENSES.map(({ label, amount, period }) => [label, amount, period]),
+            SEED_FIXED_EXPENSES.map(({ label, amount, period }) => [
+              label,
+              amount,
+              period,
+            ]),
           );
 
           seedRows(
             'INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)',
-            SEED_GOALS.map(({ name, target, saved, color }) => [name, target, saved, color]),
+            SEED_GOALS.map(({ name, target, saved, color }) => [
+              name,
+              target,
+              saved,
+              color,
+            ]),
           );
 
           seedRows(
@@ -154,7 +167,15 @@ export const auth = betterAuth({
 
           seedRows(
             'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
-            SEED_DEBTS.map(({ label, lender, balance, monthly_payment, interest_rate }) => [label, lender, balance, monthly_payment, interest_rate]),
+            SEED_DEBTS.map(
+              ({ label, lender, balance, monthly_payment, interest_rate }) => [
+                label,
+                lender,
+                balance,
+                monthly_payment,
+                interest_rate,
+              ],
+            ),
           );
         },
       },

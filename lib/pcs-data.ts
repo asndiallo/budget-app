@@ -48,6 +48,17 @@ export const TLE_MAX_DAYS = 10;
 /** MALT reimbursement rate per POV per mile (DoD, 2026) */
 export const MALT_RATE_PER_MILE = 0.21;
 
+/**
+ * PPM (Personally Procured Move) incentive rate per pound-mile.
+ * The government pays 95 % of its estimated transportation cost (GTC).
+ * GTC ≈ weight_lbs × distance_miles × this rate.
+ * Based on DoD/TRANSCOM national average — verify at my.move.mil.
+ */
+export const PPM_RATE_PER_LB_MILE = 0.0008;
+
+/** PPM incentive = GTC × this factor (JTR §5353) */
+export const PPM_INCENTIVE_FACTOR = 0.95;
+
 /** Returns HHG weight entitlement for the member's grade and dependent status. */
 export function getWeightAllowanceLbs(
   grade: PayGrade,

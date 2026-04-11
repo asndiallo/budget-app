@@ -1,6 +1,6 @@
 'use client';
 
-import { BTN_BLUE_CLS, DEDUCTION_FIELDS, INCOME_FIELDS, INPUT_CLS, LABEL_CLS, TSP_CONFIG } from '@/lib/config';
+import { BTN_BLUE_CLS, DEDUCTION_FIELDS, INCOME_FIELDS, INPUT_CLS, LABEL_CLS, SPECIAL_PAY_FIELDS, TSP_CONFIG } from '@/lib/config';
 import type { IncomeConfig, IncomeEntry } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
@@ -28,6 +28,7 @@ export default function IncomePanel({
   const [newSource, setNewSource] = useState('');
   const [suggestion, setSuggestion] = useState<PaySuggestion | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [showSpecialPay, setShowSpecialPay] = useState(false);
 
   useEffect(() => {
     if (!month) return;
@@ -35,6 +36,9 @@ export default function IncomePanel({
       setIncome(data);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
+      // Auto-expand special pays section if any are non-zero
+      const hasSpecialPay = SPECIAL_PAY_FIELDS.some((f) => (data[f.key] ?? 0) > 0);
+      if (hasSpecialPay) setShowSpecialPay(true);
     });
     api.incomeEntries.list(month).then(setEntries);
   }, [month]);
@@ -64,14 +68,23 @@ export default function IncomePanel({
 
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round((income.base_pay || 0) * tspRate);
+  const combatZone = !!income.combat_zone;
 
   const militaryTotal = INCOME_FIELDS.reduce(
     (s, f) => s + (income[f.key] || 0),
     0,
   );
+  const specialPayTotal = SPECIAL_PAY_FIELDS.reduce(
+    (s, f) => s + (income[f.key] || 0),
+    0,
+  );
   const extraTotal = entries.reduce((s, e) => s + e.amount, 0);
   const deductionTotal =
-    tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
+    tsp +
+    DEDUCTION_FIELDS.reduce(
+      (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
+      0,
+    );
 
   async function saveIncome(key: string, value: number) {
     setIncome((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -114,6 +127,13 @@ export default function IncomePanel({
     onUpdate();
   }
 
+  async function toggleCombatZone() {
+    const next = combatZone ? 0 : 1;
+    setIncome((prev) => (prev ? { ...prev, combat_zone: next } : prev));
+    await api.income.update(month, { combat_zone: next });
+    onUpdate();
+  }
+
   async function handleLesImport() {
     // Re-fetch income and entries after LES import
     const [data, ents] = await Promise.all([
@@ -140,14 +160,46 @@ export default function IncomePanel({
         }))
     : [];
 
+  const taxSavings = combatZone ? (income.taxes || 0) : 0;
+
   return (
     <div className="space-y-6">
+      {/* Combat zone banner */}
+      {combatZone && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold text-emerald-400">
+              Combat zone tax exclusion active
+            </p>
+            <p className="text-[11px] text-emerald-500/70 mt-0.5">
+              Federal income tax exempt
+              {taxSavings > 0 && ` · saving ~$${Math.round(taxSavings).toLocaleString()}/mo`}
+            </p>
+          </div>
+          <button
+            onClick={toggleCombatZone}
+            className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          >
+            Deactivate
+          </button>
+        </div>
+      )}
+
       <Section
         title="Military pay"
-        total={militaryTotal}
+        total={militaryTotal + specialPayTotal}
         totalColor="text-text"
         action={
           <div className="flex items-center gap-2">
+            {!combatZone && (
+              <button
+                onClick={toggleCombatZone}
+                title="Mark this month as combat zone — exempts federal income tax"
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-raised text-text-3 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+              >
+                ⚔ Combat zone
+              </button>
+            )}
             <button
               onClick={fetchSuggestion}
               disabled={syncLoading}
@@ -212,6 +264,36 @@ export default function IncomePanel({
             onChange={(v) => saveIncome(f.key, v)}
           />
         ))}
+
+        {/* Special pays — collapsible */}
+        <div className="pt-1">
+          <button
+            onClick={() => setShowSpecialPay((v) => !v)}
+            className="flex items-center gap-1.5 text-[11px] text-text-3 hover:text-text-2 transition-colors py-1"
+          >
+            <span className="text-[10px]">{showSpecialPay ? '▼' : '▶'}</span>
+            Special &amp; incentive pays
+            {specialPayTotal > 0 && (
+              <span className="font-mono text-[#00d98a]">
+                +${Math.round(specialPayTotal).toLocaleString()}
+              </span>
+            )}
+          </button>
+          {showSpecialPay && (
+            <div className="mt-1 pl-3 border-l-2 border-border">
+              {SPECIAL_PAY_FIELDS.map((f) => (
+                <Row
+                  key={f.key}
+                  label={f.label}
+                  note={f.note}
+                  value={income[f.key] ?? 0}
+                  onChange={(v) => saveIncome(f.key, v)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-wrap gap-x-3 gap-y-1 pt-2">
           <ResourceLink href="https://mypay.dfas.mil" label="myPay (LES)" />
           <ResourceLink
@@ -262,17 +344,35 @@ export default function IncomePanel({
           </span>
         </div>
 
-        {DEDUCTION_FIELDS.map((f) => (
-          <Row
-            key={f.key}
-            label={f.label}
-            note={f.note}
-            value={income[f.key] ?? 0}
-            onChange={(v) => saveIncome(f.key, v)}
-            prefix="−"
-            valueColor="text-[#ff4560]"
-          />
-        ))}
+        {DEDUCTION_FIELDS.map((f) => {
+          const isExempt = combatZone && f.key === 'taxes';
+          return isExempt ? (
+            <div
+              key={f.key}
+              className="flex items-center py-3 border-b border-border-dim opacity-50"
+            >
+              <div className="flex-1">
+                <p className="text-sm text-text line-through">{f.label}</p>
+                <p className="text-[11px] text-emerald-400 mt-0.5">
+                  Exempt — combat zone
+                </p>
+              </div>
+              <span className="font-mono text-sm text-emerald-400 w-24 text-right">
+                $0
+              </span>
+            </div>
+          ) : (
+            <Row
+              key={f.key}
+              label={f.label}
+              note={f.note}
+              value={income[f.key] ?? 0}
+              onChange={(v) => saveIncome(f.key, v)}
+              prefix="−"
+              valueColor="text-[#ff4560]"
+            />
+          );
+        })}
       </Section>
 
       <Section
