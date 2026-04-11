@@ -11,12 +11,16 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
   try {
-    // Importing auth initialises Better Auth and creates its tables (users,
-    // sessions, accounts, verifications) if they don't exist yet.
     const { auth } = await import('@/lib/auth');
     const { getDb } = await import('@/lib/db');
-    const db = getDb();
 
+    // Ensure Better Auth has created its tables (users, sessions, etc.) before
+    // we query them. $context.runMigrations() is idempotent and safe to call
+    // on every startup.
+    const ctx = await auth.$context;
+    await ctx.runMigrations();
+
+    const db = getDb();
     const { n } = db.prepare('SELECT count(*) as n FROM users').get() as {
       n: number;
     };
