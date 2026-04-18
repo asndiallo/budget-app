@@ -125,7 +125,6 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
                 <AssetRow
                   key={asset.id}
                   asset={asset}
-                  catColor={CAT_COLOR[asset.category as AssetCategory]}
                   onUpdate={updateField}
                   onRemove={removeAsset}
                 />
@@ -197,12 +196,10 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
 
 function AssetRow({
   asset,
-  catColor,
   onUpdate,
   onRemove,
 }: {
   asset: Asset;
-  catColor: string;
   onUpdate: (
     asset: Asset,
     field: keyof Omit<Asset, 'id' | 'updated_at'>,
@@ -219,11 +216,10 @@ function AssetRow({
             className="text-sm font-medium text-text"
             onSave={(v) => onUpdate(asset, 'label', v)}
           />
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded-full ${catColor}`}
-          >
-            {asset.category}
-          </span>
+          <CategoryField
+            value={asset.category as AssetCategory}
+            onSave={(v) => onUpdate(asset, 'category', v)}
+          />
           <span className="text-[10px] text-text-4 ml-auto">
             updated {daysAgo(asset.updated_at)}
           </span>
@@ -242,6 +238,47 @@ function AssetRow({
         ✕
       </button>
     </div>
+  );
+}
+
+function CategoryField({
+  value,
+  onSave,
+}: {
+  value: AssetCategory;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        value={value}
+        onChange={(e) => {
+          onSave(e.target.value);
+          setEditing(false);
+        }}
+        onBlur={() => setEditing(false)}
+        className="text-[10px] bg-bg border border-[#4a8cff]/50 rounded-full px-1.5 py-0.5 text-text outline-none cursor-pointer"
+      >
+        {CATEGORIES.map((c) => (
+          <option key={c} value={c}>
+            {CAT_ICON[c]} {c}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      title="Change category"
+      className={`text-[10px] px-1.5 py-0.5 rounded-full transition-opacity hover:opacity-70 ${CAT_COLOR[value]}`}
+    >
+      {value}
+    </button>
   );
 }
 
