@@ -57,8 +57,9 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
     raw: string,
   ) {
     const isNumeric = field !== 'label' && field !== 'lender';
-    const value = isNumeric ? parseFloat(raw) || 0 : raw;
-    await api.debts.update(debt.id, { [field]: value });
+    const value = isNumeric ? (raw.trim() ? parseFloat(raw) : null) : raw;
+    // Always send the full object so non-COALESCE PATCH doesn't wipe unrelated fields.
+    await api.debts.update(debt.id, { ...debt, [field]: value });
     reload();
     onUpdate();
   }
@@ -249,6 +250,13 @@ function DebtRow({
               value={debt.interest_rate}
               suffix="%"
               onSave={(v) => onUpdate(debt, 'interest_rate', v)}
+            />
+            <Field
+              label="Due"
+              value={debt.day_of_month ?? 0}
+              suffix={debt.day_of_month ? 'th' : ''}
+              placeholder="day"
+              onSave={(v) => onUpdate(debt, 'day_of_month', v)}
             />
           </div>
           {!isPaidOff &&
@@ -448,16 +456,18 @@ function Field({
   value,
   prefix = '',
   suffix = '',
+  placeholder,
   onSave,
 }: {
   label: string;
   value: number;
   prefix?: string;
   suffix?: string;
+  placeholder?: string;
   onSave: (v: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value));
+  const [draft, setDraft] = useState(value ? String(value) : '');
 
   if (editing) {
     return (
@@ -491,16 +501,20 @@ function Field({
   }
   return (
     <span
-      className="text-xs text-text-3 cursor-pointer hover:text-text-2 transition-colors font-mono"
+      className="text-xs cursor-pointer hover:text-text-2 transition-colors"
       onClick={() => {
-        setDraft(String(value));
+        setDraft(value ? String(value) : '');
         setEditing(true);
       }}
     >
       <span className="font-sans text-text-3">{label} </span>
-      {prefix}
-      {value.toLocaleString()}
-      {suffix}
+      {value ? (
+        <span className="font-mono text-text-3">
+          {prefix}{value.toLocaleString()}{suffix}
+        </span>
+      ) : (
+        <span className="text-text-4 font-sans">{placeholder ?? '—'}</span>
+      )}
     </span>
   );
 }

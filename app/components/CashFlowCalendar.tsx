@@ -1,6 +1,6 @@
 'use client';
 
-import type { FixedExpense, Transaction } from '@/lib/types';
+import type { Debt, FixedExpense, Transaction } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { CHART_CAT_COLORS } from '@/lib/config';
@@ -25,6 +25,36 @@ function adjustedPayDay(
   const adjusted =
     dow === 6 ? nominalDay - 1 : dow === 0 ? nominalDay - 2 : nominalDay;
   return adjusted >= 1 ? adjusted : null;
+}
+
+/**
+ * Returns all days in the given month that fall on the biweekly schedule
+ * defined by anchor (a YYYY-MM-DD date on the schedule).
+ * Day-of-week and phase are both derived from the anchor.
+ */
+function biweeklyDays(
+  year: number,
+  month: number,
+  anchor: string,
+  endDate?: string | null,
+): number[] {
+  const anchorDate = new Date(anchor + 'T00:00:00');
+  const dow = anchorDate.getDay();
+  const anchorMs = anchorDate.getTime();
+  const days: number[] = [];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month - 1, day);
+    if (d.getDay() !== dow) continue;
+    const diffDays = Math.round((d.getTime() - anchorMs) / 86_400_000);
+    if (diffDays < 0 || diffDays % 14 !== 0) continue; // before start date
+    if (endDate) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (dateStr > endDate) continue;
+    }
+    days.push(day);
+  }
+  return days;
 }
 
 function buildWeeks(month: string): (number | null)[][] {
@@ -64,17 +94,21 @@ export default function CashFlowCalendar({
 }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   useEffect(() => {
     if (!month) return;
     setSelectedDay(null);
-    Promise.all([api.transactions.list(month), api.fixedExpenses.list()]).then(
-      ([txs, fe]) => {
-        setTransactions(txs);
-        setFixedExpenses(fe);
-      },
-    );
+    Promise.all([
+      api.transactions.list(month),
+      api.fixedExpenses.list(),
+      api.debts.list(),
+    ]).then(([txs, fe, ds]) => {
+      setTransactions(txs);
+      setFixedExpenses(fe);
+      setDebts(ds);
+    });
   }, [month]);
 
   const weeks = buildWeeks(month);
@@ -126,9 +160,23 @@ export default function CashFlowCalendar({
 
   const billsByDay: Record<number, FixedExpense[]> = {};
   for (const f of fixedExpenses) {
-    if (f.day_of_month) {
+    if (f.recurrence === 'biweekly' && f.recurrence_anchor) {
+      for (const day of biweeklyDays(y, m, f.recurrence_anchor, f.end_date)) {
+        if (!billsByDay[day]) billsByDay[day] = [];
+        billsByDay[day].push(f);
+      }
+    } else if (f.day_of_month) {
       if (!billsByDay[f.day_of_month]) billsByDay[f.day_of_month] = [];
       billsByDay[f.day_of_month].push(f);
+    }
+  }
+
+  // Index active debts by their payment day
+  const debtsByDay: Record<number, Debt[]> = {};
+  for (const d of debts) {
+    if (d.balance > 0 && d.day_of_month) {
+      if (!debtsByDay[d.day_of_month]) debtsByDay[d.day_of_month] = [];
+      debtsByDay[d.day_of_month].push(d);
     }
   }
 
@@ -137,6 +185,7 @@ export default function CashFlowCalendar({
 
   const selectedTxs = selectedDay ? txsByDay[selectedDay] || [] : [];
   const selectedBills = selectedDay ? billsByDay[selectedDay] || [] : [];
+  const selectedDebts = selectedDay ? debtsByDay[selectedDay] || [] : [];
   const isPayDay = selectedDay ? payDaySet.has(selectedDay) : false;
   const isSelectedDueSoon =
     selectedDay !== null && dueSoonDays.has(selectedDay);
@@ -161,6 +210,12 @@ export default function CashFlowCalendar({
           <span className="w-2 h-2 rounded-full bg-[#4a8cff] inline-block" />
           Bill due
         </span>
+        {Object.keys(debtsByDay).length > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#a78bfa] inline-block" />
+            Loan payment
+          </span>
+        )}
         {todayDay !== null && dueSoonDays.size > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
@@ -199,12 +254,13 @@ export default function CashFlowCalendar({
 
               const spend = spendByDay[day] || 0;
               const bills = billsByDay[day] || [];
+              const dayDebts = debtsByDay[day] || [];
               const isPay = payDaySet.has(day);
               const isToday = day === todayDay;
               const isSelected = day === selectedDay;
               const isDueSoonDay = dueSoonDays.has(day) && bills.length > 0;
               const hasDots =
-                spend > 0 || bills.length > 0 || (isPay && hasIncome);
+                spend > 0 || bills.length > 0 || dayDebts.length > 0 || (isPay && hasIncome);
 
               return (
                 <button
@@ -251,9 +307,17 @@ export default function CashFlowCalendar({
                         {b.label}
                       </span>
                     ))}
-                    {bills.length > 2 && (
+                    {dayDebts.slice(0, bills.length > 1 ? 0 : 1).map((d) => (
+                      <span
+                        key={d.id}
+                        className="text-[9px] text-[#a78bfa] leading-tight truncate"
+                      >
+                        {d.label}
+                      </span>
+                    ))}
+                    {bills.length + dayDebts.length > 2 && (
                       <span className="text-[9px] text-text-4 leading-tight">
-                        +{bills.length - 2} more
+                        +{bills.length + dayDebts.length - 2} more
                       </span>
                     )}
                     {spend > 0 && (
@@ -333,6 +397,18 @@ export default function CashFlowCalendar({
               </span>
             </div>
           ))}
+          {selectedDebts.map((d) => (
+            <div
+              key={d.id}
+              className="flex items-center gap-2 py-2 border-b border-border-dim"
+            >
+              <span className="text-xs text-[#a78bfa]">{d.label}</span>
+              <span className="text-[10px] text-text-4 ml-1">{d.lender}</span>
+              <span className="ml-auto text-xs font-mono text-[#ff4560]">
+                −{formatCurrency(d.monthly_payment)}
+              </span>
+            </div>
+          ))}
 
           {selectedTxs.length > 0 ? (
             <div className="space-y-1.5 mt-2">
@@ -361,7 +437,7 @@ export default function CashFlowCalendar({
                 </span>
               </div>
             </div>
-          ) : selectedBills.length === 0 && !(isPayDay && hasIncome) ? (
+          ) : selectedBills.length === 0 && selectedDebts.length === 0 && !(isPayDay && hasIncome) ? (
             <p className="text-xs text-text-4 mt-1">
               No activity recorded for this day.
             </p>
