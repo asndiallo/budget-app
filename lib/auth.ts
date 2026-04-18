@@ -22,6 +22,9 @@ export const auth = betterAuth({
 
   secret: process.env.BETTER_AUTH_SECRET ?? 'dev-secret-change-in-production',
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS
+    ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:3000', 'http://172.20.10.3:3000'],
 
   emailAndPassword: {
     enabled: true,

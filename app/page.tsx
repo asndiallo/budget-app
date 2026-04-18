@@ -16,6 +16,7 @@ import type {
   IncomeConfig,
   IncomeEntry,
   Summary,
+  Transaction,
   UserProfile,
 } from '@/lib/types';
 import {
@@ -30,13 +31,12 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BrsPanel from './components/BrsPanel';
-import GiBillPanel from './components/GiBillPanel';
-import SdpPanel from './components/SdpPanel';
 import BudgetBar from './components/BudgetBar';
 import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
+import GiBillPanel from './components/GiBillPanel';
 import GoalsPanel from './components/GoalsPanel';
 import HealthScoreCard from './components/HealthScoreCard';
 import IncomePanel from './components/IncomePanel';
@@ -48,6 +48,7 @@ import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import RecurringDetectionPanel from './components/RecurringDetectionPanel';
+import SdpPanel from './components/SdpPanel';
 import StreakBanner from './components/StreakBanner';
 import SubNav from './components/SubNav';
 import TransactionsPanel from './components/TransactionsPanel';
@@ -92,14 +93,22 @@ function calcSummary(
   txs: { amount: number }[],
   debts: Debt[],
   incomeEntries: IncomeEntry[],
+  /** "YYYY-MM" service start — military income is $0 for months before this */
+  joinedAt?: string,
+  /** "YYYY-MM" month being computed */
+  month?: string,
 ): Summary {
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round(base * tspRate);
-  const militaryIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
-    (s, f) => s + (income[f.key] || 0),
-    0,
-  );
+  // Suppress military income for months before the service start date.
+  const beforeService = joinedAt && month ? month < joinedAt : false;
+  const militaryIncome = beforeService
+    ? 0
+    : [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
+        (s, f) => s + (income[f.key] || 0),
+        0,
+      );
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
   const totalIncome = militaryIncome + extraIncome;
   const investmentFixed = fixed.reduce(
@@ -298,25 +307,45 @@ export default function Home() {
   const fetchSummary = useCallback(async () => {
     if (!month) return;
     const pm = prevMonth(month);
-    const [income, fixed, txs, debts, entries, pIncome, pTxs, pEntries] =
-      await Promise.all([
-        api.income.get(month).then((d) => { setCurrentIncome(d); return d; }),
-        api.fixedExpenses.list(),
-        api.transactions.list(month),
-        api.debts.list(),
-        api.incomeEntries.list(month),
-        api.income.get(pm),
-        api.transactions.list(pm),
-        api.incomeEntries.list(pm),
-      ]);
-    setSummary(calcSummary(income, fixed, txs, debts, entries));
-    setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries));
+    let income: IncomeConfig,
+      fixed: FixedExpense[],
+      txs: Transaction[],
+      debts: Debt[],
+      entries: IncomeEntry[],
+      pIncome: IncomeConfig,
+      pTxs: Transaction[],
+      pEntries: IncomeEntry[];
+    try {
+      [income, fixed, txs, debts, entries, pIncome, pTxs, pEntries] =
+        await Promise.all([
+          api.income.get(month).then((d) => {
+            setCurrentIncome(d);
+            return d;
+          }),
+          api.fixedExpenses.list(),
+          api.transactions.list(month),
+          api.debts.list(),
+          api.incomeEntries.list(month),
+          api.income.get(pm),
+          api.transactions.list(pm),
+          api.incomeEntries.list(pm),
+        ]);
+    } catch {
+      return;
+    }
+    const joinedAt = user?.joined_at || undefined;
+    setSummary(
+      calcSummary(income, fixed, txs, debts, entries, joinedAt, month),
+    );
+    setPrevSummary(
+      calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm),
+    );
     api.streak.get().then((r) => setStreak(r.streak));
     api.assets.list().then(setAssets);
     api.debts.list().then(setDebts);
     api.goals.list().then(setGoals);
     api.healthScore.get().then(setHealthScore);
-  }, [month]);
+  }, [month, user]);
 
   useEffect(() => {
     fetchSummary();
@@ -586,7 +615,10 @@ export default function Home() {
                   <div className="space-y-8">
                     <IncomePanel month={month} onUpdate={fetchSummary} />
                     <ReceivablesPanel month={month} onUpdate={fetchSummary} />
-                    <LeavePanel basePay={currentIncome?.base_pay ?? 0} joinedAt={user?.joined_at ?? ''} />
+                    <LeavePanel
+                      basePay={currentIncome?.base_pay ?? 0}
+                      joinedAt={user?.joined_at ?? ''}
+                    />
                   </div>
                 )}
                 {incomeSub === 'bills' && (

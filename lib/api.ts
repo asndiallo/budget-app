@@ -26,7 +26,10 @@ import type {
 
 const H = { 'Content-Type': 'application/json' };
 
-const asJson = <T>(res: Response): Promise<T> => res.json();
+const asJson = <T>(res: Response): Promise<T> => {
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+};
 
 const send = (method: string, url: string, body: unknown) =>
   fetch(url, { method, headers: H, body: JSON.stringify(body) });
@@ -63,9 +66,13 @@ export const api = {
       notes?: string | null;
       is_investment?: boolean;
       goal_id?: number | null;
+      recurrence?: 'monthly' | 'biweekly';
+      recurrence_anchor?: string | null;
+      end_date?: string | null;
     }) =>
       send('POST', '/api/fixed-expenses', {
         period: 'monthly',
+        recurrence: 'monthly',
         ...data,
       }).then(asJson<FixedExpense>),
     remove: (id: number) =>
@@ -81,6 +88,9 @@ export const api = {
       notes?: string | null;
       is_investment?: boolean;
       goal_id?: number | null;
+      recurrence?: 'monthly' | 'biweekly';
+      recurrence_anchor?: string | null;
+      end_date?: string | null;
     }) =>
       send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
   },
