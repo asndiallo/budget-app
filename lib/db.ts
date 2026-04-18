@@ -96,7 +96,8 @@ function initSchema(db: Database.Database) {
       lender          TEXT    NOT NULL DEFAULT '',
       balance         REAL    NOT NULL DEFAULT 0,
       monthly_payment REAL    NOT NULL DEFAULT 0,
-      interest_rate   REAL    NOT NULL DEFAULT 0
+      interest_rate   REAL    NOT NULL DEFAULT 0,
+      day_of_month    INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS income_entries (
@@ -182,11 +183,25 @@ function migrateSchema(db: Database.Database) {
     db.exec('ALTER TABLE category_budgets ADD COLUMN percentage REAL');
   }
 
+  const debtCols = db.prepare('PRAGMA table_info(debts)').all() as { name: string }[];
+  if (!debtCols.some((c) => c.name === 'day_of_month')) {
+    db.exec('ALTER TABLE debts ADD COLUMN day_of_month INTEGER');
+  }
+
   const feCols = db.prepare('PRAGMA table_info(fixed_expenses)').all() as {
     name: string;
   }[];
   if (!feCols.some((c) => c.name === 'goal_id')) {
     db.exec('ALTER TABLE fixed_expenses ADD COLUMN goal_id INTEGER');
+  }
+  if (!feCols.some((c) => c.name === 'recurrence')) {
+    db.exec("ALTER TABLE fixed_expenses ADD COLUMN recurrence TEXT DEFAULT 'monthly'");
+  }
+  if (!feCols.some((c) => c.name === 'recurrence_anchor')) {
+    db.exec('ALTER TABLE fixed_expenses ADD COLUMN recurrence_anchor TEXT');
+  }
+  if (!feCols.some((c) => c.name === 'end_date')) {
+    db.exec('ALTER TABLE fixed_expenses ADD COLUMN end_date TEXT');
   }
 
   // Leave tracker: add les_period column (YYYY-MM-DD end of the LES period)

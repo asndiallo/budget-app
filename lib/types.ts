@@ -54,6 +54,12 @@ export interface FixedExpense {
   notes?: string | null;
   is_investment?: number | null;
   goal_id?: number | null;
+  /** 'monthly' (default) | 'biweekly' — controls calendar display only */
+  recurrence?: 'monthly' | 'biweekly' | null;
+  /** First occurrence date (YYYY-MM-DD); also serves as the biweekly phase anchor */
+  recurrence_anchor?: string | null;
+  /** Last occurrence date (YYYY-MM-DD, optional) */
+  end_date?: string | null;
 }
 
 export interface LeaveEvent {
@@ -130,6 +136,7 @@ export interface Debt {
   balance: number;
   monthly_payment: number;
   interest_rate: number;
+  day_of_month?: number | null;
 }
 
 export interface CategoryBudget {
