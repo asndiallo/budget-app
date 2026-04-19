@@ -170,6 +170,45 @@ function initSchema(db: Database.Database) {
       note       TEXT,
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- Net worth snapshots: one row per user per day (upserted on asset/debt changes)
+    CREATE TABLE IF NOT EXISTS net_worth_snapshots (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     TEXT    NOT NULL,
+      recorded_at TEXT    NOT NULL, -- YYYY-MM-DD
+      assets      REAL    NOT NULL DEFAULT 0,
+      liabilities REAL    NOT NULL DEFAULT 0,
+      net_worth   REAL    NOT NULL DEFAULT 0,
+      UNIQUE(user_id, recorded_at)
+    );
+
+    -- Allotments: fixed amounts automatically deducted from military gross pay.
+    -- Active for months in [start_date, end_date] (both inclusive, end NULL = ongoing).
+    CREATE TABLE IF NOT EXISTS allotments (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    TEXT    NOT NULL,
+      label      TEXT    NOT NULL,
+      amount     REAL    NOT NULL,
+      type       TEXT    NOT NULL DEFAULT 'other',
+      start_date TEXT    NOT NULL, -- YYYY-MM
+      end_date   TEXT,             -- YYYY-MM, NULL = ongoing
+      notes      TEXT,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Income profiles: named sets of income field overrides with a date range.
+    -- Applied manually to a month's income_config via the UI banner.
+    CREATE TABLE IF NOT EXISTS income_profiles (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    TEXT    NOT NULL,
+      name       TEXT    NOT NULL,
+      type       TEXT    NOT NULL DEFAULT 'custom',
+      start_date TEXT    NOT NULL, -- YYYY-MM (inclusive)
+      end_date   TEXT,             -- YYYY-MM (inclusive), NULL = ongoing
+      fields     TEXT    NOT NULL DEFAULT '{}', -- JSON: Record<string, number>
+      notes      TEXT,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   migrateSchema(db);
@@ -181,6 +220,11 @@ function migrateSchema(db: Database.Database) {
   }[];
   if (!cbCols.some((c) => c.name === 'percentage')) {
     db.exec('ALTER TABLE category_budgets ADD COLUMN percentage REAL');
+  }
+
+  const bpCols = db.prepare('PRAGMA table_info(bill_payments)').all() as { name: string }[];
+  if (!bpCols.some((c) => c.name === 'matched_tx_id')) {
+    db.exec('ALTER TABLE bill_payments ADD COLUMN matched_tx_id INTEGER');
   }
 
   const debtCols = db.prepare('PRAGMA table_info(debts)').all() as { name: string }[];
@@ -211,4 +255,30 @@ function migrateSchema(db: Database.Database) {
   if (!ltCols.some((c) => c.name === 'les_period')) {
     db.exec("ALTER TABLE leave_tracker ADD COLUMN les_period TEXT");
   }
+}
+
+/**
+ * Upserts a net worth snapshot for today (one snapshot per user per day).
+ * Should be called after any asset or debt balance mutation.
+ */
+export function takeNetWorthSnapshot(db: Database.Database, userId: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { assets } = db
+    .prepare('SELECT COALESCE(SUM(balance), 0) AS assets FROM assets WHERE user_id = ?')
+    .get(userId) as { assets: number };
+  const { liabilities } = db
+    .prepare('SELECT COALESCE(SUM(balance), 0) AS liabilities FROM debts WHERE user_id = ?')
+    .get(userId) as { liabilities: number };
+  const { goalsSaved } = db
+    .prepare('SELECT COALESCE(SUM(saved), 0) AS goalsSaved FROM goals WHERE user_id = ? AND active = 1')
+    .get(userId) as { goalsSaved: number };
+  const totalAssets = assets + goalsSaved;
+  db.prepare(
+    `INSERT INTO net_worth_snapshots (user_id, recorded_at, assets, liabilities, net_worth)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, recorded_at) DO UPDATE SET
+       assets      = excluded.assets,
+       liabilities = excluded.liabilities,
+       net_worth   = excluded.net_worth`,
+  ).run(userId, today, totalAssets, liabilities, totalAssets - liabilities);
 }

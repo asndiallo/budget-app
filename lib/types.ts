@@ -151,6 +151,8 @@ export interface BillPayment {
   fixed_expense_id: number;
   month: string;
   paid_at: string;
+  /** Set when the payment was auto-matched from a transaction (not manually checked). */
+  matched_tx_id?: number | null;
 }
 
 export interface CategorizationRule {
@@ -178,8 +180,52 @@ export interface SpendingInsights {
   /** Average (income − TSP − Roth − spending) across analysed months. */
   avgMonthlyNet: number;
   suggestedEmergencyFund: number;
+  /** Non-investment fixed expenses + active debt payments (current snapshot, not averaged). */
+  avgMonthlyCommitted: number;
   monthsAnalyzed: number;
   categoryInsights: CategoryInsight[];
+}
+
+// ── Tax year summary ──────────────────────────────────────────────────────────
+
+export interface TaxYearSummary {
+  year: number;
+  monthsWithData: number;
+  // ── Gross income components ───────────────────────────────────────────────
+  /** Sum of base_pay across months with data. */
+  grossMilitaryPay: number;
+  /** Sum of bas + bah (non-taxable military allowances). */
+  allowances: number;
+  /** Sum of all special & incentive pays (flight, IDP, jump, etc.). */
+  specialPays: number;
+  /** Total gross income (all INCOME_FIELDS + SPECIAL_PAY_FIELDS). */
+  grossTotal: number;
+  // ── Pre-tax deductions (reduce taxable income) ────────────────────────────
+  /** Roth TSP contributions — post-tax, does NOT reduce taxable income. */
+  rothTspContributions: number;
+  sgli: number;
+  afrh: number;
+  mealDeductions: number;
+  /** SGLI + AFRH + meal deduction only (Roth TSP is post-tax). */
+  totalPreTaxDeductions: number;
+  // ── Combat zone exclusion ─────────────────────────────────────────────────
+  combatZoneMonths: number;
+  /** Base pay in combat-zone months — excluded from taxable income (enlisted). */
+  combatZoneExclusion: number;
+  // ── Taxes withheld ────────────────────────────────────────────────────────
+  federalTaxWithheld: number;
+  ficaSocialSecurity: number;
+  ficaMedicare: number;
+  totalTaxesWithheld: number;
+  // ── Estimates ─────────────────────────────────────────────────────────────
+  /** grossMilitaryPay + specialPays − sgli − afrh − mealDeductions − combatZoneExclusion (Roth TSP is post-tax, not subtracted) */
+  estimatedTaxableIncome: number;
+  /** federalTaxWithheld / estimatedTaxableIncome (0 when taxableIncome ≤ 0) */
+  effectiveFederalRate: number;
+  // ── Post-tax savings ──────────────────────────────────────────────────────
+  /** Roth TSP contributions (same as rothTspContributions — shown here for the post-tax savings section). */
+  rothIraContributions: number;
+  totalPostTaxSavings: number;
 }
 
 export type AssetCategory =
@@ -197,6 +243,66 @@ export interface Asset {
   category: AssetCategory;
   balance: number;
   updated_at: string;
+}
+
+export interface ContributionLimits {
+  year: number;
+  limitsYear: number;
+  tspYtd: number;
+  tspLimit: number;
+  tspCatchupLimit: number;
+  /** DoD automatic + matching contributions YTD (informational — does not count against elective deferral limit). */
+  agencyYtd: number;
+  iraYtd: number;
+  iraLimit: number;
+  iraCatchupLimit: number;
+  monthsWithData: number;
+}
+
+// ── Allotments ────────────────────────────────────────────────────────────────
+
+export type AllotmentType =
+  | 'savings'
+  | 'loan'
+  | 'family'
+  | 'insurance'
+  | 'charity'
+  | 'other';
+
+export interface Allotment {
+  id: number;
+  label: string;
+  amount: number;
+  type: AllotmentType;
+  /** First month allotment is active (YYYY-MM, inclusive) */
+  start_date: string;
+  /** Last month allotment is active (YYYY-MM, inclusive), null = ongoing */
+  end_date: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export type IncomeProfileType = 'combat_zone' | 'tdy' | 'training' | 'custom';
+
+export interface IncomeProfile {
+  id: number;
+  name: string;
+  type: IncomeProfileType;
+  /** First month the profile is active (YYYY-MM, inclusive) */
+  start_date: string;
+  /** Last month the profile is active (YYYY-MM, inclusive), null = ongoing */
+  end_date: string | null;
+  /** Income field overrides — subset of income_config keys */
+  fields: Record<string, number>;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface NetWorthSnapshot {
+  recorded_at: string; // YYYY-MM-DD
+  assets: number;
+  liabilities: number;
+  net_worth: number;
 }
 
 export interface HealthScoreComponent {
@@ -219,6 +325,8 @@ export interface Summary {
   investmentFixed: number;
   committed: number;
   spending: number;
+  /** Sum of active allotments for the month — deducted from gross pay like TSP. */
+  allotments: number;
   net: number;
   savingsRate: number;
 }

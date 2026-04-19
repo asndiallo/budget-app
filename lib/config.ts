@@ -79,6 +79,32 @@ export const TSP_CONFIG = {
   note: 'C:70 · S:20 · I:10',
 } as const;
 
+/**
+ * IRS annual contribution limits by calendar year.
+ * Update each January when the IRS announces new limits.
+ *
+ * Sources:
+ *   TSP: https://www.tsp.gov/making-contributions/contribution-limits/
+ *   IRA: https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits
+ *   2026 announcement: https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500
+ *
+ * Fields:
+ *   tsp        — elective deferral limit (§402(g)); applies to traditional + Roth TSP combined
+ *   tspCatchup — TOTAL limit (base + catch-up) for age 50–59 and 64+ (§414(v))
+ *                SECURE 2.0 note: age 60–63 gets a higher "super catch-up":
+ *                  2026: $35,750 ($24,500 + $11,250)
+ *   ira        — combined Roth + Traditional IRA contribution limit (§219)
+ *   iraCatchup — TOTAL limit (base + catch-up) for age 50+ (§219)
+ */
+export const CONTRIBUTION_LIMITS: Record<
+  number,
+  { tsp: number; tspCatchup: number; ira: number; iraCatchup: number }
+> = {
+  2024: { tsp: 23_000, tspCatchup: 30_500, ira: 7_000, iraCatchup: 8_000 },
+  2025: { tsp: 23_500, tspCatchup: 31_000, ira: 7_000, iraCatchup: 8_000 },
+  2026: { tsp: 24_500, tspCatchup: 32_500, ira: 7_500, iraCatchup: 8_600 },
+};
+
 export const DEDUCTION_FIELDS: FieldConfig[] = [
   { key: 'taxes', label: 'Federal taxes' },
   { key: 'fica_soc_security', label: 'FICA-Soc Security' },
@@ -180,6 +206,62 @@ export const ASSET_CATEGORIES = [
 ] as const;
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
+
+// ─── Income profiles ─────────────────────────────────────────────────────────
+
+/**
+ * Preset income profile types with display metadata and default field overrides.
+ * Each "fields" entry is merged into the month's income_config when the user
+ * clicks "Apply" on the active-profile banner.
+ */
+export const INCOME_PROFILE_TYPES = {
+  combat_zone: {
+    label: 'Combat Zone',
+    color: '#ff4560',
+    defaultFields: { hostile_fire_idp: 225, combat_zone: 1 } as Record<string, number>,
+    hint: 'Adds hostile fire/IDP pay · marks CZTE (federal income tax exemption)',
+  },
+  tdy: {
+    label: 'TDY',
+    color: '#f5aa2a',
+    defaultFields: {} as Record<string, number>,
+    hint: 'Temporary duty — add per diem under "Other" income or as an income entry',
+  },
+  training: {
+    label: 'School / Training',
+    color: '#4a8cff',
+    defaultFields: {} as Record<string, number>,
+    hint: 'Override fields that change during school (e.g. BAH if in gov\'t quarters)',
+  },
+  custom: {
+    label: 'Custom',
+    color: '#b085f5',
+    defaultFields: {} as Record<string, number>,
+    hint: '',
+  },
+} as const;
+
+/** All income_config field keys with display labels, for use in profile field overrides. */
+export const INCOME_PROFILE_FIELD_OPTIONS = [
+  { key: 'base_pay',           label: 'Base pay',              group: 'Income' },
+  { key: 'bas',                label: 'BAS',                   group: 'Income' },
+  { key: 'bah',                label: 'BAH',                   group: 'Income' },
+  { key: 'other',              label: 'Other income',          group: 'Income' },
+  { key: 'flight_pay',         label: 'Aviation / flight pay', group: 'Special pay' },
+  { key: 'hazardous_duty_pay', label: 'Hazardous duty pay',   group: 'Special pay' },
+  { key: 'jump_pay',           label: 'Jump pay',              group: 'Special pay' },
+  { key: 'hostile_fire_idp',   label: 'Hostile fire / IDP',   group: 'Special pay' },
+  { key: 'sdap',               label: 'SDAP',                  group: 'Special pay' },
+  { key: 'sep',                label: 'SRB / bonus',           group: 'Special pay' },
+  { key: 'taxes',              label: 'Federal taxes',         group: 'Deductions' },
+  { key: 'fica_soc_security',  label: 'FICA-Soc Security',    group: 'Deductions' },
+  { key: 'fica_medicare',      label: 'FICA-Medicare',        group: 'Deductions' },
+  { key: 'sgli',               label: 'SGLI',                  group: 'Deductions' },
+  { key: 'afrh',               label: 'AFRH',                  group: 'Deductions' },
+  { key: 'meal_deduction',     label: 'Meal deduction',        group: 'Deductions' },
+  { key: 'tsp_rate',           label: 'TSP rate (0–1 decimal)', group: 'Other' },
+  { key: 'combat_zone',        label: 'Combat zone flag (0 / 1)', group: 'Other' },
+] as const;
 
 export const GOAL_COLORS = [
   'blue',
