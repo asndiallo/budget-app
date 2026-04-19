@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/route-helpers';
+import { takeNetWorthSnapshot } from '@/lib/db';
 
 export const GET = withAuth(async (_req, { userId, db }) => {
   const rows = db
@@ -17,6 +18,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
       'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate, day_of_month) VALUES (?, ?, ?, ?, ?, ?, ?)',
     )
     .run(userId, label, lender ?? '', balance ?? 0, monthly_payment ?? 0, interest_rate ?? 0, dom);
+  takeNetWorthSnapshot(db, userId);
   return NextResponse.json({
     id: result.lastInsertRowid,
     label, lender: lender ?? '',
@@ -42,11 +44,13 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
     day_of_month ? Number(day_of_month) : null,
     id, userId,
   );
+  takeNetWorthSnapshot(db, userId);
   return NextResponse.json({ ok: true });
 });
 
 export const DELETE = withAuth(async (req, { userId, db }) => {
   const { id } = await req.json();
   db.prepare('DELETE FROM debts WHERE id = ? AND user_id = ?').run(id, userId);
+  takeNetWorthSnapshot(db, userId);
   return NextResponse.json({ ok: true });
 });
