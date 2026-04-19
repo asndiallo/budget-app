@@ -22,6 +22,7 @@ export default function FixedExpensesPanel({
   const [fixed, setFixed] = useState<FixedExpense[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [paidIds, setPaidIds] = useState<Set<number>>(new Set());
+  const [autoMatchedIds, setAutoMatchedIds] = useState<Set<number>>(new Set());
   const [newLabel, setNewLabel] = useState('');
   const [newAmt, setNewAmt] = useState('');
   const [newPeriod, setNewPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -40,11 +41,16 @@ export default function FixedExpensesPanel({
   const reloadGoals = () => api.goals.list().then(setGoals);
   const reloadPayments = () =>
     month
-      ? api.billPayments
-          .list(month)
-          .then((rows: BillPayment[]) =>
-            setPaidIds(new Set(rows.map((r) => r.fixed_expense_id))),
-          )
+      ? api.billPayments.list(month).then((rows: BillPayment[]) => {
+          setPaidIds(new Set(rows.map((r) => r.fixed_expense_id)));
+          setAutoMatchedIds(
+            new Set(
+              rows
+                .filter((r) => r.matched_tx_id != null)
+                .map((r) => r.fixed_expense_id),
+            ),
+          );
+        })
       : undefined;
 
   useEffect(() => {
@@ -211,6 +217,7 @@ export default function FixedExpensesPanel({
       {fixed.map((f) => {
         const mo = monthlyAmount(f);
         const isPaid = paidIds.has(f.id);
+        const isAutoMatched = autoMatchedIds.has(f.id);
         const isBiweekly = f.recurrence === 'biweekly';
         return (
           <div key={f.id} className="py-3 border-b border-border-dim">
@@ -229,6 +236,14 @@ export default function FixedExpensesPanel({
               <p className={`flex-1 text-sm ${isPaid ? 'text-text-3 line-through' : 'text-text'}`}>
                 {f.label}
               </p>
+              {isAutoMatched && (
+                <span
+                  title="Auto-matched from a transaction"
+                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#4a8cff]/10 text-[#4a8cff] font-medium shrink-0"
+                >
+                  auto
+                </span>
+              )}
               {isDueSoon(f) && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium shrink-0">
                   soon

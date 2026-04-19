@@ -4,7 +4,6 @@ import { BTN_BLUE_CLS, CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY, INPUT_CLS, LABE
 import type { PaymentSource, Transaction } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import MonthlyBudgetStatus from './MonthlyBudgetStatus';
 import { api } from '@/lib/api';
 import { parseCSVLine } from '@/lib/utils';
 
@@ -323,9 +322,14 @@ export default function TransactionsPanel({
         });
       })
       .join(', ');
+    const billsMsg =
+      data.billsMatched > 0
+        ? ` · ${data.billsMatched} bill${data.billsMatched !== 1 ? 's' : ''} auto-matched`
+        : '';
     setImportMsg(
       `Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}` +
-        (monthLabels ? ` · ${monthLabels}` : ''),
+        (monthLabels ? ` · ${monthLabels}` : '') +
+        billsMsg,
     );
     setPendingRows([]);
     setCommitting(false);
@@ -711,9 +715,6 @@ export default function TransactionsPanel({
           </span>
         )}
       </div>
-
-      {/* Budget vs actual (hidden in search mode) */}
-      {!isSearching && <MonthlyBudgetStatus month={month} />}
 
       {/* Pay period toggle */}
       {!isSearching && (

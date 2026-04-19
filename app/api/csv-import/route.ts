@@ -1,4 +1,5 @@
 import { mapCategory, parseDate } from '@/lib/csv-utils';
+import { autoMatchBills } from '@/lib/bill-match';
 
 import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
@@ -58,5 +59,6 @@ export const POST = withAuth(async (req, { userId, db }) => {
     return n;
   })();
 
-  return NextResponse.json({ ok: true, imported: count, months: [...months] });
+  const billsMatched = autoMatchBills(db, userId, [...months]);
+  return NextResponse.json({ ok: true, imported: count, months: [...months], billsMatched });
 });

@@ -2,6 +2,7 @@ import { DEFAULT_CATEGORY } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { currentMonth } from '@/lib/utils';
 import { withAuth } from '@/lib/route-helpers';
+import { autoMatchBills } from '@/lib/bill-match';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -44,6 +45,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
       m,
       source || 'manual',
     );
+  autoMatchBills(db, userId, [m]);
   return NextResponse.json({
     id: result.lastInsertRowid,
     description,
