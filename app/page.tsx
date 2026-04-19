@@ -23,7 +23,7 @@ import type {
   Summary,
   UserProfile,
 } from '@/lib/types';
-import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
+import { currentMonth, formatCurrency, investmentForMonth, nextMonth, prevMonth } from '@/lib/utils';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
@@ -116,10 +116,12 @@ function calcSummary(
     : [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce((s, f) => s + (income[f.key] || 0), 0);
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
   const totalIncome = militaryIncome + extraIncome;
-  const investmentFixed = fixed.reduce(
-    (s, f) => (f.is_investment ? s + (f.period === 'annual' ? f.amount / 12 : f.amount) : s),
-    0,
-  );
+  const investmentFixed = month
+    ? investmentForMonth(fixed.filter((f) => f.is_investment), month)
+    : fixed.reduce(
+        (s, f) => (f.is_investment ? s + (f.period === 'annual' ? f.amount / 12 : f.amount) : s),
+        0,
+      );
   const fixedExpenses = fixed.reduce(
     (s, f) => (f.is_investment ? s : s + (f.period === 'annual' ? f.amount / 12 : f.amount)),
     0,

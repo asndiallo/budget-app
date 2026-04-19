@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { computeMonthlyFinancials } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
 import type { YtdSummary } from '@/lib/types';
-import { currentMonth, isBeforeMonth } from '@/lib/utils';
+import { currentMonth, investmentForMonth, isBeforeMonth } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -29,13 +29,19 @@ export const GET = withAuth(async (req, { userId, db }) => {
   };
   const joinedAt = userRow?.joined_at || null;
 
-  const investmentFixedMonthly = (
-    db
-      .prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-      )
-      .get(userId) as { s: number }
-  ).s;
+  const investmentExpenses = db
+    .prepare(
+      `SELECT amount, period, recurrence, recurrence_anchor, end_date
+       FROM fixed_expenses
+       WHERE user_id = ? AND active = 1 AND is_investment = 1`,
+    )
+    .all(userId) as {
+    amount: number;
+    period: string;
+    recurrence: string | null;
+    recurrence_anchor: string | null;
+    end_date: string | null;
+  }[];
 
   let totalIncome = 0;
   let totalInvested = 0;
@@ -48,7 +54,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
     const spending = spendingByMonth[mo] ?? 0;
     if (inc > 0 || spending > 0) {
       totalIncome += inc;
-      totalInvested += tsp + investmentFixedMonthly;
+      totalInvested += tsp + investmentForMonth(investmentExpenses, mo);
       totalSpending += spending;
       monthsRecorded++;
     }
