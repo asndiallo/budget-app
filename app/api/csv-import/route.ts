@@ -28,9 +28,22 @@ export const POST = withAuth(async (req, { userId, db }) => {
     return mapCategory(csvCategory);
   }
 
+  // Load user's financial accounts for institution-based auto-detection
+  const userAccounts = db
+    .prepare(
+      "SELECT id, institution FROM financial_accounts WHERE user_id = ? AND active = 1 AND institution != ''",
+    )
+    .all(userId) as { id: number; institution: string }[];
+
+  function detectAccount(description: string): number | null {
+    const lower = description.toLowerCase();
+    const matches = userAccounts.filter((a) => lower.includes(a.institution.toLowerCase()));
+    return matches.length === 1 ? matches[0].id : null;
+  }
+
   const importId = crypto.randomUUID();
   const insert = db.prepare(
-    'INSERT OR IGNORE INTO transactions (user_id, description, amount, category, month, source, date, import_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO transactions (user_id, description, amount, category, month, source, date, import_id, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
   );
 
   const months = new Set<string>();
@@ -51,6 +64,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
         source || 'Unknown',
         date,
         importId,
+        detectAccount(row.description),
       );
       if (result.changes > 0) n++;
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { computeMonthlyFinancials } from '@/lib/income';
+import { INVESTMENT_CATEGORY } from '@/lib/config';
 import { withAuth } from '@/lib/route-helpers';
 import type { YearOverview } from '@/lib/types';
 import { investmentForMonth, isBeforeMonth, isFutureMonth } from '@/lib/utils';
@@ -20,9 +21,20 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const spendingRows = db
     .prepare(
       `SELECT month, SUM(amount) AS total FROM transactions
-       WHERE user_id = ? AND month IN (${placeholders}) GROUP BY month`,
+       WHERE user_id = ? AND month IN (${placeholders}) AND category != ?
+       GROUP BY month`,
     )
-    .all(userId, ...months) as { month: string; total: number }[];
+    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
+
+  const investmentTxRows = db
+    .prepare(
+      `SELECT month, SUM(amount) AS total FROM transactions
+       WHERE user_id = ? AND month IN (${placeholders}) AND category = ?
+       GROUP BY month`,
+    )
+    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
+
+  const investmentTxByMonth = Object.fromEntries(investmentTxRows.map((r) => [r.month, r.total]));
 
   const categoryRows = db
     .prepare(
@@ -56,12 +68,14 @@ export const GET = withAuth(async (req, { userId, db }) => {
       : computeMonthlyFinancials(db, mo, userId);
 
     const spending = spendingByMonth[mo] ?? 0;
-    const hasData = preService ? false : income > 0 || (!projected && spending > 0);
+    const investmentTxs = investmentTxByMonth[mo] ?? 0;
+    const hasData = preService
+      ? false
+      : income > 0 || (!projected && (spending > 0 || investmentTxs > 0));
 
-    const invested = hasData ? tsp + investmentForMonth(investmentExpenses, mo) : 0;
+    const invested = hasData ? tsp + investmentForMonth(investmentExpenses, mo) + investmentTxs : 0;
     const net = income - invested - spending;
-    const savingsRate =
-      income > 0 ? Math.round(((invested + Math.max(0, net)) / income) * 100) : 0;
+    const savingsRate = income > 0 ? Math.round(((invested + Math.max(0, net)) / income) * 100) : 0;
     return {
       month: mo,
       income: Math.round(income),

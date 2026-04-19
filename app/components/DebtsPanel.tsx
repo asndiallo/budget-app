@@ -10,11 +10,14 @@ import { formatCurrency } from '@/lib/utils';
 import EditableText from './EditableText';
 import ExternalLink from './ExternalLink';
 
+type PaymentSuggestion = Awaited<ReturnType<typeof api.debts.detectPayments>>[number];
+
 // SCRA caps pre-service debt interest at 6% while on active duty
 const SCRA_CAP = 6;
 
 export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [suggestions, setSuggestions] = useState<PaymentSuggestion[]>([]);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newLender, setNewLender] = useState('');
@@ -23,9 +26,23 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   const [newRate, setNewRate] = useState('');
 
   const reload = () => api.debts.list().then(setDebts);
+  const reloadSuggestions = () => api.debts.detectPayments().then(setSuggestions);
+
   useEffect(() => {
     reload();
+    reloadSuggestions();
   }, []);
+
+  async function applyPayment(s: PaymentSuggestion) {
+    await api.debts.applyPayment(s.debtId, s.transactionId, s.txAmount);
+    setSuggestions((prev) => prev.filter((x) => x.transactionId !== s.transactionId));
+    reload();
+    onUpdate();
+  }
+
+  function dismissSuggestion(transactionId: number) {
+    setSuggestions((prev) => prev.filter((s) => s.transactionId !== transactionId));
+  }
 
   async function addDebt() {
     if (!newLabel.trim()) return;
@@ -65,6 +82,53 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div>
+      {/* Detected payment suggestions */}
+      {suggestions.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <p className={LABEL_CLS}>Detected payments</p>
+          {suggestions.map((s) => (
+            <div key={s.transactionId} className="border-border bg-bg rounded-xl border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-text truncate text-sm font-medium">{s.txDescription}</p>
+                  <p className="text-text-3 mt-0.5 text-xs">
+                    <span className="font-mono text-[#f5aa2a]">{formatCurrency(s.txAmount)}</span>
+                    {' · '}
+                    {s.txMonth}
+                    {' · matches '}
+                    <span className="text-text-2">{s.debtLabel}</span>
+                    {s.debtLender && s.debtLender !== s.debtLabel && (
+                      <span className="text-text-4"> ({s.debtLender})</span>
+                    )}
+                  </p>
+                  <p className="text-text-4 mt-1 text-xs">
+                    Balance <span className="font-mono">{formatCurrency(s.debtBalance)}</span>
+                    {' → '}
+                    <span className="font-mono text-[#00d98a]">
+                      {formatCurrency(s.suggestedBalance)}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => applyPayment(s)}
+                    className={`px-2.5 py-1 text-xs ${BTN_BLUE_CLS}`}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    onClick={() => dismissSuggestion(s.transactionId)}
+                    className="text-text-4 hover:text-text-2 text-xs transition-colors"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mb-3 flex items-center justify-between">
         <h3 className={LABEL_CLS}>Debts & loans</h3>
         {activeTotal > 0 && (

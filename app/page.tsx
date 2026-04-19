@@ -8,6 +8,7 @@ import {
   APP_CONFIG,
   DEDUCTION_FIELDS,
   INCOME_FIELDS,
+  INVESTMENT_CATEGORY,
   SPECIAL_PAY_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
@@ -23,7 +24,13 @@ import type {
   Summary,
   UserProfile,
 } from '@/lib/types';
-import { currentMonth, formatCurrency, investmentForMonth, nextMonth, prevMonth } from '@/lib/utils';
+import {
+  currentMonth,
+  formatCurrency,
+  investmentForMonth,
+  nextMonth,
+  prevMonth,
+} from '@/lib/utils';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
@@ -100,7 +107,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 function calcSummary(
   income: IncomeConfig,
   fixed: FixedExpense[],
-  txs: { amount: number }[],
+  txs: { amount: number; category: string }[],
   debts: Debt[],
   incomeEntries: IncomeEntry[],
   joinedAt?: string,
@@ -117,7 +124,10 @@ function calcSummary(
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
   const totalIncome = militaryIncome + extraIncome;
   const investmentFixed = month
-    ? investmentForMonth(fixed.filter((f) => f.is_investment), month)
+    ? investmentForMonth(
+        fixed.filter((f) => f.is_investment),
+        month,
+      )
     : fixed.reduce(
         (s, f) => (f.is_investment ? s + (f.period === 'annual' ? f.amount / 12 : f.amount) : s),
         0,
@@ -130,7 +140,12 @@ function calcSummary(
     .filter((d) => d.balance > 0)
     .reduce((s, d) => s + d.monthly_payment, 0);
   const committed = fixedExpenses + debtPayments;
-  const spending = txs.reduce((s, t) => s + t.amount, 0);
+  const investmentTxs = txs
+    .filter((t) => t.category === INVESTMENT_CATEGORY)
+    .reduce((s, t) => s + t.amount, 0);
+  const spending = txs
+    .filter((t) => t.category !== INVESTMENT_CATEGORY)
+    .reduce((s, t) => s + t.amount, 0);
   const combatZone = !!income.combat_zone;
   const deductions =
     tsp +
@@ -144,12 +159,22 @@ function calcSummary(
           .filter((a) => a.start_date <= month && (!a.end_date || a.end_date >= month))
           .reduce((s, a) => s + a.amount, 0)
       : 0;
-  const net = totalIncome - deductions - allotments - committed - spending;
+  const totalInvested = investmentFixed + investmentTxs;
+  const net = totalIncome - deductions - allotments - committed - spending - investmentTxs;
   const savingsRate =
     totalIncome > 0
-      ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
+      ? Math.round(((tsp + totalInvested + Math.max(0, net)) / totalIncome) * 100)
       : 0;
-  return { totalIncome, tsp, investmentFixed, committed, spending, allotments, net, savingsRate };
+  return {
+    totalIncome,
+    tsp,
+    investmentFixed: totalInvested,
+    committed,
+    spending,
+    allotments,
+    net,
+    savingsRate,
+  };
 }
 
 // ── Month picker (shared inline component) ────────────────────────────────────

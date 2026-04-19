@@ -137,6 +137,16 @@ function initSchema(db: Database.Database) {
       updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS debt_payments (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id        TEXT    NOT NULL,
+      debt_id        INTEGER NOT NULL,
+      transaction_id INTEGER NOT NULL,
+      amount         REAL    NOT NULL,
+      applied_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, transaction_id)
+    );
+
     CREATE TABLE IF NOT EXISTS bill_payments (
       id               INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id          TEXT    NOT NULL,
@@ -182,6 +192,19 @@ function initSchema(db: Database.Database) {
       UNIQUE(user_id, recorded_at)
     );
 
+    -- Financial accounts: named accounts (Fidelity Roth IRA, USAA Checking, etc.)
+    -- used to link transactions to specific accounts for richer context.
+    CREATE TABLE IF NOT EXISTS financial_accounts (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      type        TEXT NOT NULL DEFAULT 'other',
+      institution TEXT NOT NULL DEFAULT '',
+      notes       TEXT,
+      active      INTEGER NOT NULL DEFAULT 1,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Allotments: fixed amounts automatically deducted from military gross pay.
     -- Active for months in [start_date, end_date] (both inclusive, end NULL = ongoing).
     CREATE TABLE IF NOT EXISTS allotments (
@@ -215,6 +238,12 @@ function initSchema(db: Database.Database) {
 }
 
 function migrateSchema(db: Database.Database) {
+  // Add account_id to transactions for financial account linking
+  const txCols = db.prepare('PRAGMA table_info(transactions)').all() as { name: string }[];
+  if (!txCols.some((c) => c.name === 'account_id')) {
+    db.exec('ALTER TABLE transactions ADD COLUMN account_id INTEGER');
+  }
+
   const cbCols = db.prepare('PRAGMA table_info(category_budgets)').all() as {
     name: string;
   }[];

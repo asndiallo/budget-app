@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 
-import { DEDUCTION_FIELDS } from '@/lib/config';
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeMonthlyFinancials } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
 import type { HealthScoreComponent } from '@/lib/types';
+import { investmentForMonth, isBeforeMonth } from '@/lib/utils';
 
 function lastCompleteMonths(n: number): string[] {
   const months: string[] = [];
@@ -22,11 +23,10 @@ function clamp(v: number, lo: number, hi: number) {
 }
 
 export const GET = withAuth(async (_req, { userId, db }) => {
-  const fixedMonthly = (
-    db
-      .prepare('SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1')
-      .all(userId) as { amount: number; period: string }[]
-  ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
+  const profile = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as
+    | { joined_at: string | null }
+    | undefined;
+  const joinedAt = profile?.joined_at ?? null;
 
   const debtPayments = (
     db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as {
@@ -34,36 +34,56 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     }[]
   ).reduce((s, d) => s + d.monthly_payment, 0);
 
-  const committed = fixedMonthly + debtPayments;
-  const [lastMonth] = lastCompleteMonths(1);
+  const lastMonth = lastCompleteMonths(1)[0];
+
+  // Investment fixed expenses — needed for the same invested calculation used by overview/ytd
+  const investmentExpenses = db
+    .prepare(
+      `SELECT amount, period, recurrence, recurrence_anchor, end_date
+       FROM fixed_expenses WHERE user_id = ? AND active = 1 AND is_investment = 1`,
+    )
+    .all(userId) as {
+    amount: number;
+    period: string;
+    recurrence: string | null;
+    recurrence_anchor: string | null;
+    end_date: string | null;
+  }[];
 
   // ── Savings Rate ──────────────────────────────────────────────────────────
+  // Uses the same formula as overview/ytd:
+  //   invested = tsp + investmentFixedExpenses + investmentTxs
+  //   net      = income − invested − spending  (spending excludes Investment category)
+  //   rate     = (invested + max(0, net)) / income
   let savingsScore = 0;
   let savingsDetail = 'No income data yet';
   {
     const months = lastCompleteMonths(3);
     const rates: number[] = [];
     for (const month of months) {
-      const { totalIncome, tsp } = computeMonthlyFinancials(db, month, userId);
-      if (totalIncome === 0) continue;
-      const config = incomeForMonth(db, month, userId);
-      const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
-      const extraIncome = (
+      if (joinedAt && isBeforeMonth(month, joinedAt)) continue;
+      const { totalIncome: income, tsp } = computeMonthlyFinancials(db, month, userId);
+      if (income === 0) continue;
+
+      const investmentTxs = (
         db
           .prepare(
-            'SELECT COALESCE(SUM(amount),0) as s FROM income_entries WHERE user_id=? AND month=?',
+            'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category=?',
           )
-          .get(userId, month) as { s: number }
+          .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
       ).s;
+
       const spending = (
         db
           .prepare(
-            'SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?',
+            'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category!=?',
           )
-          .get(userId, month) as { s: number }
+          .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
       ).s;
-      const net = totalIncome + extraIncome - deductions - committed - spending;
-      rates.push(net / totalIncome);
+
+      const invested = tsp + investmentForMonth(investmentExpenses, month) + investmentTxs;
+      const net = income - invested - spending;
+      rates.push((invested + Math.max(0, net)) / income);
     }
     if (rates.length > 0) {
       const avgRate = rates.reduce((s, r) => s + r, 0) / rates.length;
@@ -79,13 +99,13 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     const liquidAssets = (
       db
         .prepare(
-          "SELECT COALESCE(SUM(balance),0) as s FROM assets WHERE user_id=? AND category IN ('Checking','Savings')",
+          "SELECT COALESCE(SUM(balance),0) AS s FROM assets WHERE user_id=? AND category IN ('Checking','Savings')",
         )
         .get(userId) as { s: number }
     ).s;
     const liquidGoals = (
       db
-        .prepare('SELECT COALESCE(SUM(saved),0) as s FROM goals WHERE user_id=? AND active = 1')
+        .prepare('SELECT COALESCE(SUM(saved),0) AS s FROM goals WHERE user_id=? AND active = 1')
         .get(userId) as { s: number }
     ).s;
     const liquid = liquidAssets + liquidGoals;
@@ -93,12 +113,14 @@ export const GET = withAuth(async (_req, { userId, db }) => {
       const months = lastCompleteMonths(6);
       const spends: number[] = [];
       for (const month of months) {
+        if (joinedAt && isBeforeMonth(month, joinedAt)) continue;
+        // Exclude Investment transactions — they aren't living expenses
         const s = (
           db
             .prepare(
-              'SELECT COALESCE(SUM(amount),0) as s FROM transactions WHERE user_id=? AND month=?',
+              'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category!=?',
             )
-            .get(userId, month) as { s: number }
+            .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
         ).s;
         if (s > 0) spends.push(s);
       }
@@ -139,7 +161,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     if (budgets.length > 0) {
       const spending = db
         .prepare(
-          'SELECT category, SUM(amount) as total FROM transactions WHERE user_id=? AND month = ? GROUP BY category',
+          'SELECT category, SUM(amount) AS total FROM transactions WHERE user_id=? AND month=? GROUP BY category',
         )
         .all(userId, lastMonth) as { category: string; total: number }[];
       const spendMap = Object.fromEntries(spending.map((r) => [r.category, r.total]));
@@ -162,20 +184,10 @@ export const GET = withAuth(async (_req, { userId, db }) => {
   }
 
   const components: HealthScoreComponent[] = [
-    {
-      name: 'Savings rate',
-      score: savingsScore,
-      max: 25,
-      detail: savingsDetail,
-    },
+    { name: 'Savings rate', score: savingsScore, max: 25, detail: savingsDetail },
     { name: 'Emergency fund', score: efScore, max: 25, detail: efDetail },
     { name: 'Debt-to-income', score: dtiScore, max: 25, detail: dtiDetail },
-    {
-      name: 'Budget adherence',
-      score: budgetScore,
-      max: 25,
-      detail: budgetDetail,
-    },
+    { name: 'Budget adherence', score: budgetScore, max: 25, detail: budgetDetail },
   ];
 
   return NextResponse.json({

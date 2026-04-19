@@ -2,6 +2,7 @@
 // Only call these functions from 'use client' components.
 
 import type {
+  AccountType,
   Allotment,
   Asset,
   AssetCategory,
@@ -11,6 +12,7 @@ import type {
   ContributionLimits,
   CsvRow,
   Debt,
+  FinancialAccount,
   FixedExpense,
   Goal,
   GoalContribution,
@@ -99,7 +101,9 @@ export const api = {
       send('POST', '/api/transactions', data).then(asJson<Transaction>),
     update: (
       id: number,
-      data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>>,
+      data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>> & {
+        account_id?: number | null;
+      },
     ) => send('PATCH', '/api/transactions', { id, ...data }).then(asJson<{ ok: boolean }>),
     remove: (id: number) =>
       send('DELETE', '/api/transactions', { id }).then(asJson<{ ok: boolean }>),
@@ -107,6 +111,8 @@ export const api = {
       send('DELETE', '/api/transactions', { ids }).then(asJson<{ ok: boolean }>),
     bulkRecategorize: (ids: number[], category: string) =>
       send('PATCH', '/api/transactions', { ids, category }).then(asJson<{ ok: boolean }>),
+    bulkLinkAccount: (ids: number[], account_id: number | null) =>
+      send('PATCH', '/api/transactions', { ids, account_id }).then(asJson<{ ok: boolean }>),
     importCsv: (rows: CsvRow[], month: string, source: string) =>
       send('POST', '/api/csv-import', { rows, month, source }).then(
         asJson<{ ok: boolean; imported: number; months: string[]; billsMatched: number }>,
@@ -224,12 +230,48 @@ export const api = {
       send('DELETE', '/api/payment-sources', { id }).then(asJson<{ ok: boolean }>),
   },
 
+  financialAccounts: {
+    list: () => fetch('/api/financial-accounts').then(asJson<FinancialAccount[]>),
+    add: (data: { name: string; type: AccountType; institution: string; notes?: string | null }) =>
+      send('POST', '/api/financial-accounts', data).then(asJson<FinancialAccount>),
+    update: (id: number, data: Partial<Omit<FinancialAccount, 'id' | 'created_at'>>) =>
+      send('PATCH', '/api/financial-accounts', { id, ...data }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) =>
+      send('DELETE', '/api/financial-accounts', { id }).then(asJson<{ ok: boolean }>),
+    /** Run institution keyword detection on all existing unlinked transactions. */
+    backfill: () =>
+      send('POST', '/api/financial-accounts', { action: 'backfill' }).then(
+        asJson<{ ok: boolean; updated: number }>,
+      ),
+  },
+
   debts: {
     list: () => fetch('/api/debts').then(asJson<Debt[]>),
     add: (data: Omit<Debt, 'id'>) => send('POST', '/api/debts', data).then(asJson<Debt>),
     update: (id: number, data: Partial<Omit<Debt, 'id'>>) =>
       send('PATCH', '/api/debts', { id, ...data }).then(asJson<{ ok: boolean }>),
     remove: (id: number) => send('DELETE', '/api/debts', { id }).then(asJson<{ ok: boolean }>),
+    detectPayments: () =>
+      fetch('/api/debts/detect-payments').then(
+        asJson<
+          {
+            debtId: number;
+            debtLabel: string;
+            debtLender: string;
+            debtBalance: number;
+            transactionId: number;
+            txDescription: string;
+            txAmount: number;
+            txMonth: string;
+            txDate: string | null;
+            suggestedBalance: number;
+          }[]
+        >,
+      ),
+    applyPayment: (debtId: number, transactionId: number, amount: number) =>
+      send('PATCH', '/api/debts', { action: 'apply_payment', debtId, transactionId, amount }).then(
+        asJson<{ ok: boolean }>,
+      ),
   },
 
   incomeEntries: {

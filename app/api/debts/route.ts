@@ -29,8 +29,31 @@ export const POST = withAuth(async (req, { userId, db }) => {
 });
 
 export const PATCH = withAuth(async (req, { userId, db }) => {
-  const { id, label, lender, balance, monthly_payment, interest_rate, day_of_month } =
-    await req.json();
+  const body = await req.json();
+
+  // Apply a detected payment: decrement balance and record to prevent re-suggestion
+  if (body.action === 'apply_payment') {
+    const { debtId, transactionId, amount } = body as {
+      debtId: number;
+      transactionId: number;
+      amount: number;
+    };
+    db.transaction(() => {
+      db.prepare(`UPDATE debts SET balance = MAX(0, balance - ?) WHERE id = ? AND user_id = ?`).run(
+        amount,
+        debtId,
+        userId,
+      );
+      db.prepare(
+        `INSERT OR IGNORE INTO debt_payments (user_id, debt_id, transaction_id, amount)
+         VALUES (?, ?, ?, ?)`,
+      ).run(userId, debtId, transactionId, amount);
+    })();
+    takeNetWorthSnapshot(db, userId);
+    return NextResponse.json({ ok: true });
+  }
+
+  const { id, label, lender, balance, monthly_payment, interest_rate, day_of_month } = body;
   db.prepare(
     `UPDATE debts SET
        label           = ?,

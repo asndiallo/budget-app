@@ -22,6 +22,7 @@ export default defineConfig({
         'lib/config.ts',
         'lib/brs-calc.ts',
         'lib/bill-match.ts',
+        'lib/debt-match.ts',
       ],
       reporter: ['text', 'lcov'],
     },

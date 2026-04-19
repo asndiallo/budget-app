@@ -2,6 +2,7 @@
 
 import { ASSET_CATEGORIES, LABEL_CLS } from '@/lib/config';
 import type { Asset, Debt, Goal } from '@/lib/types';
+
 import { formatCurrency } from '@/lib/utils';
 
 export default function NetWorthCard({
@@ -26,8 +27,8 @@ export default function NetWorthCard({
         <div>
           <p className={`${LABEL_CLS} mb-1`}>Net Worth</p>
           <p className="text-text-4 text-sm">
-            Add assets in the <span className="text-text-2">Net Worth tab</span> to track your
-            complete financial picture.
+            Add assets in the <span className="text-text-2">Wealth tab</span> to track your complete
+            financial picture.
           </p>
         </div>
       </div>

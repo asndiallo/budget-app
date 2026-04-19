@@ -72,9 +72,7 @@ export function investmentForMonth(expenses: InvestmentExpense[], month: string)
   return expenses.reduce((sum, exp) => {
     if (!exp.amount) return sum;
 
-    const endMs = exp.end_date
-      ? new Date(exp.end_date + 'T23:59:59').getTime()
-      : Infinity;
+    const endMs = exp.end_date ? new Date(exp.end_date + 'T23:59:59').getTime() : Infinity;
 
     // Expense ended before this month — skip
     if (endMs < monthStart) return sum;

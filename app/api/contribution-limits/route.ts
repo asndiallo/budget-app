@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { dodMatchRate } from '@/lib/brs-calc';
-import { CONTRIBUTION_LIMITS } from '@/lib/config';
+import { CONTRIBUTION_LIMITS, INVESTMENT_CATEGORY } from '@/lib/config';
 import { withAuth } from '@/lib/route-helpers';
 
 const PERIOD_MS = 14 * 86_400 * 1_000;
@@ -139,8 +139,22 @@ export const GET = withAuth(async (req, { userId, db }) => {
     }
   }
 
-  const iraYtd = Math.max(iraFromConfig, iraFromExpenses);
-  const hasData = hasConfigData || iraExpenses.length > 0;
+  // ── Roth/Traditional IRA from transactions linked to a roth_ira/trad_ira account ──
+  // This is the most precise source: actual money sent to the account.
+  // Preferred over config/expense estimates when present.
+  const { iraFromTxs: _iraFromTxs } = db
+    .prepare(
+      `SELECT COALESCE(SUM(t.amount), 0) AS iraFromTxs
+       FROM transactions t
+       JOIN financial_accounts fa ON fa.id = t.account_id AND fa.user_id = t.user_id
+       WHERE t.user_id = ? AND t.category = ? AND t.month LIKE ?
+         AND fa.type IN ('roth_ira', 'trad_ira')`,
+    )
+    .get(userId, INVESTMENT_CATEGORY, `${year}-%`) as { iraFromTxs: number };
+
+  // Prefer actual transaction data; fall back to configured estimates
+  const iraYtd = _iraFromTxs > 0 ? _iraFromTxs : Math.max(iraFromConfig, iraFromExpenses);
+  const hasData = hasConfigData || iraExpenses.length > 0 || _iraFromTxs > 0;
 
   return NextResponse.json({
     year,

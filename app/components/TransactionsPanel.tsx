@@ -4,15 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import {
+  ACCOUNT_TYPE_LABELS,
   BTN_BLUE_CLS,
   CAT_COLORS,
   CATEGORIES,
   DEFAULT_CATEGORY,
   INPUT_CLS,
+  INVESTMENT_CATEGORY,
   LABEL_CLS,
 } from '@/lib/config';
-import type { PaymentSource, Transaction } from '@/lib/types';
+import type { FinancialAccount, PaymentSource, Transaction } from '@/lib/types';
 import { parseCSVLine } from '@/lib/utils';
+import TransactionDetailDrawer from './TransactionDetailDrawer';
 
 export default function TransactionsPanel({
   month,
@@ -25,6 +28,14 @@ export default function TransactionsPanel({
 }) {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [sources, setSources] = useState<PaymentSource[]>([]);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
+  const [managingAccounts, setManagingAccounts] = useState(false);
+  const [newAcctName, setNewAcctName] = useState('');
+  const [newAcctType, setNewAcctType] = useState<string>('roth_ira');
+  const [newAcctInstitution, setNewAcctInstitution] = useState('');
+  const [backfillMsg, setBackfillMsg] = useState('');
+  const [bulkAccountId, setBulkAccountId] = useState<string>('');
   const [desc, setDesc] = useState('');
   const [amt, setAmt] = useState('');
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
@@ -61,6 +72,7 @@ export default function TransactionsPanel({
   >([]);
   const [committing, setCommitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reloadImportHistory = () => api.importHistory.list().then(setImportHistory);
@@ -77,6 +89,7 @@ export default function TransactionsPanel({
         setCsvSource((prev) => prev || s[0].label);
       }
     });
+  const reloadAccounts = () => api.financialAccounts.list().then(setAccounts);
 
   useEffect(() => {
     reloadTxs();
@@ -85,6 +98,7 @@ export default function TransactionsPanel({
   useEffect(() => {
     reloadSources();
     reloadImportHistory();
+    reloadAccounts();
   }, []);
 
   async function addTx() {
@@ -177,10 +191,16 @@ export default function TransactionsPanel({
     const headers = lines[0].split(',').map((h) => h.replace(/"/g, '').trim().toLowerCase());
 
     const creditDebitIdx = headers.findIndex((h) => h === 'credit debit indicator');
-    const isNavyFed = creditDebitIdx >= 0 && headers.some((h) => h === 'type group');
+    const typeGroupIdx = headers.findIndex((h) => h === 'type group');
+    const isNavyFed = creditDebitIdx >= 0 && typeGroupIdx >= 0;
     const debitIdx = headers.findIndex((h) => h === 'debit');
     const creditIdx = headers.findIndex((h) => h === 'credit');
     const isCapitalOne = debitIdx >= 0 && creditIdx >= 0 && !isNavyFed;
+    // Capital One Checking: Account Number, Transaction Description, Transaction Date, Transaction Type, Transaction Amount, Balance
+    const acctNumIdx = headers.findIndex((h) => h === 'account number');
+    const txTypeIdx = headers.findIndex((h) => h === 'transaction type');
+    const txAmtIdx = headers.findIndex((h) => h === 'transaction amount');
+    const isCapOneChecking = acctNumIdx >= 0 && txTypeIdx >= 0 && txAmtIdx >= 0;
     // USAA: has 'original description' and 'status' columns
     const origDescIdx = headers.findIndex((h) => h === 'original description');
     const statusIdx = headers.findIndex((h) => h === 'status');
@@ -198,7 +218,20 @@ export default function TransactionsPanel({
     const descIdx = headers.findIndex((h) => h === 'description');
     const catIdx = headers.findIndex((h) => h === 'category');
     const typeIdx = headers.findIndex((h) => h === 'type');
-    const amtIdx = headers.findIndex((h) => h.includes('amount'));
+    const amtIdx = headers.findIndex(
+      (h) => h.includes('amount') && !h.includes('transaction amount'),
+    );
+
+    // Normalize MM/DD/YY → YYYY-MM-DD (Capital One Checking uses 2-digit year)
+    function normalizeDate(d: string): string {
+      const twoDigit = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+      if (twoDigit)
+        return `${2000 + parseInt(twoDigit[3])}-${twoDigit[1].padStart(2, '0')}-${twoDigit[2].padStart(2, '0')}`;
+      return d;
+    }
+
+    // Payment services — transfers to these go to real people, not own accounts
+    const PAYMENT_SERVICES = ['zelle', 'taptap', 'venmo', 'paypal', 'cash app', 'cashapp'];
 
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
@@ -258,6 +291,33 @@ export default function TransactionsPanel({
         continue;
       }
 
+      if (isCapOneChecking) {
+        // Skip credits (deposits, transfers in)
+        const txType = (vals[txTypeIdx] || '').trim().toLowerCase();
+        if (txType !== 'debit') continue;
+        const desc = vals[1] || 'Unknown';
+        const descLower = desc.toLowerCase();
+        // Skip internal savings/account transfers
+        if (
+          descLower.includes('autopilot transfer') ||
+          descLower.includes('paycheck percentage transfer')
+        )
+          continue;
+        // Skip withdrawals to own accounts (savings, other banks) unless going to a payment service
+        if (
+          (descLower.includes('withdrawal from') ||
+            descLower.includes('withdrawal to') ||
+            descLower.includes('preauthorized withdrawal')) &&
+          !PAYMENT_SERVICES.some((svc) => descLower.includes(svc))
+        )
+          continue;
+        const amount = Math.abs(parseFloat((vals[txAmtIdx] || '0').replace(/[^0-9.-]/g, '')));
+        if (!amount) continue;
+        const date = normalizeDate(vals[dateIdx >= 0 ? dateIdx : 2] || '');
+        rows.push({ description: desc, amount, category: DEFAULT_CATEGORY, date });
+        continue;
+      }
+
       if (isCapitalOne) {
         // Skip credits/payments — only keep rows with a debit value
         const debitVal = vals[debitIdx]?.trim();
@@ -272,9 +332,38 @@ export default function TransactionsPanel({
       }
 
       if (isNavyFed) {
+        // Skip credits (income, deposits, transfers in)
         const indicator = (vals[creditDebitIdx] || '').toLowerCase();
         if (indicator === 'credit') continue;
-        if (!isTaptap) continue;
+        // Skip payroll (tracked in income config) and investment income (dividends)
+        const typeGroup = (vals[typeGroupIdx] || '').toLowerCase();
+        if (typeGroup === 'paychecks/salary' || typeGroup === 'investment income') continue;
+        // Skip credit card payments — spending already tracked via card CSV imports
+        const nfCategory = (vals[catIdx >= 0 ? catIdx : 11] || '').toLowerCase();
+        if (nfCategory === 'credit card payments') continue;
+        // Skip own-account transfers ("Transfer to Apple", "Transfer to Capital One", etc.)
+        // but keep transfers to payment services (Zelle, Taptap) — those go to real people
+        const descLower = description.toLowerCase();
+        if (
+          descLower.startsWith('transfer to ') &&
+          !PAYMENT_SERVICES.some((svc) => descLower.includes(svc))
+        )
+          continue;
+        const amount = Math.abs(
+          parseFloat((vals[amtIdx >= 0 ? amtIdx : 2] || '0').replace(/[^0-9.-]/g, '')),
+        );
+        if (!amount) continue;
+        const date = vals[dateIdx >= 0 ? dateIdx : 1] || '';
+        let category: string;
+        if (isTaptap) {
+          category = 'Family';
+        } else if (typeGroup === 'securities trades') {
+          category = INVESTMENT_CATEGORY;
+        } else {
+          category = DEFAULT_CATEGORY;
+        }
+        rows.push({ description, amount, category, date });
+        continue;
       } else {
         const type = (vals[typeIdx] || '').toLowerCase();
         if (['payment', 'return', 'reversal', 'adjustment'].includes(type)) continue;
@@ -328,6 +417,43 @@ export default function TransactionsPanel({
     reloadTxs();
     reloadImportHistory();
     onUpdate();
+  }
+
+  async function addAccount() {
+    if (!newAcctName.trim()) return;
+    await api.financialAccounts.add({
+      name: newAcctName.trim(),
+      type: newAcctType as FinancialAccount['type'],
+      institution: newAcctInstitution.trim(),
+    });
+    setNewAcctName('');
+    setNewAcctInstitution('');
+    reloadAccounts();
+  }
+
+  async function removeAccount(id: number) {
+    await api.financialAccounts.remove(id);
+    reloadAccounts();
+  }
+
+  async function runBackfill() {
+    setBackfillMsg('');
+    const { updated } = await api.financialAccounts.backfill();
+    setBackfillMsg(
+      updated > 0
+        ? `✓ Linked ${updated} transaction${updated !== 1 ? 's' : ''}`
+        : 'No new matches found',
+    );
+    if (updated > 0) reloadTxs();
+  }
+
+  async function bulkLinkAccount() {
+    if (!selectedIds.size) return;
+    const id = bulkAccountId ? parseInt(bulkAccountId) : null;
+    await api.transactions.bulkLinkAccount([...selectedIds], id);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    reloadTxs();
   }
 
   async function addCard() {
@@ -409,15 +535,21 @@ export default function TransactionsPanel({
   const filtered = filterCat
     ? periodFiltered.filter((t) => t.category === filterCat)
     : periodFiltered;
-  const grandTotal = txs.reduce((s, t) => s + t.amount, 0);
 
-  const p1Total = txs
+  // Spending total excludes investment transactions
+  const spendingTxs = txs.filter((t) => t.category !== INVESTMENT_CATEGORY);
+  const grandTotal = spendingTxs.reduce((s, t) => s + t.amount, 0);
+  const investedTotal = txs
+    .filter((t) => t.category === INVESTMENT_CATEGORY)
+    .reduce((s, t) => s + t.amount, 0);
+
+  const p1Total = spendingTxs
     .filter((t) => {
       const d = txDayOfMonth(t);
       return d !== null && d <= 15;
     })
     .reduce((s, t) => s + t.amount, 0);
-  const p2Total = txs
+  const p2Total = spendingTxs
     .filter((t) => {
       const d = txDayOfMonth(t);
       return d !== null && d > 15;
@@ -432,7 +564,7 @@ export default function TransactionsPanel({
           <div className="min-w-0 flex-1">
             <p className="text-text text-sm font-semibold">Import CSV</p>
             <p className="text-text-3 mt-0.5 text-xs">
-              Apple Card · Chase · Capital One · Navy Federal · USAA · BofA
+              Apple Card · Chase · Capital One (Credit & Checking) · Navy Federal · USAA · BofA
             </p>
             {sources.length > 0 && (
               <select
@@ -626,6 +758,100 @@ export default function TransactionsPanel({
         </div>
       )}
 
+      {/* Manage financial accounts */}
+      <div>
+        <button
+          onClick={() => setManagingAccounts((v) => !v)}
+          className="text-text-3 hover:text-text-2 flex items-center gap-1 text-xs transition-colors"
+        >
+          <span className="text-[10px]">{managingAccounts ? '▾' : '▸'}</span>
+          Manage accounts
+          {accounts.length > 0 && (
+            <span className="text-text-4 ml-0.5 font-mono">({accounts.length})</span>
+          )}
+        </button>
+        {managingAccounts && (
+          <div className="bg-bg border-border mt-2 space-y-2 rounded-xl border p-3">
+            <p className="text-text-4 text-[11px]">
+              Define your accounts (e.g. Fidelity Roth IRA). Transactions from matching institutions
+              will be auto-linked on import.
+            </p>
+            {accounts.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-text text-sm">{a.name}</span>
+                  <span className="text-text-4 ml-2 text-xs">
+                    {ACCOUNT_TYPE_LABELS[a.type] ?? a.type}
+                    {a.institution ? ` · ${a.institution}` : ''}
+                  </span>
+                </div>
+                <button
+                  onClick={() => removeAccount(a.id)}
+                  className="text-text-3 shrink-0 text-xs transition-colors hover:text-[#ff4560]"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <div className="mt-2 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  value={newAcctName}
+                  onChange={(e) => setNewAcctName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addAccount()}
+                  placeholder="Account name (e.g. Fidelity Roth IRA)"
+                  className="bg-surface border-border text-text placeholder-text-4 flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={newAcctType}
+                  onChange={(e) => setNewAcctType(e.target.value)}
+                  className="bg-surface border-border text-text cursor-pointer rounded-lg border px-2 py-1.5 text-xs transition-colors focus:border-blue-600 focus:outline-none"
+                >
+                  {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={newAcctInstitution}
+                  onChange={(e) => setNewAcctInstitution(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addAccount()}
+                  placeholder="Institution (e.g. Fidelity)"
+                  className="bg-surface border-border text-text placeholder-text-4 flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
+                />
+                <button
+                  onClick={addAccount}
+                  className={`shrink-0 px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}
+                >
+                  + Add
+                </button>
+              </div>
+              {accounts.length > 0 && (
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    onClick={runBackfill}
+                    className="text-text-3 hover:text-text-2 text-xs transition-colors"
+                    title="Scan all existing transactions and auto-link by institution keyword"
+                  >
+                    ↻ Auto-link existing transactions
+                  </button>
+                  {backfillMsg && (
+                    <span
+                      className={`font-mono text-[11px] ${backfillMsg.startsWith('✓') ? 'text-emerald-400' : 'text-text-4'}`}
+                    >
+                      {backfillMsg}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Manage cards */}
       <div>
         <button
@@ -726,6 +952,11 @@ export default function TransactionsPanel({
             }`}
           >
             All · ${Math.round(grandTotal).toLocaleString()}
+            {investedTotal > 0 && (
+              <span className="ml-1 text-emerald-400">
+                +${Math.round(investedTotal).toLocaleString()} invested
+              </span>
+            )}
           </button>
           {Object.entries(catTotals)
             .sort(([, a], [, b]) => b - a)
@@ -807,6 +1038,28 @@ export default function TransactionsPanel({
                 >
                   Re-categorize
                 </button>
+                {accounts.length > 0 && (
+                  <>
+                    <select
+                      value={bulkAccountId}
+                      onChange={(e) => setBulkAccountId(e.target.value)}
+                      className="bg-bg border-border text-text cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-600 focus:outline-none"
+                    >
+                      <option value="">— Unlink —</option>
+                      {accounts.map((a) => (
+                        <option key={a.id} value={String(a.id)}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={bulkLinkAccount}
+                      className={`px-2.5 py-1 text-xs ${BTN_BLUE_CLS} whitespace-nowrap`}
+                    >
+                      Link account
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={bulkDelete}
                   className="rounded-lg border border-[#ff4560]/20 px-2.5 py-1 text-xs text-[#ff4560] transition-colors hover:bg-[#ff4560]/10"
@@ -829,12 +1082,14 @@ export default function TransactionsPanel({
           <TxRow
             key={t.id}
             tx={t}
+            accounts={accounts}
             showMonth={isSearching}
             selectMode={selectMode}
             selected={selectedIds.has(t.id)}
             onToggleSelect={() => toggleSelect(t.id)}
             onUpdate={(data) => updateTx(t.id, data)}
             onDelete={() => deleteTx(t.id)}
+            onOpenDetail={() => setDetailTx(t)}
           />
         ))}
       </div>
@@ -852,11 +1107,34 @@ export default function TransactionsPanel({
         </div>
       )}
 
+      {/* Transaction detail drawer */}
+      <TransactionDetailDrawer
+        transaction={detailTx}
+        accounts={accounts}
+        onClose={() => setDetailTx(null)}
+        onSaved={() => {
+          reloadTxs();
+          onUpdate();
+        }}
+      />
+
       {/* Add transaction */}
       <div>
-        <h3 className={`${LABEL_CLS} mb-3`}>Add manually</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className={LABEL_CLS}>Add manually</h3>
+          <button
+            onClick={() => {
+              setCat(INVESTMENT_CATEGORY);
+              setTimeout(() => descRef.current?.focus(), 0);
+            }}
+            className="text-xs text-emerald-400 transition-colors hover:text-emerald-300"
+          >
+            ↑ Log investment
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <input
+            ref={descRef}
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
@@ -903,14 +1181,17 @@ export default function TransactionsPanel({
 
 function TxRow({
   tx,
+  accounts,
   showMonth,
   selectMode,
   selected,
   onToggleSelect,
   onUpdate,
   onDelete,
+  onOpenDetail,
 }: {
   tx: Transaction;
+  accounts: FinancialAccount[];
   showMonth?: boolean;
   selectMode?: boolean;
   selected?: boolean;
@@ -919,6 +1200,7 @@ function TxRow({
     data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>>,
   ) => void;
   onDelete: () => void;
+  onOpenDetail: () => void;
 }) {
   const [editingDesc, setEditingDesc] = useState(false);
   const [editingAmt, setEditingAmt] = useState(false);
@@ -1001,6 +1283,13 @@ function TxRow({
           </select>
           {tx.source !== 'manual' && <span className="text-text-4 text-xs">{tx.source}</span>}
           {showMonth && <span className="text-text-4 font-mono text-xs">{tx.month}</span>}
+          {tx.account_id != null &&
+            (() => {
+              const acct = accounts.find((a) => a.id === tx.account_id);
+              return acct ? (
+                <span className="text-[10px] text-emerald-500/70">{acct.name}</span>
+              ) : null;
+            })()}
         </div>
 
         {editingNotes ? (
@@ -1053,11 +1342,13 @@ function TxRow({
         />
       ) : (
         <span
-          className="hover:text-text-2 cursor-pointer font-mono text-sm whitespace-nowrap text-[#ff4560] transition-colors"
+          className={`hover:text-text-2 cursor-pointer font-mono text-sm whitespace-nowrap transition-colors ${
+            tx.category === INVESTMENT_CATEGORY ? 'text-emerald-400' : 'text-[#ff4560]'
+          }`}
           onClick={() => setEditingAmt(true)}
           title="Click to edit"
         >
-          −${tx.amount.toLocaleString()}
+          {tx.category === INVESTMENT_CATEGORY ? '↑' : '−'}${tx.amount.toLocaleString()}
         </span>
       )}
 
@@ -1072,6 +1363,16 @@ function TxRow({
               ✎
             </button>
           )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDetail();
+            }}
+            title="View details / link account"
+            className="text-text-4 hover:text-text-3 text-xs transition-colors"
+          >
+            ⋯
+          </button>
           <button
             onClick={onDelete}
             className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"

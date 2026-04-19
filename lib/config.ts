@@ -115,6 +115,45 @@ export const DEDUCTION_FIELDS: FieldConfig[] = [
 
 // ─── Transaction categories ───────────────────────────────────────────────────
 
+/** Reserved category that marks a transaction as an investment contribution. */
+export const INVESTMENT_CATEGORY = 'Investment';
+
+/**
+ * Substrings (lowercase) matched against transaction descriptions to
+ * auto-tag imported/manual transactions as Investment.
+ */
+export const INVESTMENT_KEYWORDS = [
+  'fidelity',
+  'vanguard',
+  'schwab',
+  'betterment',
+  'wealthfront',
+  'acorns',
+  'robinhood',
+  'merrill',
+  'td ameritrade',
+  'etrade',
+  'e*trade',
+  'principal financial',
+  'usaa brokerage',
+  'navy federal brokerage',
+  'roth ira',
+  'roth contribution',
+] as const;
+
+/** Human-readable labels for FinancialAccount types. */
+export const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  roth_ira: 'Roth IRA',
+  trad_ira: 'Traditional IRA',
+  hsa: 'HSA',
+  '529': '529 Plan',
+  brokerage: 'Brokerage',
+  checking: 'Checking',
+  savings: 'Savings',
+  money_market: 'Money Market',
+  other: 'Other',
+};
+
 export const CATEGORIES = [
   'Food',
   'Transport',
@@ -124,6 +163,8 @@ export const CATEGORIES = [
   'Entertainment',
   'Wedding',
   'Family',
+  'Investment',
+  'Housing',
   'Other',
 ] as const;
 
@@ -141,6 +182,8 @@ export const CHART_CAT_COLORS: Record<string, string> = {
   Entertainment: '#6366f1',
   Wedding: '#f43f5e',
   Family: '#f97316',
+  Investment: '#10b981',
+  Housing: '#8b5cf6',
   Other: '#9ca3af',
 };
 
@@ -153,6 +196,8 @@ export const CAT_COLORS: Record<string, string> = {
   Entertainment: 'bg-indigo-500/10 text-indigo-400',
   Wedding: 'bg-rose-500/10 text-rose-400',
   Family: 'bg-orange-500/10 text-orange-400',
+  Investment: 'bg-emerald-500/10 text-emerald-400',
+  Housing: 'bg-violet-500/10 text-violet-400',
   Other: 'bg-gray-500/10 text-gray-500',
 };
 
@@ -186,6 +231,10 @@ export const CSV_CATEGORY_MAP: Record<string, string> = {
   'bills & utilities': 'Subscriptions',
   // Family
   family: 'Family',
+  // Investment
+  investment: 'Investment',
+  brokerage: 'Investment',
+  'retirement contribution': 'Investment',
   // Other
   services: 'Other',
   personal: 'Other',

@@ -132,7 +132,15 @@ export default function BudgetActualPanel({
 
   if (rows.length === 0) {
     return (
-      <p className="text-text-3 py-8 text-center text-xs">No spending or budgets for this month.</p>
+      <div className="py-8 text-center">
+        <p className="text-text-3 mb-3 text-xs">No spending or budgets for this month.</p>
+        <button
+          onClick={() => reload(month)}
+          className="text-text-4 hover:text-text-2 text-xs transition-colors"
+        >
+          ↻ Refresh suggestions
+        </button>
+      </div>
     );
   }
 
@@ -180,6 +188,17 @@ export default function BudgetActualPanel({
             />
           </div>
         )}
+      </div>
+
+      {/* Refresh suggestions */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => reload(month)}
+          className="text-text-4 hover:text-text-2 flex items-center gap-1 text-[10px] transition-colors"
+          title="Recalculate suggestions from latest 6 months of spending"
+        >
+          ↻ Refresh suggestions
+        </button>
       </div>
 
       {/* Category rows */}

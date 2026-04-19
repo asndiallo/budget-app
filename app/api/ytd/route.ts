@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { computeMonthlyFinancials } from '@/lib/income';
+import { INVESTMENT_CATEGORY } from '@/lib/config';
 import { withAuth } from '@/lib/route-helpers';
 import type { YtdSummary } from '@/lib/types';
 import { currentMonth, investmentForMonth, isBeforeMonth } from '@/lib/utils';
@@ -13,14 +14,27 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const [, m] = month.split('-').map(Number);
   const months = Array.from({ length: m }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 
+  const placeholders = months.map(() => '?').join(',');
+
   const spendingRows = db
     .prepare(
       `SELECT month, SUM(amount) AS total
        FROM transactions
-       WHERE user_id = ? AND month IN (${months.map(() => '?').join(',')})
+       WHERE user_id = ? AND month IN (${placeholders}) AND category != ?
        GROUP BY month`,
     )
-    .all(userId, ...months) as { month: string; total: number }[];
+    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
+
+  const investmentTxRows = db
+    .prepare(
+      `SELECT month, SUM(amount) AS total
+       FROM transactions
+       WHERE user_id = ? AND month IN (${placeholders}) AND category = ?
+       GROUP BY month`,
+    )
+    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
+
+  const investmentTxByMonth = Object.fromEntries(investmentTxRows.map((r) => [r.month, r.total]));
 
   const spendingByMonth = Object.fromEntries(spendingRows.map((r) => [r.month, r.total]));
 
@@ -52,9 +66,10 @@ export const GET = withAuth(async (req, { userId, db }) => {
     if (joinedAt && isBeforeMonth(mo, joinedAt)) continue;
     const { totalIncome: inc, tsp } = computeMonthlyFinancials(db, mo, userId);
     const spending = spendingByMonth[mo] ?? 0;
-    if (inc > 0 || spending > 0) {
+    const investmentTxs = investmentTxByMonth[mo] ?? 0;
+    if (inc > 0 || spending > 0 || investmentTxs > 0) {
       totalIncome += inc;
-      totalInvested += tsp + investmentForMonth(investmentExpenses, mo);
+      totalInvested += tsp + investmentForMonth(investmentExpenses, mo) + investmentTxs;
       totalSpending += spending;
       monthsRecorded++;
     }

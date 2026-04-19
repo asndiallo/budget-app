@@ -82,6 +82,30 @@ export interface Transaction {
   created_at: string;
   date?: string | null;
   notes?: string | null;
+  account_id?: number | null;
+}
+
+// ── Financial accounts ────────────────────────────────────────────────────────
+
+export type AccountType =
+  | 'roth_ira'
+  | 'trad_ira'
+  | 'hsa'
+  | '529'
+  | 'brokerage'
+  | 'checking'
+  | 'savings'
+  | 'money_market'
+  | 'other';
+
+export interface FinancialAccount {
+  id: number;
+  name: string;
+  type: AccountType;
+  institution: string;
+  notes: string | null;
+  active: number;
+  created_at: string;
 }
 
 export interface Goal {
