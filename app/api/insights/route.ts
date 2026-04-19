@@ -48,10 +48,29 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const withData6 = months6.filter((m) => byMonth.has(m));
   const withData3 = months3.filter((m) => byMonth.has(m));
 
+  // Committed = non-investment fixed expenses + active debt payments (current snapshot)
+  const committedFixed = (
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) AS s
+         FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=0`,
+      )
+      .get(userId) as { s: number }
+  ).s;
+  const debtPayments = (
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(monthly_payment),0) AS s FROM debts WHERE user_id=? AND balance > 0`,
+      )
+      .get(userId) as { s: number }
+  ).s;
+  const avgMonthlyCommitted = Math.round(committedFixed + debtPayments);
+
   const empty: SpendingInsights = {
     avgMonthlyExpenses: 0,
     avgMonthlyNet: 0,
     suggestedEmergencyFund: 0,
+    avgMonthlyCommitted,
     monthsAnalyzed: 0,
     categoryInsights: [],
   };
@@ -101,6 +120,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
     avgMonthlyExpenses: Math.round(avgMonthlyExpenses),
     avgMonthlyNet: Math.round(avgMonthlyNet),
     suggestedEmergencyFund: Math.round(avgMonthlyExpenses * 3),
+    avgMonthlyCommitted,
     monthsAnalyzed: withData6.length,
     categoryInsights,
   });

@@ -19,6 +19,16 @@ const EMERGENCY_MONTHS = 3;
 
 const isEmergencyFund = (name: string) => EMERGENCY_PATTERN.test(name);
 
+function monthsCoveredColor(months: number): string {
+  if (months < 1) return '#ff4560';
+  if (months < 3) return '#f5aa2a';
+  return '#00d98a';
+}
+
+function formatMonthsCovered(months: number): string {
+  return months >= 10 ? Math.round(months).toFixed(0) : months.toFixed(1);
+}
+
 function formatMonthsToGoal(months: number): string {
   if (months <= 0) return '';
   if (months < 12) return `~${months} mo`;
@@ -146,9 +156,15 @@ export default function GoalsPanel() {
   const overallPct =
     totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
-  const smartFundTarget =
+  // Total monthly burn rate = spending + committed (for emergency fund coverage)
+  const avgMonthlyBurn =
     insights && insights.monthsAnalyzed > 0
-      ? Math.round(insights.avgMonthlyExpenses * EMERGENCY_MONTHS)
+      ? insights.avgMonthlyExpenses + insights.avgMonthlyCommitted
+      : null;
+
+  const smartFundTarget =
+    avgMonthlyBurn !== null && avgMonthlyBurn > 0
+      ? Math.round(avgMonthlyBurn * EMERGENCY_MONTHS)
       : null;
 
   const inputClass =
@@ -389,8 +405,52 @@ export default function GoalsPanel() {
                     />
                   </div>
 
+                  {/* Emergency fund: months covered metric */}
+                  {!isEditing && isEmergencyFund(g.name) && avgMonthlyBurn !== null && avgMonthlyBurn > 0 && (
+                    (() => {
+                      const covered = g.saved / avgMonthlyBurn;
+                      const color = monthsCoveredColor(covered);
+                      return (
+                        <div
+                          className="mb-3 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
+                          style={{ backgroundColor: color + '15', borderColor: color + '33', border: '1px solid' }}
+                        >
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: color + '99' }}>
+                              Months covered
+                            </p>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-2xl font-bold font-mono" style={{ color }}>
+                                {formatMonthsCovered(covered)}
+                              </span>
+                              <span className="text-xs text-text-3">
+                                mo &nbsp;·&nbsp; {formatMonthsCovered(EMERGENCY_MONTHS - covered > 0 ? EMERGENCY_MONTHS - covered : 0)} mo to 3-month goal
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-text-4 mt-0.5">
+                              ${Math.round(g.saved).toLocaleString()} ÷ ${Math.round(avgMonthlyBurn).toLocaleString()}/mo (spending + committed)
+                            </p>
+                          </div>
+                          {/* Mini coverage bar */}
+                          <div className="w-16 shrink-0">
+                            <div className="h-1.5 bg-surface rounded-full overflow-hidden mb-1">
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${Math.min(100, (covered / EMERGENCY_MONTHS) * 100)}%`,
+                                  backgroundColor: color,
+                                }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-text-4 text-right">of {EMERGENCY_MONTHS} mo</p>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  )}
+
                   {/* Smart target banner */}
-                  {showSmartBanner && insights && (
+                  {showSmartBanner && insights && avgMonthlyBurn !== null && (
                     <div className="mb-3 rounded-lg border border-[#00d98a]/20 bg-[#00d98a]/5 px-3 py-2.5 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#00d98a]/60 mb-0.5">
@@ -399,15 +459,14 @@ export default function GoalsPanel() {
                         <p className="text-xs text-text-3 leading-snug">
                           3-month fund ·{' '}
                           <span className="font-mono">
-                            ${insights.avgMonthlyExpenses.toLocaleString()}{' '}
-                            avg/mo
+                            ${Math.round(avgMonthlyBurn).toLocaleString()} avg/mo
                           </span>{' '}
-                          × {EMERGENCY_MONTHS} ={' '}
+                          (spending + bills) × {EMERGENCY_MONTHS} ={' '}
                           <span className="font-mono font-semibold text-[#00d98a]">
                             ${smartFundTarget!.toLocaleString()}
                           </span>{' '}
                           <span className="text-text-4">
-                            ({insights.monthsAnalyzed} months of data)
+                            ({insights.monthsAnalyzed} mo of data)
                           </span>
                         </p>
                       </div>
