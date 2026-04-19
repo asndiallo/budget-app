@@ -391,7 +391,8 @@ export default function GoalsPanel() {
                           style={{
                             backgroundColor: color + '15',
                             borderColor: color + '33',
-                            border: '1px solid',
+                            borderWidth: 1,
+                            borderStyle: 'solid',
                           }}
                         >
                           <div>
