@@ -1,9 +1,25 @@
 'use client';
 
-import { BTN_BLUE_CLS, DEDUCTION_FIELDS, INCOME_FIELDS, INPUT_CLS, LABEL_CLS, SPECIAL_PAY_FIELDS, TSP_CONFIG } from '@/lib/config';
-import type { IncomeConfig, IncomeEntry } from '@/lib/types';
+import type {
+  Allotment,
+  IncomeConfig,
+  IncomeEntry,
+  IncomeProfile,
+} from '@/lib/types';
+import {
+  BTN_BLUE_CLS,
+  DEDUCTION_FIELDS,
+  INCOME_FIELDS,
+  INCOME_PROFILE_TYPES,
+  INPUT_CLS,
+  LABEL_CLS,
+  SPECIAL_PAY_FIELDS,
+  TSP_CONFIG,
+} from '@/lib/config';
 import { useEffect, useState } from 'react';
 
+import AllotementsManager from './AllotementsManager';
+import IncomeProfilesManager from './IncomeProfilesManager';
 import LesImportButton from './LesImportButton';
 import { api } from '@/lib/api';
 
@@ -29,6 +45,21 @@ export default function IncomePanel({
   const [suggestion, setSuggestion] = useState<PaySuggestion | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const [showSpecialPay, setShowSpecialPay] = useState(false);
+  const [profiles, setProfiles] = useState<IncomeProfile[]>([]);
+  const [showProfiles, setShowProfiles] = useState(false);
+  const [applyingId, setApplyingId] = useState<number | null>(null);
+  const [allotments, setAllotments] = useState<Allotment[]>([]);
+  const [showAllotments, setShowAllotments] = useState(false);
+  // Silently-fetched BAH suggestion for change alert
+  const [bahSuggested, setBahSuggested] = useState<number | null>(null);
+
+  function reloadProfiles() {
+    api.incomeProfiles.list().then(setProfiles);
+  }
+
+  function reloadAllotments() {
+    api.allotments.list().then(setAllotments);
+  }
 
   useEffect(() => {
     if (!month) return;
@@ -36,12 +67,25 @@ export default function IncomePanel({
       setIncome(data);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
-      // Auto-expand special pays section if any are non-zero
-      const hasSpecialPay = SPECIAL_PAY_FIELDS.some((f) => (data[f.key] ?? 0) > 0);
+      const hasSpecialPay = SPECIAL_PAY_FIELDS.some(
+        (f) => (data[f.key] ?? 0) > 0,
+      );
       if (hasSpecialPay) setShowSpecialPay(true);
+      // Silently check for BAH rate change
+      api.income
+        .suggest()
+        .then((s) => {
+          setBahSuggested(Math.abs(s.bah - (data.bah ?? 0)) > 5 ? s.bah : null);
+        })
+        .catch(() => {});
     });
     api.incomeEntries.list(month).then(setEntries);
   }, [month]);
+
+  useEffect(() => {
+    reloadProfiles();
+    reloadAllotments();
+  }, []);
 
   async function addEntry() {
     if (!newDesc.trim() || !newAmt) return;
@@ -79,12 +123,17 @@ export default function IncomePanel({
     0,
   );
   const extraTotal = entries.reduce((s, e) => s + e.amount, 0);
+  const activeAllotments = allotments.filter(
+    (a) => a.start_date <= month && (!a.end_date || a.end_date >= month),
+  );
+  const allotmentsTotal = activeAllotments.reduce((s, a) => s + a.amount, 0);
   const deductionTotal =
     tsp +
     DEDUCTION_FIELDS.reduce(
       (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
       0,
-    );
+    ) +
+    allotmentsTotal;
 
   async function saveIncome(key: string, value: number) {
     setIncome((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -127,6 +176,21 @@ export default function IncomePanel({
     onUpdate();
   }
 
+  async function applyProfile(profile: IncomeProfile) {
+    if (!income || Object.keys(profile.fields).length === 0) return;
+    setApplyingId(profile.id);
+    setIncome((prev) => (prev ? { ...prev, ...profile.fields } : prev));
+    await api.income.update(month, profile.fields);
+    // Re-fetch to get server-confirmed state (handles combat_zone flag, etc.)
+    const fresh = await api.income.get(month);
+    setIncome(fresh);
+    setTspRateLocal(
+      String(Math.round((fresh.tsp_rate ?? TSP_CONFIG.rate) * 100)),
+    );
+    setApplyingId(null);
+    onUpdate();
+  }
+
   async function toggleCombatZone() {
     const next = combatZone ? 0 : 1;
     setIncome((prev) => (prev ? { ...prev, combat_zone: next } : prev));
@@ -160,10 +224,65 @@ export default function IncomePanel({
         }))
     : [];
 
-  const taxSavings = combatZone ? (income.taxes || 0) : 0;
+  const taxSavings = combatZone ? income.taxes || 0 : 0;
+
+  // Profiles active for the current month
+  const activeProfiles = profiles.filter(
+    (p) => p.start_date <= month && (!p.end_date || p.end_date >= month),
+  );
 
   return (
     <div className="space-y-6">
+      {/* Active profile banners */}
+      {activeProfiles.map((p) => {
+        const cfg = INCOME_PROFILE_TYPES[p.type] ?? INCOME_PROFILE_TYPES.custom;
+        const hasFields = Object.keys(p.fields).length > 0;
+        return (
+          <div
+            key={p.id}
+            className="flex items-center justify-between rounded-xl border px-4 py-3"
+            style={{
+              borderColor: cfg.color + '44',
+              backgroundColor: cfg.color + '15',
+            }}
+          >
+            <div>
+              <p className="text-xs font-semibold" style={{ color: cfg.color }}>
+                {cfg.label}: {p.name}
+              </p>
+              <p
+                className="text-[11px] mt-0.5"
+                style={{ color: cfg.color + 'aa' }}
+              >
+                {p.start_date} – {p.end_date ?? 'ongoing'}
+                {hasFields && (
+                  <>
+                    {' '}
+                    · {Object.keys(p.fields).length} field override
+                    {Object.keys(p.fields).length !== 1 ? 's' : ''}
+                  </>
+                )}
+              </p>
+            </div>
+            {hasFields && (
+              <button
+                onClick={() => applyProfile(p)}
+                disabled={applyingId === p.id}
+                className="text-[11px] px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-40"
+                style={{
+                  borderColor: cfg.color + '44',
+                  color: cfg.color,
+                  backgroundColor:
+                    applyingId === p.id ? cfg.color + '22' : 'transparent',
+                }}
+              >
+                {applyingId === p.id ? 'Applying…' : 'Apply to month'}
+              </button>
+            )}
+          </div>
+        );
+      })}
+
       {/* Combat zone banner */}
       {combatZone && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
@@ -173,7 +292,8 @@ export default function IncomePanel({
             </p>
             <p className="text-[11px] text-emerald-500/70 mt-0.5">
               Federal income tax exempt
-              {taxSavings > 0 && ` · saving ~$${Math.round(taxSavings).toLocaleString()}/mo`}
+              {taxSavings > 0 &&
+                ` · saving ~$${Math.round(taxSavings).toLocaleString()}/mo`}
             </p>
           </div>
           <button
@@ -200,6 +320,17 @@ export default function IncomePanel({
                 ⚔ Combat zone
               </button>
             )}
+            <button
+              onClick={() => setShowProfiles((v) => !v)}
+              title="Manage deployment / income profiles"
+              className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
+                showProfiles
+                  ? 'bg-purple-500/15 text-purple-400'
+                  : 'bg-surface-raised text-text-3 hover:text-purple-400 hover:bg-purple-500/10'
+              }`}
+            >
+              ⇄ Profiles{profiles.length > 0 ? ` (${profiles.length})` : ''}
+            </button>
             <button
               onClick={fetchSuggestion}
               disabled={syncLoading}
@@ -262,6 +393,14 @@ export default function IncomePanel({
             note={f.note}
             value={income[f.key] ?? 0}
             onChange={(v) => saveIncome(f.key, v)}
+            alert={
+              f.key === 'bah' && bahSuggested !== null
+                ? {
+                    label: `Rate changed → $${Math.round(bahSuggested).toLocaleString()}`,
+                    onAction: fetchSuggestion,
+                  }
+                : undefined
+            }
           />
         ))}
 
@@ -305,6 +444,17 @@ export default function IncomePanel({
             label="BAH calculator"
           />
         </div>
+
+        {/* Deployment / income profiles */}
+        {showProfiles && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className={`${LABEL_CLS} mb-3`}>Deployment & income profiles</p>
+            <IncomeProfilesManager
+              profiles={profiles}
+              onRefresh={reloadProfiles}
+            />
+          </div>
+        )}
       </Section>
 
       <Section
@@ -312,11 +462,24 @@ export default function IncomePanel({
         total={deductionTotal}
         totalPrefix="−"
         totalColor="text-[#ff4560]"
+        action={
+          <button
+            onClick={() => setShowAllotments((v) => !v)}
+            title="Manage allotments — fixed deductions from gross pay"
+            className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
+              showAllotments
+                ? 'bg-blue-500/15 text-[#4a8cff]'
+                : 'bg-surface-raised text-text-3 hover:text-[#4a8cff] hover:bg-blue-500/10'
+            }`}
+          >
+            Allotments{allotments.length > 0 ? ` (${allotments.length})` : ''}
+          </button>
+        }
       >
         {/* TSP — rate-editable row */}
         <div className="flex items-center py-3 border-b border-border-dim">
           <div className="flex-1">
-            <p className="text-sm text-text">TSP</p>
+            <p className="text-sm text-text">Roth TSP</p>
             <p className="text-[11px] text-text-3 mt-0.5">
               {TSP_CONFIG.note} ·{' '}
               <a
@@ -373,6 +536,35 @@ export default function IncomePanel({
             />
           );
         })}
+
+        {/* Active allotment rows — read-only; managed via the Allotments panel */}
+        {activeAllotments.map((a) => (
+          <div
+            key={a.id}
+            className="flex items-center py-3 border-b border-border-dim"
+          >
+            <div className="flex-1">
+              <p className="text-sm text-text">{a.label}</p>
+              <p className="text-[11px] text-text-3 mt-0.5">
+                Allotment · {a.type}
+              </p>
+            </div>
+            <span className="font-mono text-sm text-[#ff4560] w-24 text-right">
+              −${a.amount.toLocaleString()}
+            </span>
+          </div>
+        ))}
+
+        {/* Allotments manager */}
+        {showAllotments && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className={`${LABEL_CLS} mb-3`}>Manage allotments</p>
+            <AllotementsManager
+              allotments={allotments}
+              onRefresh={reloadAllotments}
+            />
+          </div>
+        )}
       </Section>
 
       <Section
@@ -459,9 +651,7 @@ function Section({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className={LABEL_CLS}>
-          {title}
-        </h3>
+        <h3 className={LABEL_CLS}>{title}</h3>
         <div className="flex items-center gap-3">
           {action}
           {total !== undefined && (
@@ -483,6 +673,7 @@ function Row({
   onChange,
   prefix = '',
   valueColor = 'text-text',
+  alert,
 }: {
   label: string;
   note?: string;
@@ -490,6 +681,7 @@ function Row({
   onChange: (v: number) => void;
   prefix?: string;
   valueColor?: string;
+  alert?: { label: string; onAction: () => void };
 }) {
   const [local, setLocal] = useState(String(value));
 
@@ -500,7 +692,18 @@ function Row({
   return (
     <div className="flex items-center py-3 border-b border-border-dim">
       <div className="flex-1">
-        <p className="text-sm text-text">{label}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-text">{label}</p>
+          {alert && (
+            <button
+              onClick={alert.onAction}
+              title={alert.label}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors font-medium"
+            >
+              ⚠ {alert.label}
+            </button>
+          )}
+        </div>
         {note && <p className="text-[11px] text-text-3 mt-0.5">{note}</p>}
       </div>
       <div className="flex items-center gap-1.5">
