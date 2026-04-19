@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 import type { IncomeProfile } from '@/lib/types';
 

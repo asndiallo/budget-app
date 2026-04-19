@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const month = new URL(req.url).searchParams.get('month');
-  if (!month)
-    return NextResponse.json({ error: 'month required' }, { status: 400 });
+  if (!month) return NextResponse.json({ error: 'month required' }, { status: 400 });
   const rows = db
     .prepare(
       'SELECT id, fixed_expense_id, month, paid_at FROM bill_payments WHERE user_id = ? AND month = ?',

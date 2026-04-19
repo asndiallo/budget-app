@@ -1,6 +1,8 @@
+import { describe, expect, it } from 'vitest';
+
 import {
-  CATEGORIES,
   CAT_COLORS,
+  CATEGORIES,
   CHART_CAT_COLORS,
   CONTRIBUTION_LIMITS,
   CSV_CATEGORY_MAP,
@@ -14,7 +16,6 @@ import {
   INCOME_PROFILE_FIELD_OPTIONS,
   INCOME_PROFILE_TYPES,
 } from '../config';
-import { describe, expect, it } from 'vitest';
 
 // ── CATEGORIES ────────────────────────────────────────────────────────────────
 
@@ -126,19 +127,13 @@ describe('GOAL_COLORS', () => {
 
   it('GOAL_BAR_COLORS has an entry for every GOAL_COLOR', () => {
     for (const color of GOAL_COLORS) {
-      expect(
-        GOAL_BAR_COLORS[color],
-        `GOAL_BAR_COLORS missing entry for "${color}"`,
-      ).toBeDefined();
+      expect(GOAL_BAR_COLORS[color], `GOAL_BAR_COLORS missing entry for "${color}"`).toBeDefined();
     }
   });
 
   it('GOAL_DOT_COLORS has an entry for every GOAL_COLOR', () => {
     for (const color of GOAL_COLORS) {
-      expect(
-        GOAL_DOT_COLORS[color],
-        `GOAL_DOT_COLORS missing entry for "${color}"`,
-      ).toBeDefined();
+      expect(GOAL_DOT_COLORS[color], `GOAL_DOT_COLORS missing entry for "${color}"`).toBeDefined();
     }
   });
 });
@@ -148,28 +143,21 @@ describe('GOAL_COLORS', () => {
 describe('category color maps', () => {
   it('CAT_COLORS has an entry for every category', () => {
     for (const cat of CATEGORIES) {
-      expect(
-        CAT_COLORS[cat],
-        `CAT_COLORS missing entry for "${cat}"`,
-      ).toBeDefined();
+      expect(CAT_COLORS[cat], `CAT_COLORS missing entry for "${cat}"`).toBeDefined();
     }
   });
 
   it('CHART_CAT_COLORS has an entry for every category', () => {
     for (const cat of CATEGORIES) {
-      expect(
-        CHART_CAT_COLORS[cat],
-        `CHART_CAT_COLORS missing entry for "${cat}"`,
-      ).toBeDefined();
+      expect(CHART_CAT_COLORS[cat], `CHART_CAT_COLORS missing entry for "${cat}"`).toBeDefined();
     }
   });
 
   it('CHART_CAT_COLORS values are valid hex colors', () => {
     for (const [cat, color] of Object.entries(CHART_CAT_COLORS)) {
-      expect(
-        color,
-        `CHART_CAT_COLORS["${cat}"] is not a valid hex color`,
-      ).toMatch(/^#[0-9a-f]{3}([0-9a-f]{3})?$/i);
+      expect(color, `CHART_CAT_COLORS["${cat}"] is not a valid hex color`).toMatch(
+        /^#[0-9a-f]{3}([0-9a-f]{3})?$/i,
+      );
     }
   });
 });
@@ -185,19 +173,13 @@ describe('CONTRIBUTION_LIMITS', () => {
 
   it('tspCatchup is greater than tsp for every year', () => {
     for (const [year, limits] of Object.entries(CONTRIBUTION_LIMITS)) {
-      expect(
-        limits.tspCatchup,
-        `${year}: tspCatchup should be > tsp`,
-      ).toBeGreaterThan(limits.tsp);
+      expect(limits.tspCatchup, `${year}: tspCatchup should be > tsp`).toBeGreaterThan(limits.tsp);
     }
   });
 
   it('iraCatchup is greater than ira for every year', () => {
     for (const [year, limits] of Object.entries(CONTRIBUTION_LIMITS)) {
-      expect(
-        limits.iraCatchup,
-        `${year}: iraCatchup should be > ira`,
-      ).toBeGreaterThan(limits.ira);
+      expect(limits.iraCatchup, `${year}: iraCatchup should be > ira`).toBeGreaterThan(limits.ira);
     }
   });
 
@@ -252,19 +234,17 @@ describe('INCOME_PROFILE_TYPES', () => {
 
   it('every type has a valid hex color', () => {
     for (const [key, profile] of Object.entries(INCOME_PROFILE_TYPES)) {
-      expect(
-        profile.color,
-        `${key} color is not a valid hex color`,
-      ).toMatch(/^#[0-9a-f]{3}([0-9a-f]{3})?$/i);
+      expect(profile.color, `${key} color is not a valid hex color`).toMatch(
+        /^#[0-9a-f]{3}([0-9a-f]{3})?$/i,
+      );
     }
   });
 
   it('every type has a defaultFields object (not null/undefined)', () => {
     for (const [key, profile] of Object.entries(INCOME_PROFILE_TYPES)) {
-      expect(
-        typeof profile.defaultFields,
-        `${key}.defaultFields should be an object`,
-      ).toBe('object');
+      expect(typeof profile.defaultFields, `${key}.defaultFields should be an object`).toBe(
+        'object',
+      );
     }
   });
 

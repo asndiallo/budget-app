@@ -1,9 +1,9 @@
-import { mapCategory, parseDate } from '@/lib/csv-utils';
-import { autoMatchBills } from '@/lib/bill-match';
-
-import type { CsvRow } from '@/lib/types';
 import { NextResponse } from 'next/server';
+
+import { autoMatchBills } from '@/lib/bill-match';
+import { mapCategory, parseDate } from '@/lib/csv-utils';
 import { withAuth } from '@/lib/route-helpers';
+import type { CsvRow } from '@/lib/types';
 
 export const POST = withAuth(async (req, { userId, db }) => {
   const {
@@ -17,9 +17,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
   };
 
   const userRules = db
-    .prepare(
-      'SELECT keyword, category FROM categorization_rules WHERE user_id = ?',
-    )
+    .prepare('SELECT keyword, category FROM categorization_rules WHERE user_id = ?')
     .all(userId) as { keyword: string; category: string }[];
 
   function applyCategory(description: string, csvCategory: string): string {

@@ -1,18 +1,3 @@
-import {
-  BASE_PAY_TABLE,
-  BAS_RATES,
-  ENLISTED_GRADES,
-  INSTALLATIONS,
-  OFFICER_GRADES,
-  PAY_GRADES,
-  WARRANT_GRADES,
-  YOS_TIERS,
-  getBAH,
-  getBAS,
-  getBasePay,
-  getRankTitle,
-  isOfficer,
-} from '../pay-tables';
 /**
  * Pay table tests — 2026 DoD rates (effective 1 Jan 2026)
  *
@@ -21,6 +6,22 @@ import {
  * be updated too, making discrepancies immediately visible.
  */
 import { describe, expect, it } from 'vitest';
+
+import {
+  BAS_RATES,
+  BASE_PAY_TABLE,
+  ENLISTED_GRADES,
+  getBAH,
+  getBAS,
+  getBasePay,
+  getRankTitle,
+  INSTALLATIONS,
+  isOfficer,
+  OFFICER_GRADES,
+  PAY_GRADES,
+  WARRANT_GRADES,
+  YOS_TIERS,
+} from '../pay-tables';
 
 // ── isOfficer ────────────────────────────────────────────────────────────────
 
@@ -123,9 +124,7 @@ describe('getBasePay', () => {
 
     it('every grade has exactly 22 pay tiers in the table', () => {
       for (const g of PAY_GRADES) {
-        expect(BASE_PAY_TABLE[g].length, `${g} should have 22 tiers`).toBe(
-          YOS_TIERS.length,
-        );
+        expect(BASE_PAY_TABLE[g].length, `${g} should have 22 tiers`).toBe(YOS_TIERS.length);
       }
     });
 
@@ -179,9 +178,7 @@ describe('getBasePay', () => {
 describe('getBAS', () => {
   it('returns enlisted rate (470.88) for all E grades', () => {
     for (const g of ENLISTED_GRADES) {
-      expect(getBAS(g), `${g} should get enlisted BAS`).toBe(
-        BAS_RATES.enlisted,
-      );
+      expect(getBAS(g), `${g} should get enlisted BAS`).toBe(BAS_RATES.enlisted);
     }
     expect(BAS_RATES.enlisted).toBe(470.88);
   });
@@ -431,13 +428,8 @@ describe('INSTALLATIONS data integrity', () => {
   it('all BAH rates are positive', () => {
     for (const inst of INSTALLATIONS) {
       for (const [grade, rates] of Object.entries(inst.bah)) {
-        expect(rates.withDep, `${inst.name} ${grade} withDep`).toBeGreaterThan(
-          0,
-        );
-        expect(
-          rates.withoutDep,
-          `${inst.name} ${grade} withoutDep`,
-        ).toBeGreaterThan(0);
+        expect(rates.withDep, `${inst.name} ${grade} withDep`).toBeGreaterThan(0);
+        expect(rates.withoutDep, `${inst.name} ${grade} withoutDep`).toBeGreaterThan(0);
       }
     }
   });

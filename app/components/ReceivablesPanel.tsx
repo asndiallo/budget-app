@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
-import type { Receivable } from '@/lib/types';
 import { api } from '@/lib/api';
-import EditableText from './EditableText';
 import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
+import type { Receivable } from '@/lib/types';
+
+import EditableText from './EditableText';
 
 export default function ReceivablesPanel({
   month,
@@ -72,17 +73,12 @@ export default function ReceivablesPanel({
 
   const outstanding = receivables.filter((r) => !r.paid);
   const collected = receivables.filter((r) => r.paid);
-  const totalRemaining = outstanding.reduce(
-    (s, r) => s + (r.amount - r.amount_paid),
-    0,
-  );
+  const totalRemaining = outstanding.reduce((s, r) => s + (r.amount - r.amount_paid), 0);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={LABEL_CLS}>
-          Receivables
-        </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className={LABEL_CLS}>Receivables</h3>
         {outstanding.length > 0 && (
           <span className="font-mono text-xs text-[#f5aa2a]">
             $
@@ -95,56 +91,52 @@ export default function ReceivablesPanel({
       </div>
 
       {outstanding.length === 0 && collected.length === 0 && (
-        <p className="text-sm text-text-3 py-2">No one owes you anything.</p>
+        <p className="text-text-3 py-2 text-sm">No one owes you anything.</p>
       )}
 
       {outstanding.map((r) => {
         const remaining = r.amount - r.amount_paid;
-        const pct =
-          r.amount > 0 ? Math.round((r.amount_paid / r.amount) * 100) : 0;
+        const pct = r.amount > 0 ? Math.round((r.amount_paid / r.amount) * 100) : 0;
         const isPaying = payingId === r.id;
 
         return (
-          <div key={r.id} className="py-3 border-b border-border-dim">
+          <div key={r.id} className="border-border-dim border-b py-3">
             <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <EditableText
                   value={r.name}
-                  className="text-sm font-semibold text-text"
+                  className="text-text text-sm font-semibold"
                   onSave={(v) => updateField(r.id, { name: v })}
                 />
                 <EditableText
                   value={r.description || ''}
                   placeholder="Add description"
-                  className="text-xs text-text-3"
+                  className="text-text-3 text-xs"
                   onSave={(v) => updateField(r.id, { description: v })}
                 />
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="text-[11px] text-text-3">
-                    Since {formatMonth(r.month_created)}
-                  </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <p className="text-text-3 text-[11px]">Since {formatMonth(r.month_created)}</p>
                   {r.amount_paid > 0 && (
-                    <span className="text-[11px] text-[#f5aa2a] font-mono">
-                      ${r.amount_paid.toLocaleString()} paid · $
-                      {remaining.toLocaleString()} left
+                    <span className="font-mono text-[11px] text-[#f5aa2a]">
+                      ${r.amount_paid.toLocaleString()} paid · ${remaining.toLocaleString()} left
                     </span>
                   )}
                 </div>
               </div>
               <EditableNumber
                 value={r.amount}
-                className="font-mono text-sm text-[#f5aa2a] whitespace-nowrap"
+                className="font-mono text-sm whitespace-nowrap text-[#f5aa2a]"
                 onSave={(v) => updateField(r.id, { amount: v })}
               />
               <button
                 onClick={() => (isPaying ? setPayingId(null) : openPayment(r))}
-                className="text-xs px-2.5 py-1.5 rounded-lg bg-[#00d98a]/10 text-[#00d98a] hover:bg-[#00d98a]/20 transition-colors whitespace-nowrap"
+                className="rounded-lg bg-[#00d98a]/10 px-2.5 py-1.5 text-xs whitespace-nowrap text-[#00d98a] transition-colors hover:bg-[#00d98a]/20"
               >
                 {isPaying ? 'Cancel' : 'Record payment'}
               </button>
               <button
                 onClick={() => remove(r.id)}
-                className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
               >
                 ✕
               </button>
@@ -152,9 +144,9 @@ export default function ReceivablesPanel({
 
             {/* Progress bar */}
             {r.amount_paid > 0 && (
-              <div className="mt-2 h-1 bg-bg rounded-full overflow-hidden">
+              <div className="bg-bg mt-2 h-1 overflow-hidden rounded-full">
                 <div
-                  className="h-full bg-[#00d98a] rounded-full transition-all"
+                  className="h-full rounded-full bg-[#00d98a] transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -162,19 +154,19 @@ export default function ReceivablesPanel({
 
             {/* Inline payment form */}
             {isPaying && (
-              <div className="flex items-center gap-2 mt-2.5">
-                <span className="text-xs text-text-2">Amount received:</span>
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="text-text-2 text-xs">Amount received:</span>
                 <input
                   autoFocus
                   type="number"
                   value={paymentAmt}
                   onChange={(e) => setPaymentAmt(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submitPayment(r)}
-                  className="w-24 text-sm font-mono bg-bg border border-border rounded-lg px-2 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors"
+                  className="bg-bg border-border text-text w-24 rounded-lg border px-2 py-1 font-mono text-sm transition-colors focus:border-blue-600 focus:outline-none"
                 />
                 <button
                   onClick={() => submitPayment(r)}
-                  className={`text-xs px-3 py-1.5 ${BTN_BLUE_CLS}`}
+                  className={`px-3 py-1.5 text-xs ${BTN_BLUE_CLS}`}
                 >
                   Confirm
                 </button>
@@ -186,32 +178,23 @@ export default function ReceivablesPanel({
 
       {collected.length > 0 && (
         <details className="mt-2">
-          <summary className="text-xs text-text-3 cursor-pointer hover:text-text-2 transition-colors select-none">
+          <summary className="text-text-3 hover:text-text-2 cursor-pointer text-xs transition-colors select-none">
             {collected.length} collected
           </summary>
           <div className="mt-1">
             {collected.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center py-2 gap-3 opacity-40"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-text-2 line-through">{r.name}</p>
-                  {r.description && (
-                    <p className="text-xs text-text-3 truncate">
-                      {r.description}
-                    </p>
-                  )}
+              <div key={r.id} className="flex items-center gap-3 py-2 opacity-40">
+                <div className="min-w-0 flex-1">
+                  <p className="text-text-2 text-sm line-through">{r.name}</p>
+                  {r.description && <p className="text-text-3 truncate text-xs">{r.description}</p>}
                 </div>
-                <span className="font-mono text-sm text-text-2">
-                  ${r.amount.toLocaleString()}
-                </span>
+                <span className="text-text-2 font-mono text-sm">${r.amount.toLocaleString()}</span>
                 <span className="text-xs text-[#00d98a]">
                   {r.month_paid ? formatMonth(r.month_paid) : 'Collected'}
                 </span>
                 <button
                   onClick={() => remove(r.id)}
-                  className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                  className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
                 >
                   ✕
                 </button>
@@ -222,7 +205,7 @@ export default function ReceivablesPanel({
       )}
 
       {/* Add form */}
-      <div className="flex gap-2 flex-wrap pt-4">
+      <div className="flex flex-wrap gap-2 pt-4">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -235,7 +218,7 @@ export default function ReceivablesPanel({
           onChange={(e) => setNewDesc(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addReceivable()}
           placeholder="What for? (optional)"
-          className={`flex-1 min-w-32 ${INPUT_CLS}`}
+          className={`min-w-32 flex-1 ${INPUT_CLS}`}
         />
         <input
           value={newAmt}
@@ -245,10 +228,7 @@ export default function ReceivablesPanel({
           type="number"
           className={`w-20 font-mono ${INPUT_CLS}`}
         />
-        <button
-          onClick={addReceivable}
-          className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-        >
+        <button onClick={addReceivable} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
           + Add
         </button>
       </div>
@@ -301,13 +281,13 @@ function EditableNumber({
             setEditing(false);
           }
         }}
-        className="w-20 text-sm text-right font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-[#f5aa2a]"
+        className="w-20 border-b border-[#4a8cff]/50 bg-transparent text-right font-mono text-sm text-[#f5aa2a] outline-none"
       />
     );
   }
   return (
     <span
-      className={`${className} cursor-pointer hover:opacity-70 transition-opacity`}
+      className={`${className} cursor-pointer transition-opacity hover:opacity-70`}
       onClick={() => setEditing(true)}
       title="Click to edit"
     >

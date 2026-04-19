@@ -8,11 +8,7 @@ export const metadata: Metadata = {
   description: 'Personal military budget tracker',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -24,7 +20,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen antialiased font-sans">{children}</body>
+      <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );
 }

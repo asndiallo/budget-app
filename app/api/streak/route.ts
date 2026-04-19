@@ -1,7 +1,7 @@
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { NextResponse } from 'next/server';
 
 import { DEDUCTION_FIELDS } from '@/lib/config';
-import { NextResponse } from 'next/server';
+import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
 
 function recentCompleteMonths(n: number): string[] {
@@ -10,9 +10,7 @@ function recentCompleteMonths(n: number): string[] {
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
   for (let i = 0; i < n; i++) {
-    months.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-    );
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     d.setMonth(d.getMonth() - 1);
   }
   return months;
@@ -21,18 +19,14 @@ function recentCompleteMonths(n: number): string[] {
 export const GET = withAuth(async (_req, { userId, db }) => {
   const fixedExpenses = (
     db
-      .prepare(
-        'SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1',
-      )
+      .prepare('SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1')
       .all(userId) as { amount: number; period: string }[]
   ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
 
   const debtPayments = (
-    db
-      .prepare(
-        'SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0',
-      )
-      .all(userId) as { monthly_payment: number }[]
+    db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as {
+      monthly_payment: number;
+    }[]
   ).reduce((s, d) => s + d.monthly_payment, 0);
 
   const committed = fixedExpenses + debtPayments;
@@ -43,8 +37,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     if (totalIncome === 0) break;
 
     const config = incomeForMonth(db, month, userId);
-    const deductions =
-      tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+    const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
     const extraIncome = (
       db
         .prepare(

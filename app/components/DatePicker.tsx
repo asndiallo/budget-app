@@ -2,7 +2,6 @@
 
 import { format, isValid, parseISO } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
-
 import { DayPicker } from 'react-day-picker';
 
 interface Props {
@@ -48,7 +47,7 @@ export default function DatePicker({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-2 py-1 text-xs rounded-lg bg-bg border border-border text-text focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors text-left"
+        className="bg-bg border-border text-text flex w-full items-center gap-2 rounded-lg border px-2 py-1 text-left text-xs transition-colors focus:ring-1 focus:ring-blue-500 focus:outline-none"
       >
         <span className="text-text-3 text-[11px]">📅</span>
         {selected ? (
@@ -59,7 +58,7 @@ export default function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-60 bg-surface border border-border rounded-xl shadow-2xl p-3">
+        <div className="bg-surface border-border absolute top-full left-0 z-60 mt-1 rounded-xl border p-3 shadow-2xl">
           <DayPicker
             mode="single"
             selected={selected}
@@ -81,14 +80,12 @@ export default function DatePicker({
               button_next: 'hidden',
               month_grid: 'w-full border-collapse',
               weekdays: 'flex',
-              weekday:
-                'w-8 text-center text-[10px] text-text-4 font-medium pb-1',
+              weekday: 'w-8 text-center text-[10px] text-text-4 font-medium pb-1',
               week: 'flex',
               day: 'w-8 h-8 text-center p-0',
               day_button:
                 'w-8 h-8 rounded-lg text-xs transition-colors hover:bg-surface-raised focus:outline-none',
-              selected:
-                '[&>button]:bg-blue-600 [&>button]:text-white [&>button]:hover:bg-blue-500',
+              selected: '[&>button]:bg-blue-600 [&>button]:text-white [&>button]:hover:bg-blue-500',
               today: '[&>button]:font-bold [&>button]:text-[#4a8cff]',
               outside: '[&>button]:text-text-4 [&>button]:opacity-40',
               disabled: '[&>button]:opacity-20 [&>button]:cursor-not-allowed',
@@ -101,7 +98,7 @@ export default function DatePicker({
                 onChange('');
                 setOpen(false);
               }}
-              className="w-full mt-2 text-[10px] text-text-4 hover:text-[#ff4560] transition-colors text-center"
+              className="text-text-4 mt-2 w-full text-center text-[10px] transition-colors hover:text-[#ff4560]"
             >
               Clear
             </button>

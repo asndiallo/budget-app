@@ -7,9 +7,7 @@ import { CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from './config';
  * Accepts MM/DD/YYYY and YYYY-MM-DD formats.
  * Returns null for empty or unrecognised strings.
  */
-export function parseDate(
-  dateStr: string,
-): { month: string; date: string } | null {
+export function parseDate(dateStr: string): { month: string; date: string } | null {
   if (!dateStr) return null;
 
   const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);

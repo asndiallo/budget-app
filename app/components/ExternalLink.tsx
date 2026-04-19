@@ -1,10 +1,4 @@
-export default function ExternalLink({
-  href,
-  label,
-}: {
-  href: string;
-  label: string;
-}) {
+export default function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
       href={href}

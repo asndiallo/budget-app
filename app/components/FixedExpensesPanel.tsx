@@ -1,10 +1,10 @@
 'use client';
 
-import type { BillPayment, FixedExpense, Goal } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
+import type { BillPayment, FixedExpense, Goal } from '@/lib/types';
 
 const DUE_SOON_WINDOW = 5;
 
@@ -44,11 +44,7 @@ export default function FixedExpensesPanel({
       ? api.billPayments.list(month).then((rows: BillPayment[]) => {
           setPaidIds(new Set(rows.map((r) => r.fixed_expense_id)));
           setAutoMatchedIds(
-            new Set(
-              rows
-                .filter((r) => r.matched_tx_id != null)
-                .map((r) => r.fixed_expense_id),
-            ),
+            new Set(rows.filter((r) => r.matched_tx_id != null).map((r) => r.fixed_expense_id)),
           );
         })
       : undefined;
@@ -56,7 +52,7 @@ export default function FixedExpensesPanel({
   useEffect(() => {
     reload();
     reloadGoals();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     reloadPayments();
@@ -70,11 +66,7 @@ export default function FixedExpensesPanel({
       await api.billPayments.markPaid(f.id, month);
       // Auto-contribute to linked goal when marking paid
       if (f.goal_id) {
-        await api.goalContributions.add(
-          f.goal_id,
-          monthlyAmount(f),
-          `Auto: ${f.label} (${month})`,
-        );
+        await api.goalContributions.add(f.goal_id, monthlyAmount(f), `Auto: ${f.label} (${month})`);
       }
     }
     reloadPayments();
@@ -83,9 +75,14 @@ export default function FixedExpensesPanel({
   async function saveRecurrence(f: FixedExpense) {
     if (!editAnchor) return;
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period: f.period,
-      day_of_month: f.day_of_month, notes: f.notes,
-      is_investment: !!f.is_investment, goal_id: f.goal_id,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
       recurrence: 'biweekly',
       recurrence_anchor: editAnchor,
       end_date: editEndDate || null,
@@ -107,8 +104,8 @@ export default function FixedExpensesPanel({
       is_investment: newIsInvestment,
       goal_id: newGoalId,
       recurrence: newRecurrence,
-      recurrence_anchor: newRecurrence === 'biweekly' ? (newAnchor || null) : null,
-      end_date: newRecurrence === 'biweekly' ? (newEndDate || null) : null,
+      recurrence_anchor: newRecurrence === 'biweekly' ? newAnchor || null : null,
+      end_date: newRecurrence === 'biweekly' ? newEndDate || null : null,
     });
     setNewLabel('');
     setNewAmt('');
@@ -132,10 +129,17 @@ export default function FixedExpensesPanel({
   async function togglePeriod(f: FixedExpense) {
     const period = f.period === 'annual' ? 'monthly' : 'annual';
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period,
-      day_of_month: f.day_of_month, notes: f.notes,
-      is_investment: !!f.is_investment, goal_id: f.goal_id,
-      recurrence: f.recurrence ?? 'monthly', recurrence_anchor: f.recurrence_anchor, end_date: f.end_date,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
+      recurrence: f.recurrence ?? 'monthly',
+      recurrence_anchor: f.recurrence_anchor,
+      end_date: f.end_date,
     });
     reload();
     onUpdate();
@@ -143,10 +147,17 @@ export default function FixedExpensesPanel({
 
   async function toggleInvestment(f: FixedExpense) {
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period: f.period,
-      day_of_month: f.day_of_month, notes: f.notes,
-      is_investment: !f.is_investment, goal_id: f.goal_id,
-      recurrence: f.recurrence ?? 'monthly', recurrence_anchor: f.recurrence_anchor, end_date: f.end_date,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !f.is_investment,
+      goal_id: f.goal_id,
+      recurrence: f.recurrence ?? 'monthly',
+      recurrence_anchor: f.recurrence_anchor,
+      end_date: f.end_date,
     });
     reload();
     onUpdate();
@@ -156,10 +167,17 @@ export default function FixedExpensesPanel({
     const dom = raw.trim() ? parseInt(raw) : null;
     if (dom !== null && (dom < 1 || dom > 31)) return;
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period: f.period,
-      day_of_month: dom, notes: f.notes,
-      is_investment: !!f.is_investment, goal_id: f.goal_id,
-      recurrence: f.recurrence ?? 'monthly', recurrence_anchor: f.recurrence_anchor, end_date: f.end_date,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: dom,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
+      recurrence: f.recurrence ?? 'monthly',
+      recurrence_anchor: f.recurrence_anchor,
+      end_date: f.end_date,
     });
     reload();
     onUpdate();
@@ -167,10 +185,17 @@ export default function FixedExpensesPanel({
 
   async function updateNotes(f: FixedExpense, notes: string) {
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period: f.period,
-      day_of_month: f.day_of_month, notes: notes || null,
-      is_investment: !!f.is_investment, goal_id: f.goal_id,
-      recurrence: f.recurrence ?? 'monthly', recurrence_anchor: f.recurrence_anchor, end_date: f.end_date,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: notes || null,
+      is_investment: !!f.is_investment,
+      goal_id: f.goal_id,
+      recurrence: f.recurrence ?? 'monthly',
+      recurrence_anchor: f.recurrence_anchor,
+      end_date: f.end_date,
     });
     reload();
     onUpdate();
@@ -178,10 +203,17 @@ export default function FixedExpensesPanel({
 
   async function updateGoalId(f: FixedExpense, goalId: number | null) {
     await api.fixedExpenses.update({
-      id: f.id, label: f.label, amount: f.amount, period: f.period,
-      day_of_month: f.day_of_month, notes: f.notes,
-      is_investment: !!f.is_investment, goal_id: goalId,
-      recurrence: f.recurrence ?? 'monthly', recurrence_anchor: f.recurrence_anchor, end_date: f.end_date,
+      id: f.id,
+      label: f.label,
+      amount: f.amount,
+      period: f.period,
+      day_of_month: f.day_of_month,
+      notes: f.notes,
+      is_investment: !!f.is_investment,
+      goal_id: goalId,
+      recurrence: f.recurrence ?? 'monthly',
+      recurrence_anchor: f.recurrence_anchor,
+      end_date: f.end_date,
     });
     reload();
   }
@@ -193,7 +225,8 @@ export default function FixedExpensesPanel({
   const todayDay = todayMonth === month ? today.getDate() : null;
 
   function isDueSoon(f: FixedExpense): boolean {
-    if (!todayDay || !f.day_of_month || paidIds.has(f.id) || f.recurrence === 'biweekly') return false;
+    if (!todayDay || !f.day_of_month || paidIds.has(f.id) || f.recurrence === 'biweekly')
+      return false;
     return f.day_of_month >= todayDay && f.day_of_month <= todayDay + DUE_SOON_WINDOW;
   }
 
@@ -205,7 +238,7 @@ export default function FixedExpensesPanel({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className={LABEL_CLS}>Fixed expenses</h3>
         {fixed.length > 0 && (
           <span className="font-mono text-xs font-semibold text-[#f5aa2a]">
@@ -220,12 +253,12 @@ export default function FixedExpensesPanel({
         const isAutoMatched = autoMatchedIds.has(f.id);
         const isBiweekly = f.recurrence === 'biweekly';
         return (
-          <div key={f.id} className="py-3 border-b border-border-dim">
+          <div key={f.id} className="border-border-dim border-b py-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => togglePaid(f)}
                 title={isPaid ? 'Mark unpaid' : 'Mark paid'}
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
                   isPaid
                     ? 'border-[#00d98a] bg-[#00d98a]/10 text-[#00d98a]'
                     : 'border-border text-transparent hover:border-[#00d98a]/60'
@@ -239,45 +272,48 @@ export default function FixedExpensesPanel({
               {isAutoMatched && (
                 <span
                   title="Auto-matched from a transaction"
-                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#4a8cff]/10 text-[#4a8cff] font-medium shrink-0"
+                  className="shrink-0 rounded-full bg-[#4a8cff]/10 px-1.5 py-0.5 text-[9px] font-medium text-[#4a8cff]"
                 >
                   auto
                 </span>
               )}
               {isDueSoon(f) && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium shrink-0">
+                <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
                   soon
                 </span>
               )}
               {isBiweekly ? (
                 editingRecId === f.id ? (
-                  <div className="flex items-center gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                    <label className="text-[10px] text-text-4">start</label>
+                  <div
+                    className="flex flex-wrap items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label className="text-text-4 text-[10px]">start</label>
                     <input
                       type="date"
                       value={editAnchor}
                       onChange={(e) => setEditAnchor(e.target.value)}
                       required
-                      className="text-[10px] bg-bg border border-[#4a8cff]/50 rounded px-1 py-0.5 text-text outline-none"
+                      className="bg-bg text-text rounded border border-[#4a8cff]/50 px-1 py-0.5 text-[10px] outline-none"
                     />
-                    <label className="text-[10px] text-text-4">end</label>
+                    <label className="text-text-4 text-[10px]">end</label>
                     <input
                       type="date"
                       value={editEndDate}
                       onChange={(e) => setEditEndDate(e.target.value)}
                       min={editAnchor}
-                      className="text-[10px] bg-bg border border-border rounded px-1 py-0.5 text-text outline-none"
+                      className="bg-bg border-border text-text rounded border px-1 py-0.5 text-[10px] outline-none"
                     />
                     <button
                       onClick={() => saveRecurrence(f)}
                       disabled={!editAnchor}
-                      className="text-[10px] px-2 py-0.5 rounded bg-[#4a8cff] text-white disabled:opacity-40"
+                      className="rounded bg-[#4a8cff] px-2 py-0.5 text-[10px] text-white disabled:opacity-40"
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setEditingRecId(null)}
-                      className="text-[10px] text-text-4 hover:text-text-2"
+                      className="text-text-4 hover:text-text-2 text-[10px]"
                     >
                       ✕
                     </button>
@@ -290,7 +326,7 @@ export default function FixedExpensesPanel({
                       setEditingRecId(f.id);
                     }}
                     title="Edit schedule"
-                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#4a8cff]/10 text-[#4a8cff] shrink-0 hover:bg-[#4a8cff]/20 transition-colors"
+                    className="shrink-0 rounded-full bg-[#4a8cff]/10 px-1.5 py-0.5 text-[10px] text-[#4a8cff] transition-colors hover:bg-[#4a8cff]/20"
                   >
                     {f.recurrence_anchor ? biweeklyLabel(f.recurrence_anchor) : 'set schedule'}
                     {f.end_date ? ` → ${f.end_date}` : ''}
@@ -305,20 +341,20 @@ export default function FixedExpensesPanel({
               <button
                 onClick={() => toggleInvestment(f)}
                 title="Toggle investment / expense"
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
                   f.is_investment
                     ? 'border-[#4a8cff]/40 bg-[#4a8cff]/10 text-[#4a8cff]'
-                    : 'border-border text-text-4 hover:border-[#2d4080] hover:text-text-3'
+                    : 'border-border text-text-4 hover:text-text-3 hover:border-[#2d4080]'
                 }`}
               >
                 invest
               </button>
               <button
                 onClick={() => togglePeriod(f)}
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
                   f.period === 'annual'
                     ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                    : 'border-border text-text-3 hover:border-[#2d4080] hover:text-text-2'
+                    : 'border-border text-text-3 hover:text-text-2 hover:border-[#2d4080]'
                 }`}
                 title="Toggle monthly / annual"
               >
@@ -326,17 +362,19 @@ export default function FixedExpensesPanel({
               </button>
               <button
                 onClick={() => removeFixed(f.id)}
-                className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
               >
                 ✕
               </button>
-              <div className="text-right w-28 shrink-0">
-                <p className={`font-mono text-sm ${f.is_investment ? 'text-[#4a8cff]' : 'text-[#ff4560]'}`}>
+              <div className="w-28 shrink-0 text-right">
+                <p
+                  className={`font-mono text-sm ${f.is_investment ? 'text-[#4a8cff]' : 'text-[#ff4560]'}`}
+                >
                   {f.is_investment ? '+' : '−'}${f.amount.toLocaleString()}
                   {f.period === 'annual' ? '/yr' : ''}
                 </p>
                 {f.period === 'annual' && (
-                  <p className="font-mono text-[11px] text-text-3">${mo.toFixed(2)}/mo</p>
+                  <p className="text-text-3 font-mono text-[11px]">${mo.toFixed(2)}/mo</p>
                 )}
               </div>
             </div>
@@ -352,12 +390,12 @@ export default function FixedExpensesPanel({
         );
       })}
 
-      <div className="flex gap-2 mt-4 flex-wrap">
+      <div className="mt-4 flex flex-wrap gap-2">
         <input
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Label"
-          className={`flex-1 min-w-32 ${INPUT_CLS}`}
+          className={`min-w-32 flex-1 ${INPUT_CLS}`}
         />
         <input
           value={newAmt}
@@ -402,7 +440,7 @@ export default function FixedExpensesPanel({
         <select
           value={newPeriod}
           onChange={(e) => setNewPeriod(e.target.value as 'monthly' | 'annual')}
-          className="text-sm bg-bg border border-border rounded-lg px-2 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+          className="bg-bg border-border text-text cursor-pointer rounded-lg border px-2 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
         >
           <option value="monthly">/mo</option>
           <option value="annual">/yr</option>
@@ -411,7 +449,7 @@ export default function FixedExpensesPanel({
           value={newRecurrence}
           onChange={(e) => setNewRecurrence(e.target.value as 'monthly' | 'biweekly')}
           title="Recurrence — affects calendar display"
-          className="text-sm bg-bg border border-border rounded-lg px-2 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+          className="bg-bg border-border text-text cursor-pointer rounded-lg border px-2 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
         >
           <option value="monthly">monthly</option>
           <option value="biweekly">biweekly</option>
@@ -419,10 +457,10 @@ export default function FixedExpensesPanel({
         <button
           onClick={() => setNewIsInvestment((v) => !v)}
           title="Mark as investment"
-          className={`text-[11px] px-2 py-1.5 rounded-lg border transition-colors ${
+          className={`rounded-lg border px-2 py-1.5 text-[11px] transition-colors ${
             newIsInvestment
               ? 'border-[#4a8cff]/40 bg-[#4a8cff]/10 text-[#4a8cff]'
-              : 'border-border text-text-4 hover:border-[#2d4080] hover:text-text-3'
+              : 'border-border text-text-4 hover:text-text-3 hover:border-[#2d4080]'
           }`}
         >
           invest
@@ -430,11 +468,9 @@ export default function FixedExpensesPanel({
         {goals.length > 0 && (
           <select
             value={newGoalId ?? ''}
-            onChange={(e) =>
-              setNewGoalId(e.target.value ? Number(e.target.value) : null)
-            }
+            onChange={(e) => setNewGoalId(e.target.value ? Number(e.target.value) : null)}
             title="Link to a savings goal"
-            className="text-[11px] bg-bg border border-border rounded-lg px-2 py-1.5 text-text-3 focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+            className="bg-bg border-border text-text-3 cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] transition-colors focus:border-blue-600 focus:outline-none"
           >
             <option value="">no goal</option>
             {goals.map((g) => (
@@ -446,7 +482,7 @@ export default function FixedExpensesPanel({
         )}
         <button
           onClick={addFixed}
-          className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors"
+          className="border-border text-text-2 hover:text-text rounded-lg border px-3 py-1.5 text-sm transition-colors hover:border-[#2d4080]"
         >
           + Add
         </button>
@@ -455,13 +491,7 @@ export default function FixedExpensesPanel({
   );
 }
 
-function DayField({
-  value,
-  onSave,
-}: {
-  value: number | null;
-  onSave: (raw: string) => void;
-}) {
+function DayField({ value, onSave }: { value: number | null; onSave: (raw: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ? String(value) : '');
 
@@ -495,7 +525,7 @@ function DayField({
           }
         }}
         placeholder="day"
-        className="w-14 text-[11px] font-mono bg-bg border border-[#4a8cff]/50 rounded px-1.5 py-0.5 text-text outline-none"
+        className="bg-bg text-text w-14 rounded border border-[#4a8cff]/50 px-1.5 py-0.5 font-mono text-[11px] outline-none"
       />
     );
   }
@@ -507,9 +537,9 @@ function DayField({
         setEditing(true);
       }}
       title="Set due day of month"
-      className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${
+      className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
         value
-          ? 'text-[#4a8cff] bg-[#4a8cff]/10 hover:bg-[#4a8cff]/20'
+          ? 'bg-[#4a8cff]/10 text-[#4a8cff] hover:bg-[#4a8cff]/20'
           : 'text-text-4 hover:text-text-3'
       }`}
     >
@@ -534,10 +564,8 @@ function GoalField({
     return (
       <button
         onClick={() => setEditing(true)}
-        className={`mt-0.5 text-[11px] text-left transition-colors ${
-          linked
-            ? 'text-[#4a8cff] hover:text-[#4a8cff]/80'
-            : 'text-text-4 hover:text-text-3'
+        className={`mt-0.5 text-left text-[11px] transition-colors ${
+          linked ? 'text-[#4a8cff] hover:text-[#4a8cff]/80' : 'text-text-4 hover:text-text-3'
         }`}
         title={linked ? 'Linked goal — click to change' : 'Link to a savings goal'}
       >
@@ -556,7 +584,7 @@ function GoalField({
           setEditing(false);
         }}
         onBlur={() => setEditing(false)}
-        className="text-[11px] bg-bg border border-[#4a8cff]/50 rounded px-1.5 py-0.5 text-text outline-none cursor-pointer"
+        className="bg-bg text-text cursor-pointer rounded border border-[#4a8cff]/50 px-1.5 py-0.5 text-[11px] outline-none"
       >
         <option value="">— unlink —</option>
         {goals.map((g) => (
@@ -569,13 +597,7 @@ function GoalField({
   );
 }
 
-function NotesField({
-  value,
-  onSave,
-}: {
-  value: string | null;
-  onSave: (v: string) => void;
-}) {
+function NotesField({ value, onSave }: { value: string | null; onSave: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
 
@@ -600,7 +622,7 @@ function NotesField({
           }
         }}
         placeholder="Add a note…"
-        className="mt-1 w-full text-[11px] bg-transparent border-b border-[#4a8cff]/30 text-text-3 outline-none placeholder-text-4 py-0.5"
+        className="text-text-3 placeholder-text-4 mt-1 w-full border-b border-[#4a8cff]/30 bg-transparent py-0.5 text-[11px] outline-none"
       />
     );
   }
@@ -611,10 +633,8 @@ function NotesField({
         setDraft(value ?? '');
         setEditing(true);
       }}
-      className={`mt-1 text-[11px] text-left transition-colors ${
-        value
-          ? 'text-text-3 hover:text-text-2'
-          : 'text-text-4 hover:text-text-3'
+      className={`mt-1 text-left text-[11px] transition-colors ${
+        value ? 'text-text-3 hover:text-text-2' : 'text-text-4 hover:text-text-3'
       }`}
     >
       {value || '+ note'}

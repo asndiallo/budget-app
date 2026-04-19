@@ -1,26 +1,27 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+
+import { api } from '@/lib/api';
 import {
-  BrsInputs,
-  BrsResult,
+  type BrsInputs,
+  type BrsResult,
   calcBrs,
   dodMatchRate,
   inferRetirementSystem,
 } from '@/lib/brs-calc';
-import { useEffect, useMemo, useState } from 'react';
-
+import { LABEL_CLS, TSP_CONFIG } from '@/lib/config';
 import type { PayGrade } from '@/lib/pay-tables';
-import { TSP_CONFIG, LABEL_CLS } from '@/lib/config';
 import type { UserProfile } from '@/lib/types';
-import { api } from '@/lib/api';
 
 interface Props {
   user: UserProfile | null;
   month: string;
 }
 
-import ExternalLink from './ExternalLink';
 import { formatCurrency } from '@/lib/utils';
+
+import ExternalLink from './ExternalLink';
 
 // 2026 IRS elective deferral limits
 const TSP_LIMIT_REGULAR = 23_500;
@@ -34,31 +35,27 @@ function fmtK(n: number) {
 
 // ── System badge ──────────────────────────────────────────────────────────────
 
-function SystemBadge({
-  system,
-}: {
-  system: ReturnType<typeof inferRetirementSystem>;
-}) {
+function SystemBadge({ system }: { system: ReturnType<typeof inferRetirementSystem> }) {
   if (system === 'brs')
     return (
-      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-[#4a8cff]">
+      <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-[#4a8cff]">
         Your system: BRS
       </span>
     );
   if (system === 'legacy')
     return (
-      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-raised text-text-3">
+      <span className="bg-surface-raised text-text-3 rounded-full px-2 py-0.5 text-[10px] font-semibold">
         Your system: Legacy High-3
       </span>
     );
   if (system === 'uncertain')
     return (
-      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
+      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
         System: may have opted in — verify with finance
       </span>
     );
   return (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-raised text-text-4">
+    <span className="bg-surface-raised text-text-4 rounded-full px-2 py-0.5 text-[10px] font-semibold">
       Set join date in profile to identify your system
     </span>
   );
@@ -83,19 +80,19 @@ function CompRow({
 }) {
   return (
     <div
-      className={`grid grid-cols-3 px-4 py-2.5 border-b border-border-dim items-start ${highlight ? 'bg-surface' : 'hover:bg-surface/30'} transition-colors`}
+      className={`border-border-dim grid grid-cols-3 items-start border-b px-4 py-2.5 ${highlight ? 'bg-surface' : 'hover:bg-surface/30'} transition-colors`}
     >
       <div>
-        <span className="text-xs text-text-2">{label}</span>
-        {note && <p className="text-[10px] text-text-4 mt-0.5">{note}</p>}
+        <span className="text-text-2 text-xs">{label}</span>
+        {note && <p className="text-text-4 mt-0.5 text-[10px]">{note}</p>}
       </div>
       <span
-        className={`text-xs font-mono text-right ${highlight ? 'font-semibold text-text' : 'text-text-2'} ${winner === 'legacy' ? 'text-[#00d98a]' : ''}`}
+        className={`text-right font-mono text-xs ${highlight ? 'text-text font-semibold' : 'text-text-2'} ${winner === 'legacy' ? 'text-[#00d98a]' : ''}`}
       >
         {legacy}
       </span>
       <span
-        className={`text-xs font-mono text-right ${highlight ? 'font-semibold text-text' : 'text-text-2'} ${winner === 'brs' ? 'text-[#00d98a]' : ''}`}
+        className={`text-right font-mono text-xs ${highlight ? 'text-text font-semibold' : 'text-text-2'} ${winner === 'brs' ? 'text-[#00d98a]' : ''}`}
       >
         {brs}
       </span>
@@ -163,34 +160,28 @@ export default function BrsPanel({ user, month }: Props) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap mb-4">
-        <h3 className={LABEL_CLS}>
-          BRS vs Legacy High-3
-        </h3>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h3 className={LABEL_CLS}>BRS vs Legacy High-3</h3>
         <SystemBadge system={system} />
       </div>
 
       {/* Parameters */}
-      <div className="flex items-center gap-4 flex-wrap mb-5 px-1">
+      <div className="mb-5 flex flex-wrap items-center gap-4 px-1">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-text-4">Retire at</span>
+          <span className="text-text-4 text-[11px]">Retire at</span>
           <input
             type="number"
             min={Math.max(currentYos + 1, 10)}
             max={40}
             value={retYos}
-            onChange={(e) =>
-              setRetYos(
-                Math.max(10, Math.min(40, parseInt(e.target.value) || 20)),
-              )
-            }
-            className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
+            onChange={(e) => setRetYos(Math.max(10, Math.min(40, parseInt(e.target.value) || 20)))}
+            className="bg-surface border-border text-text w-14 rounded-lg border px-2 py-1 text-center font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
           />
-          <span className="text-[11px] text-text-4">YOS</span>
+          <span className="text-text-4 text-[11px]">YOS</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-text-4">TSP rate</span>
+          <span className="text-text-4 text-[11px]">TSP rate</span>
           <input
             type="number"
             min={0}
@@ -198,13 +189,13 @@ export default function BrsPanel({ user, month }: Props) {
             step={1}
             value={tspRateStr}
             onChange={(e) => setTspRateStr(e.target.value)}
-            className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
+            className="bg-surface border-border text-text w-14 rounded-lg border px-2 py-1 text-center font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
           />
-          <span className="text-[11px] text-text-4">%</span>
+          <span className="text-text-4 text-[11px]">%</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-text-4">Return</span>
+          <span className="text-text-4 text-[11px]">Return</span>
           <input
             type="number"
             min={1}
@@ -212,18 +203,16 @@ export default function BrsPanel({ user, month }: Props) {
             step={0.5}
             value={returnPct}
             onChange={(e) =>
-              setReturnPct(
-                Math.max(1, Math.min(12, parseFloat(e.target.value) || 6)),
-              )
+              setReturnPct(Math.max(1, Math.min(12, parseFloat(e.target.value) || 6)))
             }
-            className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
+            className="bg-surface border-border text-text w-14 rounded-lg border px-2 py-1 text-center font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
           />
-          <span className="text-[11px] text-text-4">%/yr</span>
+          <span className="text-text-4 text-[11px]">%/yr</span>
         </div>
 
         {currentYos < 12 && (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-4">Cont. pay</span>
+            <span className="text-text-4 text-[11px]">Cont. pay</span>
             <input
               type="number"
               min={2.5}
@@ -231,29 +220,24 @@ export default function BrsPanel({ user, month }: Props) {
               step={0.5}
               value={contMult}
               onChange={(e) =>
-                setContMult(
-                  Math.max(
-                    2.5,
-                    Math.min(13, parseFloat(e.target.value) || 2.5),
-                  ),
-                )
+                setContMult(Math.max(2.5, Math.min(13, parseFloat(e.target.value) || 2.5)))
               }
-              className="w-14 text-xs font-mono bg-surface border border-border rounded-lg px-2 py-1 text-text text-center focus:outline-none focus:border-blue-500 transition-colors"
+              className="bg-surface border-border text-text w-14 rounded-lg border px-2 py-1 text-center font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
             />
-            <span className="text-[11px] text-text-4">× base</span>
+            <span className="text-text-4 text-[11px]">× base</span>
           </div>
         )}
       </div>
 
       {/* Comparison table */}
-      <div className="rounded-xl border border-border overflow-hidden mb-4">
+      <div className="border-border mb-4 overflow-hidden rounded-xl border">
         {/* Column headers */}
-        <div className="grid grid-cols-3 bg-surface-raised px-4 py-2 border-b border-border">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-3 text-right">
+        <div className="bg-surface-raised border-border grid grid-cols-3 border-b px-4 py-2">
+          <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase" />
+          <span className="text-text-3 text-right text-[10px] font-semibold tracking-wider uppercase">
             Legacy High-3
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#4a8cff] text-right">
+          <span className="text-right text-[10px] font-semibold tracking-wider text-[#4a8cff] uppercase">
             BRS
           </span>
         </div>
@@ -319,36 +303,29 @@ export default function BrsPanel({ user, month }: Props) {
 
       {/* Break-even callout */}
       {r.breakEvenMonths !== null ? (
-        <div className="rounded-xl border border-border-dim bg-surface-raised/30 px-4 py-3 mb-4 space-y-1">
-          <p className="text-xs text-text">
-            <span className="font-semibold text-[#4a8cff]">BRS</span> starts
-            retirement with{' '}
+        <div className="border-border-dim bg-surface-raised/30 mb-4 space-y-1 rounded-xl border px-4 py-3">
+          <p className="text-text text-xs">
+            <span className="font-semibold text-[#4a8cff]">BRS</span> starts retirement with{' '}
             <span className="font-mono font-semibold">
               {fmtK(r.brsWealthAtRetirement - r.legacyWealthAtRetirement)}
             </span>{' '}
-            more in portable wealth.{' '}
-            <span className="font-semibold text-text-2">Legacy</span>'s higher
-            pension (
-            <span className="font-mono">{formatCurrency(r.pensionShortfall)}/mo</span>{' '}
-            more) catches up after{' '}
-            <span className="font-semibold text-text">
-              {r.breakEvenYears} years
-            </span>{' '}
-            of retirement.
+            more in portable wealth. <span className="text-text-2 font-semibold">Legacy</span>'s
+            higher pension (
+            <span className="font-mono">{formatCurrency(r.pensionShortfall)}/mo</span> more) catches
+            up after <span className="text-text font-semibold">{r.breakEvenYears} years</span> of
+            retirement.
           </p>
-          <p className="text-[11px] text-text-3">
+          <p className="text-text-3 text-[11px]">
             Retiring at {retYos} YOS at age ~
-            {(user?.years_of_service ?? 0) < retYos ? 22 + retYos : '?'}: legacy
-            surpasses BRS around age{' '}
-            {r.breakEvenYears !== null
-              ? Math.round(22 + retYos + r.breakEvenYears)
-              : '?'}
-            . Average military retiree life expectancy exceeds 80.
+            {(user?.years_of_service ?? 0) < retYos ? 22 + retYos : '?'}: legacy surpasses BRS
+            around age{' '}
+            {r.breakEvenYears !== null ? Math.round(22 + retYos + r.breakEvenYears) : '?'}. Average
+            military retiree life expectancy exceeds 80.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border-dim bg-surface-raised/30 px-4 py-3 mb-4">
-          <p className="text-xs text-text">
+        <div className="border-border-dim bg-surface-raised/30 mb-4 rounded-xl border px-4 py-3">
+          <p className="text-text text-xs">
             {r.brsWealthAtRetirement <= r.legacyWealthAtRetirement
               ? `Legacy provides more value in this scenario. Try increasing your TSP rate — the DoD match is free money.`
               : `BRS is ahead at retirement. Increase your TSP rate to maximize the DoD match (${memberPct < 5 ? `contribute at least 5% to get the full ${dodPct}% DoD match` : 'full match already applied'}).`}
@@ -357,124 +334,111 @@ export default function BrsPanel({ user, month }: Props) {
       )}
 
       {/* DoD match value highlight (only meaningful for BRS members) */}
-      {r.dodMatchTotalCareer > 0 &&
-        (system === 'brs' || system === 'uncertain') && (
-          <div className="rounded-xl border border-border-dim bg-blue-500/5 px-4 py-3 mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text">
-                Total DoD TSP contributions over career
-              </p>
-              <p className="text-[11px] text-text-3 mt-0.5">
-                {formatCurrency(r.dodMatchMonthly)}/mo ×{' '}
-                {Math.round((retYos - currentYos) * 12)} months, compounded to{' '}
-                <span className="font-mono font-semibold text-[#4a8cff]">
-                  {fmtK(r.tspWithMatch - r.tspWithoutMatch)}
-                </span>{' '}
-                at retirement
-              </p>
-            </div>
-            <span className="font-mono text-base font-bold text-[#4a8cff] shrink-0 ml-4">
-              {fmtK(r.dodMatchTotalCareer)}
-            </span>
+      {r.dodMatchTotalCareer > 0 && (system === 'brs' || system === 'uncertain') && (
+        <div className="border-border-dim mb-4 flex items-center justify-between rounded-xl border bg-blue-500/5 px-4 py-3">
+          <div>
+            <p className="text-text text-xs font-semibold">
+              Total DoD TSP contributions over career
+            </p>
+            <p className="text-text-3 mt-0.5 text-[11px]">
+              {formatCurrency(r.dodMatchMonthly)}/mo × {Math.round((retYos - currentYos) * 12)}{' '}
+              months, compounded to{' '}
+              <span className="font-mono font-semibold text-[#4a8cff]">
+                {fmtK(r.tspWithMatch - r.tspWithoutMatch)}
+              </span>{' '}
+              at retirement
+            </p>
           </div>
-        )}
+          <span className="ml-4 shrink-0 font-mono text-base font-bold text-[#4a8cff]">
+            {fmtK(r.dodMatchTotalCareer)}
+          </span>
+        </div>
+      )}
 
       {/* TSP rate nudge */}
       {memberPct < 5 && memberPct >= 0 && system === 'brs' && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 mb-4">
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5">
           <p className="text-[11px] text-amber-400">
-            ⚠ You're contributing {memberPct}% — increase to 5% to get the full
-            DoD match ({Math.round(dodMatchRate(0.05) * 100)}% of base pay
-            free). That's{' '}
-            {formatCurrency(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))}{' '}
-            more per month from DoD.
+            ⚠ You're contributing {memberPct}% — increase to 5% to get the full DoD match (
+            {Math.round(dodMatchRate(0.05) * 100)}% of base pay free). That's{' '}
+            {formatCurrency(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))} more per
+            month from DoD.
           </p>
         </div>
       )}
 
       {/* TSP annual contribution limit tracker */}
-      {basePay > 0 && memberPct > 0 && (() => {
-        const monthlyContrib = Math.round(basePay * inputs.tspRate);
-        const annualContrib = monthlyContrib * 12;
-        const limit = TSP_LIMIT_REGULAR;
-        const pctOfLimit = Math.min(annualContrib / limit, 1);
-        const monthsToHitLimit = annualContrib > 0
-          ? Math.ceil(limit / monthlyContrib)
-          : null;
-        const overLimit = annualContrib > limit;
+      {basePay > 0 &&
+        memberPct > 0 &&
+        (() => {
+          const monthlyContrib = Math.round(basePay * inputs.tspRate);
+          const annualContrib = monthlyContrib * 12;
+          const limit = TSP_LIMIT_REGULAR;
+          const pctOfLimit = Math.min(annualContrib / limit, 1);
+          const monthsToHitLimit = annualContrib > 0 ? Math.ceil(limit / monthlyContrib) : null;
+          const overLimit = annualContrib > limit;
 
-        return (
-          <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 mb-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className={LABEL_CLS}>2026 TSP elective deferral limit</p>
-              <span className="font-mono text-xs text-text-3">
-                {formatCurrency(limit)}/yr
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-surface-raised overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${overLimit ? 'bg-amber-400' : 'bg-gradient-to-r from-[#4a8cff] to-[#00d98a]'}`}
-                style={{ width: `${Math.min(pctOfLimit * 100, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[11px] text-text-4">
-              <span>
-                Your rate: {formatCurrency(monthlyContrib)}/mo ={' '}
-                {formatCurrency(annualContrib)}/yr
-                {' '}({Math.round(pctOfLimit * 100)}% of limit)
-              </span>
-              {!overLimit && monthsToHitLimit && (
-                <span>Hits limit in ~{monthsToHitLimit} mo</span>
-              )}
-              {overLimit && (
-                <span className="text-amber-400">
-                  Exceeds IRS limit by {formatCurrency(annualContrib - limit)}
+          return (
+            <div className="border-border-dim bg-surface-raised/20 mb-4 space-y-2 rounded-xl border px-4 py-3">
+              <div className="flex items-center justify-between">
+                <p className={LABEL_CLS}>2026 TSP elective deferral limit</p>
+                <span className="text-text-3 font-mono text-xs">{formatCurrency(limit)}/yr</span>
+              </div>
+              <div className="bg-surface-raised h-1.5 overflow-hidden rounded-full">
+                <div
+                  className={`h-full rounded-full transition-all ${overLimit ? 'bg-amber-400' : 'bg-gradient-to-r from-[#4a8cff] to-[#00d98a]'}`}
+                  style={{ width: `${Math.min(pctOfLimit * 100, 100)}%` }}
+                />
+              </div>
+              <div className="text-text-4 flex justify-between text-[11px]">
+                <span>
+                  Your rate: {formatCurrency(monthlyContrib)}/mo = {formatCurrency(annualContrib)}
+                  /yr ({Math.round(pctOfLimit * 100)}% of limit)
                 </span>
-              )}
+                {!overLimit && monthsToHitLimit && (
+                  <span>Hits limit in ~{monthsToHitLimit} mo</span>
+                )}
+                {overLimit && (
+                  <span className="text-amber-400">
+                    Exceeds IRS limit by {formatCurrency(annualContrib - limit)}
+                  </span>
+                )}
+              </div>
+              <p className="text-text-4 text-[10px]">
+                Age 50+ catch-up: +{formatCurrency(TSP_CATCH_UP)}/yr additional allowed. DoD
+                matching contributions don&apos;t count against the employee limit.
+              </p>
             </div>
-            <p className="text-[10px] text-text-4">
-              Age 50+ catch-up: +{formatCurrency(TSP_CATCH_UP)}/yr additional allowed.
-              DoD matching contributions don&apos;t count against the employee limit.
-            </p>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Assumptions + resources (collapsible) */}
-      <div className="rounded-xl border border-border-dim bg-surface-raised/20 overflow-hidden">
+      <div className="border-border-dim bg-surface-raised/20 overflow-hidden rounded-xl border">
         <button
           onClick={() => setShowAssumptions((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
+          className="hover:bg-surface-raised/40 flex w-full items-center justify-between px-4 py-3 text-left transition-colors"
         >
-          <span className={LABEL_CLS}>
-            Assumptions & resources
-          </span>
-          <span className="text-text-4 text-xs">
-            {showAssumptions ? '▲' : '▼'}
-          </span>
+          <span className={LABEL_CLS}>Assumptions & resources</span>
+          <span className="text-text-4 text-xs">{showAssumptions ? '▲' : '▼'}</span>
         </button>
         {showAssumptions && (
-          <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
-            <ul className="text-[11px] text-text-3 space-y-0.5 pt-2">
+          <div className="border-border-dim space-y-2 border-t px-4 pb-3">
+            <ul className="text-text-3 space-y-0.5 pt-2 text-[11px]">
               <li>
-                · Estimates use your current base pay ({formatCurrency(basePay)}/mo) as a
-                proxy for the High-3 average. Actual retirement pay will be
-                higher due to promotions.
+                · Estimates use your current base pay ({formatCurrency(basePay)}/mo) as a proxy for
+                the High-3 average. Actual retirement pay will be higher due to promotions.
+              </li>
+              <li>· Both scenarios assume the same member TSP contribution rate ({memberPct}%).</li>
+              <li>
+                · Continuation pay figures assume active duty minimum (2.5×); check your branch for
+                current multipliers.
               </li>
               <li>
-                · Both scenarios assume the same member TSP contribution rate (
-                {memberPct}%).
-              </li>
-              <li>
-                · Continuation pay figures assume active duty minimum (2.5×);
-                check your branch for current multipliers.
-              </li>
-              <li>
-                · Investment return of {returnPct}% is not guaranteed — TSP L
-                Fund historical returns have ranged 4–9%.
+                · Investment return of {returnPct}% is not guaranteed — TSP L Fund historical
+                returns have ranged 4–9%.
               </li>
             </ul>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
+            <div className="border-border-dim flex flex-wrap gap-x-4 gap-y-1 border-t pt-1">
               <ExternalLink
                 href="https://militarypay.defense.gov/Pay/Retirement/BRS/"
                 label="BRS overview"

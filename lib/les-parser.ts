@@ -215,17 +215,9 @@ export function parseLes(text: string): LesParseResult {
   // ── Warnings ─────────────────────────────────────────────────────────────
 
   if (!month) {
-    warnings.push(
-      'Pay period date not found — confirm the month before importing',
-    );
+    warnings.push('Pay period date not found — confirm the month before importing');
   }
-  const criticalFields = [
-    'base_pay',
-    'bas',
-    'taxes',
-    'fica_soc_security',
-    'fica_medicare',
-  ];
+  const criticalFields = ['base_pay', 'bas', 'taxes', 'fica_soc_security', 'fica_medicare'];
   for (const key of criticalFields) {
     if (!(key in fields)) {
       const label = FIELD_MATCHERS.find((m) => m.key === key)?.label ?? key;
@@ -233,9 +225,7 @@ export function parseLes(text: string): LesParseResult {
     }
   }
   if (Object.keys(fields).length === 0) {
-    warnings.push(
-      'No recognizable LES fields found — check that the text is a valid DFAS LES',
-    );
+    warnings.push('No recognizable LES fields found — check that the text is a valid DFAS LES');
   }
 
   // ── Build preview list ────────────────────────────────────────────────────

@@ -1,11 +1,11 @@
 'use client';
 
-import type { Allotment, AllotmentType } from '@/lib/types';
-import { BTN_BLUE_CLS, INPUT_CLS } from '@/lib/config';
+import { useState } from 'react';
 
 import { api } from '@/lib/api';
+import { BTN_BLUE_CLS, INPUT_CLS } from '@/lib/config';
+import type { Allotment, AllotmentType } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { useState } from 'react';
 
 const TYPE_LABELS: Record<AllotmentType, string> = {
   savings: 'Savings',
@@ -38,7 +38,7 @@ function TypeBadge({ type }: { type: AllotmentType }) {
   const color = TYPE_COLORS[type] ?? '#9ca3af';
   return (
     <span
-      className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full"
+      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
       style={{ backgroundColor: color + '22', color }}
     >
       {TYPE_LABELS[type]}
@@ -77,7 +77,7 @@ function AllotmentForm({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+    <div className="border-border bg-surface space-y-3 rounded-xl border p-4">
       <div className="flex gap-2">
         <input
           value={label}
@@ -86,13 +86,13 @@ function AllotmentForm({
           className={`flex-1 text-sm ${INPUT_CLS}`}
         />
         <div className="flex items-center gap-1.5">
-          <span className="text-sm text-text-3">$</span>
+          <span className="text-text-3 text-sm">$</span>
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0"
-            className={`w-24 text-sm text-right font-mono ${INPUT_CLS}`}
+            className={`w-24 text-right font-mono text-sm ${INPUT_CLS}`}
           />
         </div>
       </div>
@@ -111,7 +111,7 @@ function AllotmentForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-text-3">From</span>
+          <span className="text-text-3 text-[11px]">From</span>
           <input
             type="month"
             value={startDate}
@@ -120,9 +120,9 @@ function AllotmentForm({
           />
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-text-3">to</span>
+          <span className="text-text-3 text-[11px]">to</span>
           {ongoing ? (
-            <span className="text-[11px] text-text-3 italic">ongoing</span>
+            <span className="text-text-3 text-[11px] italic">ongoing</span>
           ) : (
             <input
               type="month"
@@ -131,7 +131,7 @@ function AllotmentForm({
               className={`text-sm ${INPUT_CLS} py-1`}
             />
           )}
-          <label className="flex items-center gap-1 text-[11px] text-text-3 cursor-pointer select-none">
+          <label className="text-text-3 flex cursor-pointer items-center gap-1 text-[11px] select-none">
             <input
               type="checkbox"
               checked={ongoing}
@@ -148,20 +148,20 @@ function AllotmentForm({
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Notes (optional)…"
         rows={2}
-        className={`w-full text-sm resize-none ${INPUT_CLS}`}
+        className={`w-full resize-none text-sm ${INPUT_CLS}`}
       />
 
       <div className="flex gap-2 pt-1">
         <button
           onClick={submit}
           disabled={!label.trim() || !amount || !startDate}
-          className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS} disabled:opacity-40`}
+          className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS} disabled:opacity-40`}
         >
           {initial?.id ? 'Save changes' : 'Add allotment'}
         </button>
         <button
           onClick={onCancel}
-          className="text-sm px-3 py-1.5 rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-colors"
+          className="text-text-3 hover:text-text-2 hover:bg-surface-raised rounded-lg px-3 py-1.5 text-sm transition-colors"
         >
           Cancel
         </button>
@@ -186,10 +186,7 @@ export default function AllotementsManager({
     onRefresh();
   }
 
-  async function handleUpdate(
-    id: number,
-    data: Omit<Allotment, 'id' | 'created_at'>,
-  ) {
+  async function handleUpdate(id: number, data: Omit<Allotment, 'id' | 'created_at'>) {
     await api.allotments.update(id, data);
     setEditingId(null);
     onRefresh();
@@ -203,10 +200,9 @@ export default function AllotementsManager({
   return (
     <div className="space-y-3">
       {allotments.length === 0 && !showCreate && (
-        <p className="text-[11px] text-text-4">
-          No allotments yet — allotments are fixed amounts deducted from your
-          gross pay before you receive it (savings deposits, loan payments,
-          family support, etc.).
+        <p className="text-text-4 text-[11px]">
+          No allotments yet — allotments are fixed amounts deducted from your gross pay before you
+          receive it (savings deposits, loan payments, family support, etc.).
         </p>
       )}
 
@@ -219,53 +215,44 @@ export default function AllotementsManager({
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <div
-            key={a.id}
-            className="rounded-xl border border-border p-3 space-y-1.5"
-          >
+          <div key={a.id} className="border-border space-y-1.5 rounded-xl border p-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-text">{a.label}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-text text-sm font-medium">{a.label}</span>
                 <TypeBadge type={a.type} />
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <span className="font-mono text-sm text-[#ff4560]">
                   −{formatCurrency(a.amount)}
                 </span>
                 <button
                   onClick={() => setEditingId(a.id)}
-                  className="text-[11px] px-2 py-0.5 rounded text-text-3 hover:text-text-2 hover:bg-surface-raised transition-colors"
+                  className="text-text-3 hover:text-text-2 hover:bg-surface-raised rounded px-2 py-0.5 text-[11px] transition-colors"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(a.id)}
-                  className="text-[11px] px-2 py-0.5 rounded text-text-4 hover:text-[#ff4560] hover:bg-red-500/10 transition-colors"
+                  className="text-text-4 rounded px-2 py-0.5 text-[11px] transition-colors hover:bg-red-500/10 hover:text-[#ff4560]"
                 >
                   Delete
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-text-3">
-              {fmtMonth(a.start_date)} —{' '}
-              {a.end_date ? fmtMonth(a.end_date) : 'ongoing'}
+            <p className="text-text-3 text-[11px]">
+              {fmtMonth(a.start_date)} — {a.end_date ? fmtMonth(a.end_date) : 'ongoing'}
             </p>
-            {a.notes && (
-              <p className="text-[11px] text-text-4 italic">{a.notes}</p>
-            )}
+            {a.notes && <p className="text-text-4 text-[11px] italic">{a.notes}</p>}
           </div>
         ),
       )}
 
       {showCreate ? (
-        <AllotmentForm
-          onSave={handleCreate}
-          onCancel={() => setShowCreate(false)}
-        />
+        <AllotmentForm onSave={handleCreate} onCancel={() => setShowCreate(false)} />
       ) : (
         <button
           onClick={() => setShowCreate(true)}
-          className="text-[11px] px-3 py-1.5 rounded-lg border border-dashed border-border text-text-3 hover:text-text-2 hover:border-border-focus transition-colors w-full"
+          className="border-border text-text-3 hover:text-text-2 hover:border-border-focus w-full rounded-lg border border-dashed px-3 py-1.5 text-[11px] transition-colors"
         >
           + Add allotment
         </button>

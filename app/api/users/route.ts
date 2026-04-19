@@ -1,6 +1,7 @@
 // Admin-only: list and manage all users.
 
 import { NextResponse } from 'next/server';
+
 import { requireAdmin } from '@/lib/auth';
 import { withAuth } from '@/lib/route-helpers';
 
@@ -31,10 +32,7 @@ export const DELETE = withAuth(async (req, { user, db }) => {
   const targetId = searchParams.get('id') ?? '';
 
   if (targetId === user.userId) {
-    return NextResponse.json(
-      { error: 'Cannot delete yourself' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
   }
 
   db.transaction(() => {

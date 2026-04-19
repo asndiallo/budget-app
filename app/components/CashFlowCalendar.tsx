@@ -1,10 +1,10 @@
 'use client';
 
-import type { Debt, FixedExpense, Transaction } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
-import { CHART_CAT_COLORS } from '@/lib/config';
 import { api } from '@/lib/api';
+import { CHART_CAT_COLORS } from '@/lib/config';
+import type { Debt, FixedExpense, Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -16,14 +16,9 @@ const DUE_SOON_WINDOW = 5;
  * DFAS deposits on the preceding Friday.
  * Returns null when the adjusted day falls into the prior month (e.g. the 1st is Saturday).
  */
-function adjustedPayDay(
-  nominalDay: number,
-  year: number,
-  month: number,
-): number | null {
+function adjustedPayDay(nominalDay: number, year: number, month: number): number | null {
   const dow = new Date(year, month - 1, nominalDay).getDay();
-  const adjusted =
-    dow === 6 ? nominalDay - 1 : dow === 0 ? nominalDay - 2 : nominalDay;
+  const adjusted = dow === 6 ? nominalDay - 1 : dow === 0 ? nominalDay - 2 : nominalDay;
   return adjusted >= 1 ? adjusted : null;
 }
 
@@ -70,8 +65,7 @@ function buildWeeks(month: string): (number | null)[][] {
       week = [];
     }
   }
-  if (week.length > 0)
-    weeks.push([...week, ...Array(7 - week.length).fill(null)]);
+  if (week.length > 0) weeks.push([...week, ...Array(7 - week.length).fill(null)]);
   return weeks;
 }
 
@@ -100,22 +94,19 @@ export default function CashFlowCalendar({
   useEffect(() => {
     if (!month) return;
     setSelectedDay(null);
-    Promise.all([
-      api.transactions.list(month),
-      api.fixedExpenses.list(),
-      api.debts.list(),
-    ]).then(([txs, fe, ds]) => {
-      setTransactions(txs);
-      setFixedExpenses(fe);
-      setDebts(ds);
-    });
+    Promise.all([api.transactions.list(month), api.fixedExpenses.list(), api.debts.list()]).then(
+      ([txs, fe, ds]) => {
+        setTransactions(txs);
+        setFixedExpenses(fe);
+        setDebts(ds);
+      },
+    );
   }, [month]);
 
   const weeks = buildWeeks(month);
   const today = new Date();
   const todayDay =
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}` ===
-    month
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}` === month
       ? today.getDate()
       : null;
 
@@ -125,12 +116,8 @@ export default function CashFlowCalendar({
     nominal: d,
     actual: adjustedPayDay(d, y, m),
   }));
-  const payDaySet = new Set(
-    actualPayDays.filter((p) => p.actual !== null).map((p) => p.actual!),
-  );
-  const anyPayShifted = actualPayDays.some(
-    (p) => p.actual !== null && p.actual !== p.nominal,
-  );
+  const payDaySet = new Set(actualPayDays.filter((p) => p.actual !== null).map((p) => p.actual!));
+  const anyPayShifted = actualPayDays.some((p) => p.actual !== null && p.actual !== p.nominal);
 
   // Days with bills due within DUE_SOON_WINDOW days of today (current month only)
   const dueSoonDays = new Set(
@@ -187,58 +174,55 @@ export default function CashFlowCalendar({
   const selectedBills = selectedDay ? billsByDay[selectedDay] || [] : [];
   const selectedDebts = selectedDay ? debtsByDay[selectedDay] || [] : [];
   const isPayDay = selectedDay ? payDaySet.has(selectedDay) : false;
-  const isSelectedDueSoon =
-    selectedDay !== null && dueSoonDays.has(selectedDay);
+  const isSelectedDueSoon = selectedDay !== null && dueSoonDays.has(selectedDay);
 
   // Summary totals
   const totalSpend = Object.values(spendByDay).reduce((s, v) => s + v, 0);
-  const datedTxCount = transactions.filter(
-    (t) => parseDayOfMonth(t) !== null,
-  ).length;
+  const datedTxCount = transactions.filter((t) => parseDayOfMonth(t) !== null).length;
 
   return (
     <div>
       {/* Legend */}
-      <div className="flex items-center gap-4 mb-4 text-[10px] text-text-4">
+      <div className="text-text-4 mb-4 flex items-center gap-4 text-[10px]">
         {hasIncome && (
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#00d98a] inline-block" />
+            <span className="inline-block h-2 w-2 rounded-full bg-[#00d98a]" />
             {anyPayShifted ? 'Pay days (adjusted)' : 'Pay days (1st & 15th)'}
           </span>
         )}
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-[#4a8cff] inline-block" />
+          <span className="inline-block h-2 w-2 rounded-full bg-[#4a8cff]" />
           Bill due
         </span>
         {Object.keys(debtsByDay).length > 0 && (
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#a78bfa] inline-block" />
+            <span className="inline-block h-2 w-2 rounded-full bg-[#a78bfa]" />
             Loan payment
           </span>
         )}
         {todayDay !== null && dueSoonDays.size > 0 && (
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
             Due soon
           </span>
         )}
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-[#ff4560] inline-block" />
+          <span className="inline-block h-2 w-2 rounded-full bg-[#ff4560]" />
           Spending
         </span>
         {datedTxCount < transactions.length && (
-          <span className="ml-auto text-text-4">
+          <span className="text-text-4 ml-auto">
             {transactions.length - datedTxCount} manual tx without dates
           </span>
         )}
       </div>
 
       {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="mb-1 grid grid-cols-7">
         {DOW.map((d) => (
           <div
             key={d}
-            className="text-center text-[10px] font-semibold uppercase tracking-widest text-text-4 py-1"
+            className="text-text-4 py-1 text-center text-[10px] font-semibold tracking-widest uppercase"
           >
             {d}
           </div>
@@ -266,11 +250,11 @@ export default function CashFlowCalendar({
                 <button
                   key={di}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
-                  className={`h-16 sm:h-20 rounded-lg border text-left px-1.5 py-1 flex flex-col transition-all overflow-hidden ${
+                  className={`flex h-16 flex-col overflow-hidden rounded-lg border px-1.5 py-1 text-left transition-all sm:h-20 ${
                     isSelected
-                      ? 'border-[#4a8cff] bg-surface-blue'
+                      ? 'bg-surface-blue border-[#4a8cff]'
                       : isToday
-                        ? 'border-[#4a8cff]/40 bg-surface'
+                        ? 'bg-surface border-[#4a8cff]/40'
                         : isDueSoonDay
                           ? 'border-amber-400/50 bg-amber-500/5 hover:border-amber-400/80'
                           : hasDots
@@ -279,49 +263,37 @@ export default function CashFlowCalendar({
                   }`}
                 >
                   <span
-                    className={`text-[11px] font-semibold leading-none mb-1 ${
-                      isToday
-                        ? 'text-[#4a8cff]'
-                        : isSelected
-                          ? 'text-text-2'
-                          : 'text-text-3'
+                    className={`mb-1 text-[11px] leading-none font-semibold ${
+                      isToday ? 'text-[#4a8cff]' : isSelected ? 'text-text-2' : 'text-text-3'
                     }`}
                   >
                     {day}
                   </span>
 
                   {/* Indicators */}
-                  <div className="flex flex-col gap-0.5 flex-1 overflow-hidden">
+                  <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
                     {isPay && hasIncome && (
-                      <span className="text-[9px] font-medium text-[#00d98a] leading-tight truncate">
-                        {payPerCheck
-                          ? `+${formatCurrency(payPerCheck)}`
-                          : 'Pay'}
+                      <span className="truncate text-[9px] leading-tight font-medium text-[#00d98a]">
+                        {payPerCheck ? `+${formatCurrency(payPerCheck)}` : 'Pay'}
                       </span>
                     )}
                     {bills.slice(0, 2).map((b) => (
-                      <span
-                        key={b.id}
-                        className="text-[9px] text-[#4a8cff] leading-tight truncate"
-                      >
+                      <span key={b.id} className="truncate text-[9px] leading-tight text-[#4a8cff]">
                         {b.label}
                       </span>
                     ))}
                     {dayDebts.slice(0, bills.length > 1 ? 0 : 1).map((d) => (
-                      <span
-                        key={d.id}
-                        className="text-[9px] text-[#a78bfa] leading-tight truncate"
-                      >
+                      <span key={d.id} className="truncate text-[9px] leading-tight text-[#a78bfa]">
                         {d.label}
                       </span>
                     ))}
                     {bills.length + dayDebts.length > 2 && (
-                      <span className="text-[9px] text-text-4 leading-tight">
+                      <span className="text-text-4 text-[9px] leading-tight">
                         +{bills.length + dayDebts.length - 2} more
                       </span>
                     )}
                     {spend > 0 && (
-                      <span className="text-[9px] font-mono text-[#ff4560] leading-tight">
+                      <span className="font-mono text-[9px] leading-tight text-[#ff4560]">
                         −{formatCurrency(spend)}
                       </span>
                     )}
@@ -335,17 +307,15 @@ export default function CashFlowCalendar({
 
       {/* Monthly summary bar */}
       {totalSpend > 0 && (
-        <div className="mt-4 pt-3 border-t border-border-dim flex items-center gap-4 text-xs text-text-3">
+        <div className="border-border-dim text-text-3 mt-4 flex items-center gap-4 border-t pt-3 text-xs">
           <span>
             <span className="text-text-4">Month spend </span>
-            <span className="font-mono text-[#ff4560]">
-              −{formatCurrency(totalSpend)}
-            </span>
+            <span className="font-mono text-[#ff4560]">−{formatCurrency(totalSpend)}</span>
           </span>
           {datedTxCount > 0 && (
             <span>
               <span className="text-text-4">Avg/day </span>
-              <span className="font-mono text-text-2">
+              <span className="text-text-2 font-mono">
                 {formatCurrency(totalSpend / Object.keys(spendByDay).length)}
               </span>
             </span>
@@ -355,9 +325,9 @@ export default function CashFlowCalendar({
 
       {/* Selected day detail */}
       {selectedDay !== null && (
-        <div className="mt-3 bg-bg border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-text">
+        <div className="bg-bg border-border mt-3 rounded-xl border p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-text text-sm font-semibold">
               {new Date(
                 parseInt(month.split('-')[0]),
                 parseInt(month.split('-')[1]) - 1,
@@ -373,49 +343,45 @@ export default function CashFlowCalendar({
           </div>
 
           {isPayDay && hasIncome && (
-            <div className="flex items-center gap-2 py-2 border-b border-border-dim">
+            <div className="border-border-dim flex items-center gap-2 border-b py-2">
               <span className="text-xs text-[#00d98a]">Pay day</span>
               {payPerCheck && (
-                <span className="ml-auto text-xs font-mono text-[#00d98a]">
+                <span className="ml-auto font-mono text-xs text-[#00d98a]">
                   +{formatCurrency(payPerCheck)}
                 </span>
               )}
             </div>
           )}
           {isSelectedDueSoon && selectedBills.length > 0 && (
-            <p className="text-[10px] text-amber-400 mb-1">Bills due within {DUE_SOON_WINDOW} days</p>
+            <p className="mb-1 text-[10px] text-amber-400">
+              Bills due within {DUE_SOON_WINDOW} days
+            </p>
           )}
 
           {selectedBills.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center gap-2 py-2 border-b border-border-dim"
-            >
+            <div key={b.id} className="border-border-dim flex items-center gap-2 border-b py-2">
               <span className="text-xs text-[#4a8cff]">{b.label}</span>
-              <span className="ml-auto text-xs font-mono text-[#ff4560]">
+              <span className="ml-auto font-mono text-xs text-[#ff4560]">
                 −{formatCurrency(b.amount)}
               </span>
             </div>
           ))}
           {selectedDebts.map((d) => (
-            <div
-              key={d.id}
-              className="flex items-center gap-2 py-2 border-b border-border-dim"
-            >
+            <div key={d.id} className="border-border-dim flex items-center gap-2 border-b py-2">
               <span className="text-xs text-[#a78bfa]">{d.label}</span>
-              <span className="text-[10px] text-text-4 ml-1">{d.lender}</span>
-              <span className="ml-auto text-xs font-mono text-[#ff4560]">
+              <span className="text-text-4 ml-1 text-[10px]">{d.lender}</span>
+              <span className="ml-auto font-mono text-xs text-[#ff4560]">
                 −{formatCurrency(d.monthly_payment)}
               </span>
             </div>
           ))}
 
           {selectedTxs.length > 0 ? (
-            <div className="space-y-1.5 mt-2">
+            <div className="mt-2 space-y-1.5">
               {selectedTxs.map((t) => (
                 <div key={t.id} className="flex items-center gap-2">
                   <span
-                    className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px]"
                     style={{
                       color: CHART_CAT_COLORS[t.category] ?? '#7c88a4',
                       background: `${CHART_CAT_COLORS[t.category] ?? '#7c88a4'}22`,
@@ -423,24 +389,22 @@ export default function CashFlowCalendar({
                   >
                     {t.category}
                   </span>
-                  <span className="text-xs text-text-2 flex-1 truncate">
-                    {t.description}
-                  </span>
-                  <span className="text-xs font-mono text-[#ff4560] shrink-0">
+                  <span className="text-text-2 flex-1 truncate text-xs">{t.description}</span>
+                  <span className="shrink-0 font-mono text-xs text-[#ff4560]">
                     −{formatCurrency(t.amount)}
                   </span>
                 </div>
               ))}
-              <div className="pt-1.5 border-t border-border-dim flex justify-end">
-                <span className="text-[11px] font-mono text-[#ff4560]">
+              <div className="border-border-dim flex justify-end border-t pt-1.5">
+                <span className="font-mono text-[11px] text-[#ff4560]">
                   −{formatCurrency(spendByDay[selectedDay] || 0)} total
                 </span>
               </div>
             </div>
-          ) : selectedBills.length === 0 && selectedDebts.length === 0 && !(isPayDay && hasIncome) ? (
-            <p className="text-xs text-text-4 mt-1">
-              No activity recorded for this day.
-            </p>
+          ) : selectedBills.length === 0 &&
+            selectedDebts.length === 0 &&
+            !(isPayDay && hasIncome) ? (
+            <p className="text-text-4 mt-1 text-xs">No activity recorded for this day.</p>
           ) : null}
         </div>
       )}

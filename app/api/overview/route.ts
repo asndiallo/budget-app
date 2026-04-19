@@ -1,25 +1,20 @@
-import { currentMonth, isBeforeMonth, isFutureMonth } from '@/lib/utils';
-
 import { NextResponse } from 'next/server';
-import type { YearOverview } from '@/lib/types';
+
 import { computeMonthlyFinancials } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
+import type { YearOverview } from '@/lib/types';
+import { currentMonth, isBeforeMonth, isFutureMonth } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
-  const year = parseInt(
-    searchParams.get('year') || String(new Date().getFullYear()),
-  );
+  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
 
-  const months = Array.from(
-    { length: 12 },
-    (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
-  );
+  const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
   const placeholders = months.map(() => '?').join(',');
 
-  const userRow = db
-    .prepare('SELECT joined_at FROM users WHERE id = ?')
-    .get(userId) as { joined_at: string | null };
+  const userRow = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as {
+    joined_at: string | null;
+  };
   const joinedAt = userRow?.joined_at || null;
 
   const spendingRows = db
@@ -45,9 +40,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
       .get(userId) as { s: number }
   ).s;
 
-  const spendingByMonth = Object.fromEntries(
-    spendingRows.map((r) => [r.month, r.total]),
-  );
+  const spendingByMonth = Object.fromEntries(spendingRows.map((r) => [r.month, r.total]));
 
   // Suppress unused variable warning
   void currentMonth();
@@ -61,18 +54,12 @@ export const GET = withAuth(async (req, { userId, db }) => {
       : computeMonthlyFinancials(db, mo, userId);
 
     const spending = spendingByMonth[mo] ?? 0;
-    const hasData = preService
-      ? false
-      : income > 0 || (!projected && spending > 0);
+    const hasData = preService ? false : income > 0 || (!projected && spending > 0);
 
     const invested = hasData ? tsp + investmentFixed : 0;
     const net = income - invested - spending;
     const savingsRate =
-      income > 0
-        ? Math.round(
-            ((tsp + investmentFixed + Math.max(0, net)) / income) * 100,
-          )
-        : 0;
+      income > 0 ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / income) * 100) : 0;
     return {
       month: mo,
       income: Math.round(income),
@@ -89,22 +76,11 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const quarters = [1, 2, 3, 4].map((q) => {
     const slice = monthly.slice((q - 1) * 3, q * 3);
     const hasData = slice.some((m) => m.hasData && !m.projected);
-    const income = slice
-      .filter((m) => !m.preService)
-      .reduce((s, m) => s + m.income, 0);
-    const invested = slice.reduce(
-      (s, m) => s + (m.hasData ? m.invested : 0),
-      0,
-    );
-    const spending = slice.reduce(
-      (s, m) => s + (m.projected ? 0 : m.spending),
-      0,
-    );
+    const income = slice.filter((m) => !m.preService).reduce((s, m) => s + m.income, 0);
+    const invested = slice.reduce((s, m) => s + (m.hasData ? m.invested : 0), 0);
+    const spending = slice.reduce((s, m) => s + (m.projected ? 0 : m.spending), 0);
     const net = income - invested - spending;
-    const savingsRate =
-      income > 0
-        ? Math.round(((invested + Math.max(0, net)) / income) * 100)
-        : 0;
+    const savingsRate = income > 0 ? Math.round(((invested + Math.max(0, net)) / income) * 100) : 0;
     return {
       q,
       months: months.slice((q - 1) * 3, q * 3),
@@ -120,17 +96,12 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const actualMonths = monthly.filter((m) => !m.projected && !m.preService);
   const monthsWithData = actualMonths.filter((m) => m.hasData).length;
   const annualIncome = actualMonths.reduce((s, m) => s + m.income, 0);
-  const annualInvested = actualMonths.reduce(
-    (s, m) => s + (m.hasData ? m.invested : 0),
-    0,
-  );
+  const annualInvested = actualMonths.reduce((s, m) => s + (m.hasData ? m.invested : 0), 0);
   const annualSpending = actualMonths.reduce((s, m) => s + m.spending, 0);
   const annualNet = annualIncome - annualInvested - annualSpending;
   const annualSavingsRate =
     annualIncome > 0
-      ? Math.round(
-          ((annualInvested + Math.max(0, annualNet)) / annualIncome) * 100,
-        )
+      ? Math.round(((annualInvested + Math.max(0, annualNet)) / annualIncome) * 100)
       : 0;
 
   return NextResponse.json<YearOverview>({

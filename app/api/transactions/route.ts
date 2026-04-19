@@ -1,8 +1,9 @@
-import { DEFAULT_CATEGORY } from '@/lib/config';
 import { NextResponse } from 'next/server';
-import { currentMonth } from '@/lib/utils';
-import { withAuth } from '@/lib/route-helpers';
+
 import { autoMatchBills } from '@/lib/bill-match';
+import { DEFAULT_CATEGORY } from '@/lib/config';
+import { withAuth } from '@/lib/route-helpers';
+import { currentMonth } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -23,9 +24,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
 
   const month = searchParams.get('month') || currentMonth();
   const rows = db
-    .prepare(
-      'SELECT * FROM transactions WHERE user_id = ? AND month = ? ORDER BY created_at DESC',
-    )
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND month = ? ORDER BY created_at DESC')
     .all(userId, month);
   return NextResponse.json(rows);
 });
@@ -37,14 +36,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
     .prepare(
       'INSERT INTO transactions (user_id, description, amount, category, month, source) VALUES (?, ?, ?, ?, ?, ?)',
     )
-    .run(
-      userId,
-      description,
-      amount,
-      category || DEFAULT_CATEGORY,
-      m,
-      source || 'manual',
-    );
+    .run(userId, description, amount, category || DEFAULT_CATEGORY, m, source || 'manual');
   autoMatchBills(db, userId, [m]);
   return NextResponse.json({
     id: result.lastInsertRowid,
@@ -70,14 +62,7 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
   const { id, description, amount, category, notes } = body;
   db.prepare(
     'UPDATE transactions SET description = COALESCE(?, description), amount = COALESCE(?, amount), category = COALESCE(?, category), notes = COALESCE(?, notes) WHERE id = ? AND user_id = ?',
-  ).run(
-    description ?? null,
-    amount ?? null,
-    category ?? null,
-    notes ?? null,
-    id,
-    userId,
-  );
+  ).run(description ?? null, amount ?? null, category ?? null, notes ?? null, id, userId);
   return NextResponse.json({ ok: true });
 });
 
@@ -87,15 +72,13 @@ export const DELETE = withAuth(async (req, { userId, db }) => {
   // Bulk delete
   if (Array.isArray(body.ids)) {
     const placeholders = body.ids.map(() => '?').join(',');
-    db.prepare(
-      `DELETE FROM transactions WHERE id IN (${placeholders}) AND user_id = ?`,
-    ).run(...body.ids, userId);
+    db.prepare(`DELETE FROM transactions WHERE id IN (${placeholders}) AND user_id = ?`).run(
+      ...body.ids,
+      userId,
+    );
     return NextResponse.json({ ok: true });
   }
 
-  db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(
-    body.id,
-    userId,
-  );
+  db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(body.id, userId);
   return NextResponse.json({ ok: true });
 });

@@ -1,9 +1,9 @@
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { NextResponse } from 'next/server';
 
 import { DEDUCTION_FIELDS } from '@/lib/config';
-import { NextResponse } from 'next/server';
-import { currentMonth } from '@/lib/utils';
+import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
+import { currentMonth } from '@/lib/utils';
 
 function prevMonths(to: string, count: number): string[] {
   const [y, m] = to.split('-').map(Number);
@@ -72,16 +72,13 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const result = months.map((m) => {
     const { totalIncome, tsp } = computeMonthlyFinancials(db, m, userId);
     const config = incomeForMonth(db, m, userId);
-    const deductions =
-      tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+    const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
     const categories = spendingMap.get(m) ?? {};
     const spending = Object.values(categories).reduce((s, v) => s + v, 0);
     const net = totalIncome - deductions - committed - spending;
     const savingsRate =
       totalIncome > 0
-        ? Math.round(
-            ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
-          )
+        ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
         : null;
 
     return {

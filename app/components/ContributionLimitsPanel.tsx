@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ContributionLimits } from '@/lib/types';
-import { LABEL_CLS } from '@/lib/config';
+
 import { api } from '@/lib/api';
+import { LABEL_CLS } from '@/lib/config';
+import type { ContributionLimits } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 function LimitBar({
@@ -27,38 +28,44 @@ function LimitBar({
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-1.5">
+      <div className="mb-1.5 flex items-baseline justify-between">
         <div>
-          <span className="text-sm font-medium text-text">{label}</span>
-          {note && <span className="ml-2 text-[10px] text-text-4">{note}</span>}
+          <span className="text-text text-sm font-medium">{label}</span>
+          {note && <span className="text-text-4 ml-2 text-[10px]">{note}</span>}
         </div>
-        <div className="flex items-baseline gap-1.5 text-xs font-mono">
-          <span className={over ? 'text-[#ff4560] font-semibold' : warn ? 'text-[#f5aa2a] font-semibold' : 'text-text'}>
+        <div className="flex items-baseline gap-1.5 font-mono text-xs">
+          <span
+            className={
+              over
+                ? 'font-semibold text-[#ff4560]'
+                : warn
+                  ? 'font-semibold text-[#f5aa2a]'
+                  : 'text-text'
+            }
+          >
             {formatCurrency(ytd)}
           </span>
           <span className="text-text-4">/ {formatCurrency(limit)}</span>
         </div>
       </div>
 
-      <div className="h-2 bg-surface rounded-full overflow-hidden">
+      <div className="bg-surface h-2 overflow-hidden rounded-full">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: barColor }}
         />
       </div>
 
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-[10px] font-mono" style={{ color: barColor }}>
+      <div className="mt-1 flex items-center justify-between">
+        <span className="font-mono text-[10px]" style={{ color: barColor }}>
           {pct}% used
         </span>
         {over ? (
-          <span className="text-[10px] text-[#ff4560] font-semibold">
+          <span className="text-[10px] font-semibold text-[#ff4560]">
             Over by {formatCurrency(ytd - limit)}
           </span>
         ) : (
-          <span className="text-[10px] text-text-4">
-            {formatCurrency(remaining)} remaining
-          </span>
+          <span className="text-text-4 text-[10px]">{formatCurrency(remaining)} remaining</span>
         )}
       </div>
     </div>
@@ -81,13 +88,9 @@ export default function ContributionLimitsPanel({ year }: { year: number }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-3">
-        <h3 className={LABEL_CLS}>
-          {data.year} contribution limits
-        </h3>
-        {limitsNote && (
-          <span className="text-[10px] text-text-4">{limitsNote}</span>
-        )}
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className={LABEL_CLS}>{data.year} contribution limits</h3>
+        {limitsNote && <span className="text-text-4 text-[10px]">{limitsNote}</span>}
       </div>
 
       <div className="space-y-4">
@@ -100,13 +103,10 @@ export default function ContributionLimitsPanel({ year }: { year: number }) {
             note={`elective deferral limit · ${formatCurrency(data.tspCatchupLimit)} w/ catch-up`}
           />
           {data.agencyYtd > 0 && (
-            <p className="mt-1.5 text-[10px] text-text-4">
+            <p className="text-text-4 mt-1.5 text-[10px]">
               DoD match (not counted toward limit):{' '}
-              <span className="font-mono text-[#00d98a]">
-                +{formatCurrency(data.agencyYtd)}
-              </span>
-              {' '}·{' '}
-              <span className="font-mono text-text-3">
+              <span className="font-mono text-[#00d98a]">+{formatCurrency(data.agencyYtd)}</span> ·{' '}
+              <span className="text-text-3 font-mono">
                 {formatCurrency(data.tspYtd + data.agencyYtd)} total into TSP
               </span>
             </p>

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 import type { LeaveEvent } from '@/lib/types';
 
@@ -9,14 +10,12 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     )
     .all(userId) as LeaveEvent[];
 
-  const { joined_at } = (db
-    .prepare('SELECT joined_at FROM users WHERE id = ?')
-    .get(userId) as { joined_at: string | null }) ?? { joined_at: null };
+  const { joined_at } = (db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as {
+    joined_at: string | null;
+  }) ?? { joined_at: null };
 
   const anchor = db
-    .prepare(
-      'SELECT balance_days, les_period, updated_at FROM leave_tracker WHERE user_id = ?',
-    )
+    .prepare('SELECT balance_days, les_period, updated_at FROM leave_tracker WHERE user_id = ?')
     .get(userId) as {
     balance_days: number;
     les_period: string | null;
@@ -47,9 +46,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
   const result = db
-    .prepare(
-      'INSERT INTO leave_events (user_id, taken_at, days, note) VALUES (?, ?, ?, ?)',
-    )
+    .prepare('INSERT INTO leave_events (user_id, taken_at, days, note) VALUES (?, ?, ?, ?)')
     .run(userId, taken_at, days, note ?? null);
   return NextResponse.json({
     id: result.lastInsertRowid,
@@ -86,9 +83,6 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
 
 export const DELETE = withAuth(async (req, { userId, db }) => {
   const { id } = (await req.json()) as { id: number };
-  db.prepare('DELETE FROM leave_events WHERE id = ? AND user_id = ?').run(
-    id,
-    userId,
-  );
+  db.prepare('DELETE FROM leave_events WHERE id = ? AND user_id = ?').run(id, userId);
   return NextResponse.json({ ok: true });
 });

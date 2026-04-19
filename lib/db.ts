@@ -253,7 +253,7 @@ function migrateSchema(db: Database.Database) {
     name: string;
   }[];
   if (!ltCols.some((c) => c.name === 'les_period')) {
-    db.exec("ALTER TABLE leave_tracker ADD COLUMN les_period TEXT");
+    db.exec('ALTER TABLE leave_tracker ADD COLUMN les_period TEXT');
   }
 }
 
@@ -270,7 +270,9 @@ export function takeNetWorthSnapshot(db: Database.Database, userId: string) {
     .prepare('SELECT COALESCE(SUM(balance), 0) AS liabilities FROM debts WHERE user_id = ?')
     .get(userId) as { liabilities: number };
   const { goalsSaved } = db
-    .prepare('SELECT COALESCE(SUM(saved), 0) AS goalsSaved FROM goals WHERE user_id = ? AND active = 1')
+    .prepare(
+      'SELECT COALESCE(SUM(saved), 0) AS goalsSaved FROM goals WHERE user_id = ? AND active = 1',
+    )
     .get(userId) as { goalsSaved: number };
   const totalAssets = assets + goalsSaved;
   db.prepare(

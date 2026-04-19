@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+import { api } from '@/lib/api';
 import {
   BTN_BLUE_CLS,
   DEFAULT_GOAL_COLOR,
@@ -10,9 +13,6 @@ import {
   LABEL_CLS,
 } from '@/lib/config';
 import type { Goal, GoalContribution, SpendingInsights } from '@/lib/types';
-import { useEffect, useState } from 'react';
-
-import { api } from '@/lib/api';
 
 const EMERGENCY_PATTERN = /emergency/i;
 const EMERGENCY_MONTHS = 3;
@@ -68,10 +68,9 @@ export default function GoalsPanel() {
   useEffect(() => {
     reload();
     api.insights.get().then(setInsights);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  const startEdit = (g: Goal) =>
-    setEditing((prev) => ({ ...prev, [g.id]: toDraft(g) }));
+  const startEdit = (g: Goal) => setEditing((prev) => ({ ...prev, [g.id]: toDraft(g) }));
 
   const cancelEdit = (id: number) =>
     setEditing((prev) => {
@@ -94,8 +93,7 @@ export default function GoalsPanel() {
     const target = parseFloat(d.target);
     const saved = parseFloat(d.saved);
 
-    if (!name || isNaN(target) || target < 0 || isNaN(saved) || saved < 0)
-      return;
+    if (!name || isNaN(target) || target < 0 || isNaN(saved) || saved < 0) return;
 
     await api.goals.update(g.id, {
       name,
@@ -153,8 +151,7 @@ export default function GoalsPanel() {
 
   const totalTarget = goals.reduce((s, g) => s + g.target, 0);
   const totalSaved = goals.reduce((s, g) => s + g.saved, 0);
-  const overallPct =
-    totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+  const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
   // Total monthly burn rate = spending + committed (for emergency fund coverage)
   const avgMonthlyBurn =
@@ -197,22 +194,18 @@ export default function GoalsPanel() {
           ].map(({ label, value, color, accent }) => (
             <div
               key={label}
-              className="bg-bg rounded-xl border border-border p-3.5 relative overflow-hidden"
+              className="bg-bg border-border relative overflow-hidden rounded-xl border p-3.5"
             >
               {accent !== 'transparent' && (
                 <div
-                  className="absolute top-0 left-0 right-0 h-0.5"
+                  className="absolute top-0 right-0 left-0 h-0.5"
                   style={{
                     background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
                   }}
                 />
               )}
-              <p className={`${LABEL_CLS} mb-1.5`}>
-                {label}
-              </p>
-              <p className={`font-mono text-lg font-semibold ${color}`}>
-                {value}
-              </p>
+              <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
+              <p className={`font-mono text-lg font-semibold ${color}`}>{value}</p>
             </div>
           ))}
         </div>
@@ -224,10 +217,7 @@ export default function GoalsPanel() {
           const draft = editing[g.id];
           const isEditing = !!draft;
 
-          const pct =
-            g.target > 0
-              ? Math.min(100, Math.round((g.saved / g.target) * 100))
-              : 0;
+          const pct = g.target > 0 ? Math.min(100, Math.round((g.saved / g.target) * 100)) : 0;
           const remaining = Math.max(0, g.target - g.saved);
           const isDone = pct >= 100;
 
@@ -241,15 +231,14 @@ export default function GoalsPanel() {
           return (
             <div
               key={g.id}
-              className="bg-bg border border-border rounded-xl p-4 relative overflow-hidden"
+              className="bg-bg border-border relative overflow-hidden rounded-xl border p-4"
             >
               {/* Top color accent stripe */}
               {isDone && (
                 <div
-                  className="absolute top-0 left-0 right-0 h-0.5"
+                  className="absolute top-0 right-0 left-0 h-0.5"
                   style={{
-                    background:
-                      'linear-gradient(90deg, #00d98acc, #00d98a22 70%, transparent)',
+                    background: 'linear-gradient(90deg, #00d98acc, #00d98a22 70%, transparent)',
                   }}
                 />
               )}
@@ -261,9 +250,7 @@ export default function GoalsPanel() {
                     <input
                       autoFocus
                       value={draft.name}
-                      onChange={(e) =>
-                        patchDraft(g.id, { name: e.target.value })
-                      }
+                      onChange={(e) => patchDraft(g.id, { name: e.target.value })}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') saveEdit(g);
                         if (e.key === 'Escape') cancelEdit(g.id);
@@ -274,10 +261,8 @@ export default function GoalsPanel() {
                     />
                     <select
                       value={draft.color}
-                      onChange={(e) =>
-                        patchDraft(g.id, { color: e.target.value })
-                      }
-                      className="text-sm bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                      onChange={(e) => patchDraft(g.id, { color: e.target.value })}
+                      className="bg-surface border-border text-text cursor-pointer rounded-lg border px-2.5 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
                     >
                       {GOAL_COLORS.map((c) => (
                         <option key={c} value={c}>
@@ -289,14 +274,12 @@ export default function GoalsPanel() {
 
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <p className="text-[10px] text-text-3 mb-1">Target $</p>
+                      <p className="text-text-3 mb-1 text-[10px]">Target $</p>
                       <input
                         type="number"
                         min="0"
                         value={draft.target}
-                        onChange={(e) =>
-                          patchDraft(g.id, { target: e.target.value })
-                        }
+                        onChange={(e) => patchDraft(g.id, { target: e.target.value })}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveEdit(g);
                           if (e.key === 'Escape') cancelEdit(g.id);
@@ -305,14 +288,12 @@ export default function GoalsPanel() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[10px] text-text-3 mb-1">Saved $</p>
+                      <p className="text-text-3 mb-1 text-[10px]">Saved $</p>
                       <input
                         type="number"
                         min="0"
                         value={draft.saved}
-                        onChange={(e) =>
-                          patchDraft(g.id, { saved: e.target.value })
-                        }
+                        onChange={(e) => patchDraft(g.id, { saved: e.target.value })}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveEdit(g);
                           if (e.key === 'Escape') cancelEdit(g.id);
@@ -322,16 +303,16 @@ export default function GoalsPanel() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex justify-end gap-2">
                     <button
                       onClick={() => cancelEdit(g.id)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
+                      className="border-border text-text-2 hover:text-text rounded-lg border px-3 py-1.5 text-xs transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => saveEdit(g)}
-                      className={`text-xs px-3 py-1.5 ${BTN_BLUE_CLS}`}
+                      className={`px-3 py-1.5 text-xs ${BTN_BLUE_CLS}`}
                     >
                       Save
                     </button>
@@ -340,56 +321,47 @@ export default function GoalsPanel() {
               ) : (
                 /* ── View mode ── */
                 <>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
                         <span
-                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${GOAL_DOT_COLORS[g.color] ?? GOAL_DOT_COLORS[DEFAULT_GOAL_COLOR]}`}
                         >
                           {pct}%
                         </span>
-                        <span className="text-sm font-semibold text-text truncate">
-                          {g.name}
-                        </span>
-                        {isDone && (
-                          <span className="text-xs text-[#00d98a]">🎯</span>
-                        )}
+                        <span className="text-text truncate text-sm font-semibold">{g.name}</span>
+                        {isDone && <span className="text-xs text-[#00d98a]">🎯</span>}
                       </div>
-                      <p className="text-xs text-text-3 font-mono">
+                      <p className="text-text-3 font-mono text-xs">
                         ${Math.round(g.saved).toLocaleString()}
                         <span className="text-text-4">
                           {' / '}${Math.round(g.target).toLocaleString()}
                         </span>
                         {pct < 100 && remaining > 0 && (
                           <span className="text-text-3">
-                            {' · '}${Math.round(remaining).toLocaleString()}{' '}
-                            left
+                            {' · '}${Math.round(remaining).toLocaleString()} left
                           </span>
                         )}
-                        {pct < 100 &&
-                          insights &&
-                          insights.avgMonthlyNet > 0 && (
-                            <span className="text-text-4">
-                              {' · '}
-                              {formatMonthsToGoal(
-                                Math.ceil(remaining / insights.avgMonthlyNet),
-                              )}{' '}
-                              at current rate
-                            </span>
-                          )}
+                        {pct < 100 && insights && insights.avgMonthlyNet > 0 && (
+                          <span className="text-text-4">
+                            {' · '}
+                            {formatMonthsToGoal(Math.ceil(remaining / insights.avgMonthlyNet))} at
+                            current rate
+                          </span>
+                        )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 ml-2 shrink-0">
+                    <div className="ml-2 flex shrink-0 items-center gap-2">
                       <button
                         onClick={() => startEdit(g)}
-                        className="text-text-3 hover:text-text-2 text-xs transition-colors p-1"
+                        className="text-text-3 hover:text-text-2 p-1 text-xs transition-colors"
                         title="Edit goal"
                       >
                         ✎
                       </button>
                       <button
                         onClick={() => deleteGoal(g.id)}
-                        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors p-1"
+                        className="text-text-3 p-1 text-xs transition-colors hover:text-[#ff4560]"
                         title="Delete goal"
                       >
                         ✕
@@ -398,7 +370,7 @@ export default function GoalsPanel() {
                   </div>
 
                   {/* Progress bar */}
-                  <div className="h-2 bg-surface rounded-full overflow-hidden mb-3">
+                  <div className="bg-surface mb-3 h-2 overflow-hidden rounded-full">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${GOAL_BAR_COLORS[g.color] ?? GOAL_BAR_COLORS[DEFAULT_GOAL_COLOR]}`}
                       style={{ width: `${pct}%` }}
@@ -406,34 +378,50 @@ export default function GoalsPanel() {
                   </div>
 
                   {/* Emergency fund: months covered metric */}
-                  {!isEditing && isEmergencyFund(g.name) && avgMonthlyBurn !== null && avgMonthlyBurn > 0 && (
+                  {!isEditing &&
+                    isEmergencyFund(g.name) &&
+                    avgMonthlyBurn !== null &&
+                    avgMonthlyBurn > 0 &&
                     (() => {
                       const covered = g.saved / avgMonthlyBurn;
                       const color = monthsCoveredColor(covered);
                       return (
                         <div
-                          className="mb-3 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
-                          style={{ backgroundColor: color + '15', borderColor: color + '33', border: '1px solid' }}
+                          className="mb-3 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5"
+                          style={{
+                            backgroundColor: color + '15',
+                            borderColor: color + '33',
+                            border: '1px solid',
+                          }}
                         >
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: color + '99' }}>
+                            <p
+                              className="mb-0.5 text-[10px] font-semibold tracking-widest uppercase"
+                              style={{ color: color + '99' }}
+                            >
                               Months covered
                             </p>
                             <div className="flex items-baseline gap-1.5">
-                              <span className="text-2xl font-bold font-mono" style={{ color }}>
+                              <span className="font-mono text-2xl font-bold" style={{ color }}>
                                 {formatMonthsCovered(covered)}
                               </span>
-                              <span className="text-xs text-text-3">
-                                mo &nbsp;·&nbsp; {formatMonthsCovered(EMERGENCY_MONTHS - covered > 0 ? EMERGENCY_MONTHS - covered : 0)} mo to 3-month goal
+                              <span className="text-text-3 text-xs">
+                                mo &nbsp;·&nbsp;{' '}
+                                {formatMonthsCovered(
+                                  EMERGENCY_MONTHS - covered > 0 ? EMERGENCY_MONTHS - covered : 0,
+                                )}{' '}
+                                mo to 3-month goal
                               </span>
                             </div>
-                            <p className="text-[10px] text-text-4 mt-0.5">
-                              ${Math.round(g.saved).toLocaleString()} ÷ ${Math.round(avgMonthlyBurn).toLocaleString()}/mo (spending + committed)
+                            <p className="text-text-4 mt-0.5 text-[10px]">
+                              ${Math.round(g.saved).toLocaleString()} ÷ $
+                              {Math.round(avgMonthlyBurn).toLocaleString()}/mo (spending +
+                              committed)
                             </p>
                           </div>
                           {/* Mini coverage bar */}
                           <div className="w-16 shrink-0">
-                            <div className="h-1.5 bg-surface rounded-full overflow-hidden mb-1">
+                            <div className="bg-surface mb-1 h-1.5 overflow-hidden rounded-full">
                               <div
                                 className="h-full rounded-full transition-all duration-700"
                                 style={{
@@ -442,28 +430,29 @@ export default function GoalsPanel() {
                                 }}
                               />
                             </div>
-                            <p className="text-[10px] text-text-4 text-right">of {EMERGENCY_MONTHS} mo</p>
+                            <p className="text-text-4 text-right text-[10px]">
+                              of {EMERGENCY_MONTHS} mo
+                            </p>
                           </div>
                         </div>
                       );
-                    })()
-                  )}
+                    })()}
 
                   {/* Smart target banner */}
                   {showSmartBanner && insights && avgMonthlyBurn !== null && (
-                    <div className="mb-3 rounded-lg border border-[#00d98a]/20 bg-[#00d98a]/5 px-3 py-2.5 flex items-center justify-between gap-3">
+                    <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[#00d98a]/20 bg-[#00d98a]/5 px-3 py-2.5">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#00d98a]/60 mb-0.5">
+                        <p className="mb-0.5 text-[10px] font-semibold tracking-widest text-[#00d98a]/60 uppercase">
                           Smart target
                         </p>
-                        <p className="text-xs text-text-3 leading-snug">
+                        <p className="text-text-3 text-xs leading-snug">
                           3-month fund ·{' '}
                           <span className="font-mono">
                             ${Math.round(avgMonthlyBurn).toLocaleString()} avg/mo
                           </span>{' '}
                           (spending + bills) × {EMERGENCY_MONTHS} ={' '}
                           <span className="font-mono font-semibold text-[#00d98a]">
-                            ${smartFundTarget!.toLocaleString()}
+                            ${smartFundTarget.toLocaleString()}
                           </span>{' '}
                           <span className="text-text-4">
                             ({insights.monthsAnalyzed} mo of data)
@@ -471,8 +460,8 @@ export default function GoalsPanel() {
                         </p>
                       </div>
                       <button
-                        onClick={() => applySmartTarget(g, smartFundTarget!)}
-                        className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-[#00d98a]/30 text-[#00d98a] hover:bg-[#00d98a]/10 transition-colors"
+                        onClick={() => applySmartTarget(g, smartFundTarget)}
+                        className="shrink-0 rounded-lg border border-[#00d98a]/30 px-2.5 py-1 text-xs text-[#00d98a] transition-colors hover:bg-[#00d98a]/10"
                       >
                         Apply
                       </button>
@@ -485,50 +474,46 @@ export default function GoalsPanel() {
                       onAdd={(amount, note) => addContribution(g, amount, note)}
                     />
                   ) : (
-                    <p className="text-xs font-semibold text-[#00d98a]">
-                      Goal reached! 🎯
-                    </p>
+                    <p className="text-xs font-semibold text-[#00d98a]">Goal reached! 🎯</p>
                   )}
 
                   {/* History toggle */}
                   <div className="mt-2">
                     <button
                       onClick={() => toggleHistory(g.id)}
-                      className="text-[10px] text-text-4 hover:text-text-3 transition-colors"
+                      className="text-text-4 hover:text-text-3 text-[10px] transition-colors"
                     >
-                      {historyGoalId === g.id
-                        ? '▾ Hide history'
-                        : '▸ Show history'}
+                      {historyGoalId === g.id ? '▾ Hide history' : '▸ Show history'}
                     </button>
                     {historyGoalId === g.id && (
                       <div className="mt-2 space-y-1">
                         {contributions.length === 0 ? (
-                          <p className="text-[11px] text-text-4 py-1">
+                          <p className="text-text-4 py-1 text-[11px]">
                             No contributions logged yet.
                           </p>
                         ) : (
                           contributions.map((c) => (
                             <div
                               key={c.id}
-                              className="flex items-center gap-2 py-1 border-b border-border-dim"
+                              className="border-border-dim flex items-center gap-2 border-b py-1"
                             >
-                              <span className="text-[11px] font-mono text-[#00d98a] shrink-0">
+                              <span className="shrink-0 font-mono text-[11px] text-[#00d98a]">
                                 +${c.amount.toLocaleString()}
                               </span>
                               {c.note && (
-                                <span className="text-[11px] text-text-3 flex-1 truncate">
+                                <span className="text-text-3 flex-1 truncate text-[11px]">
                                   {c.note}
                                 </span>
                               )}
-                              <span className="text-[10px] text-text-4 ml-auto shrink-0">
-                                {new Date(c.created_at).toLocaleDateString(
-                                  'en-US',
-                                  { month: 'short', day: 'numeric' },
-                                )}
+                              <span className="text-text-4 ml-auto shrink-0 text-[10px]">
+                                {new Date(c.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
                               </span>
                               <button
                                 onClick={() => removeContribution(c)}
-                                className="text-text-4 hover:text-[#ff4560] text-[10px] transition-colors"
+                                className="text-text-4 text-[10px] transition-colors hover:text-[#ff4560]"
                               >
                                 ✕
                               </button>
@@ -547,16 +532,14 @@ export default function GoalsPanel() {
 
       {/* New goal form */}
       <div>
-        <h3 className={`${LABEL_CLS} mb-3`}>
-          New goal
-        </h3>
-        <div className="flex gap-2 flex-wrap">
+        <h3 className={`${LABEL_CLS} mb-3`}>New goal</h3>
+        <div className="flex flex-wrap gap-2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
             placeholder="Goal name"
-            className={`flex-1 min-w-40 ${INPUT_CLS}`}
+            className={`min-w-40 flex-1 ${INPUT_CLS}`}
           />
           <input
             value={newTarget}
@@ -577,10 +560,7 @@ export default function GoalsPanel() {
               </option>
             ))}
           </select>
-          <button
-            onClick={addGoal}
-            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-          >
+          <button onClick={addGoal} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
             + Add
           </button>
         </div>
@@ -608,14 +588,14 @@ function ContributionRow({
   }
 
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex flex-wrap gap-2">
       <input
         type="number"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder="Add savings $"
-        className="w-32 text-sm font-mono bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+        className="bg-surface border-border text-text placeholder-text-4 w-32 rounded-lg border px-3 py-1.5 font-mono text-sm transition-colors focus:border-blue-600 focus:outline-none"
       />
       <input
         type="text"
@@ -623,12 +603,9 @@ function ContributionRow({
         onChange={(e) => setNote(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder="Note (optional)"
-        className="flex-1 min-w-28 text-sm bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+        className="bg-surface border-border text-text placeholder-text-4 min-w-28 flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
       />
-      <button
-        onClick={submit}
-        className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-      >
+      <button onClick={submit} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
         Save
       </button>
     </div>

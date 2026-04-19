@@ -40,22 +40,14 @@ export default function MetricCard({
   accent?: string;
   delta?: { text: string; good: boolean | null } | null;
 }) {
-  const {
-    text: textClass,
-    line: color,
-    bg: bgHint,
-  } = ACCENT[accent] ?? ACCENT.default;
+  const { text: textClass, line: color, bg: bgHint } = ACCENT[accent] ?? ACCENT.default;
 
   const deltaClass =
-    d?.good === true
-      ? 'text-[#00d98a]'
-      : d?.good === false
-        ? 'text-[#ff4560]'
-        : 'text-text-4';
+    d?.good === true ? 'text-[#00d98a]' : d?.good === false ? 'text-[#ff4560]' : 'text-text-4';
 
   return (
     <div
-      className="bg-surface rounded-xl border border-border p-4 relative overflow-hidden flex flex-col"
+      className="bg-surface border-border relative flex flex-col overflow-hidden rounded-xl border p-4"
       style={{
         backgroundColor:
           bgHint !== 'transparent'
@@ -65,26 +57,16 @@ export default function MetricCard({
     >
       {accent !== 'default' && (
         <div
-          className="absolute top-0 left-0 right-0 h-0.5"
+          className="absolute top-0 right-0 left-0 h-0.5"
           style={{
             background: `linear-gradient(90deg, ${color}cc, ${color}33 60%, transparent)`,
           }}
         />
       )}
-      <p className={`${LABEL_CLS} mb-1.5`}>
-        {label}
-      </p>
-      <p
-        className={`text-[22px] font-mono font-semibold leading-none ${textClass}`}
-      >
-        {value}
-      </p>
-      {sub && <p className="text-[10px] font-mono text-text-4 mt-1.5">{sub}</p>}
-      {d && (
-        <p className={`text-[10px] font-mono mt-1.5 ${deltaClass}`}>
-          {d.text} vs last mo
-        </p>
-      )}
+      <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
+      <p className={`font-mono text-[22px] leading-none font-semibold ${textClass}`}>{value}</p>
+      {sub && <p className="text-text-4 mt-1.5 font-mono text-[10px]">{sub}</p>}
+      {d && <p className={`mt-1.5 font-mono text-[10px] ${deltaClass}`}>{d.text} vs last mo</p>}
     </div>
   );
 }

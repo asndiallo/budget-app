@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { requireAdmin } from '@/lib/auth';
 import { withAuth } from '@/lib/route-helpers';
 
@@ -23,9 +24,7 @@ export const GET = withAuth(async (req, { userId, user, db }) => {
     if (role === 'admin' && new URL(req.url).searchParams.get('all') === '1') {
       dump[table] = db.prepare(`SELECT * FROM ${table}`).all();
     } else {
-      dump[table] = db
-        .prepare(`SELECT * FROM ${table} WHERE user_id = ?`)
-        .all(userId);
+      dump[table] = db.prepare(`SELECT * FROM ${table} WHERE user_id = ?`).all(userId);
     }
   }
 
@@ -49,10 +48,7 @@ export const POST = withAuth(async (req, { user, db }) => {
 
   const body = await req.json();
   if (!body.tables || typeof body.tables !== 'object') {
-    return NextResponse.json(
-      { ok: false, error: 'Invalid backup format' },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: 'Invalid backup format' }, { status: 400 });
   }
 
   const tables = body.tables as Record<string, Record<string, unknown>[]>;

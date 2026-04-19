@@ -45,10 +45,7 @@ export function formatCurrency(n: number): string {
 }
 
 export function generateYearMonths(year = new Date().getFullYear()): string[] {
-  return Array.from(
-    { length: 12 },
-    (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
-  );
+  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 }
 
 export function parseCSVLine(line: string): string[] {

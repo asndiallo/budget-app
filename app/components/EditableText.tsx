@@ -40,13 +40,13 @@ export default function EditableText({
             setEditing(false);
           }
         }}
-        className={`${className} border-b border-[#4a8cff]/50 bg-transparent outline-none w-full`}
+        className={`${className} w-full border-b border-[#4a8cff]/50 bg-transparent outline-none`}
       />
     );
   }
   return (
     <span
-      className={`${className} cursor-pointer hover:opacity-70 transition-opacity truncate ${!value ? 'opacity-30' : ''}`}
+      className={`${className} cursor-pointer truncate transition-opacity hover:opacity-70 ${!value ? 'opacity-30' : ''}`}
       onClick={() => setEditing(true)}
       title="Click to edit"
     >

@@ -1,9 +1,9 @@
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { NextResponse } from 'next/server';
 
 import { DEDUCTION_FIELDS } from '@/lib/config';
-import type { HealthScoreComponent } from '@/lib/types';
-import { NextResponse } from 'next/server';
+import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
+import type { HealthScoreComponent } from '@/lib/types';
 
 function lastCompleteMonths(n: number): string[] {
   const months: string[] = [];
@@ -11,9 +11,7 @@ function lastCompleteMonths(n: number): string[] {
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
   for (let i = 0; i < n; i++) {
-    months.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-    );
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     d.setMonth(d.getMonth() - 1);
   }
   return months;
@@ -26,18 +24,14 @@ function clamp(v: number, lo: number, hi: number) {
 export const GET = withAuth(async (_req, { userId, db }) => {
   const fixedMonthly = (
     db
-      .prepare(
-        'SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1',
-      )
+      .prepare('SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1')
       .all(userId) as { amount: number; period: string }[]
   ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
 
   const debtPayments = (
-    db
-      .prepare(
-        'SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0',
-      )
-      .all(userId) as { monthly_payment: number }[]
+    db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as {
+      monthly_payment: number;
+    }[]
   ).reduce((s, d) => s + d.monthly_payment, 0);
 
   const committed = fixedMonthly + debtPayments;
@@ -53,8 +47,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
       const { totalIncome, tsp } = computeMonthlyFinancials(db, month, userId);
       if (totalIncome === 0) continue;
       const config = incomeForMonth(db, month, userId);
-      const deductions =
-        tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
+      const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
       const extraIncome = (
         db
           .prepare(
@@ -92,9 +85,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     ).s;
     const liquidGoals = (
       db
-        .prepare(
-          'SELECT COALESCE(SUM(saved),0) as s FROM goals WHERE user_id=? AND active = 1',
-        )
+        .prepare('SELECT COALESCE(SUM(saved),0) as s FROM goals WHERE user_id=? AND active = 1')
         .get(userId) as { s: number }
     ).s;
     const liquid = liquidAssets + liquidGoals;
@@ -112,9 +103,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
         if (s > 0) spends.push(s);
       }
       const avgExpenses =
-        spends.length > 0
-          ? spends.reduce((a, b) => a + b, 0) / spends.length
-          : null;
+        spends.length > 0 ? spends.reduce((a, b) => a + b, 0) / spends.length : null;
       if (avgExpenses && avgExpenses > 0) {
         efScore = clamp(Math.round((liquid / avgExpenses / 6) * 25), 0, 25);
         efDetail = `${(liquid / avgExpenses).toFixed(1)} months covered`;
@@ -153,14 +142,9 @@ export const GET = withAuth(async (_req, { userId, db }) => {
           'SELECT category, SUM(amount) as total FROM transactions WHERE user_id=? AND month = ? GROUP BY category',
         )
         .all(userId, lastMonth) as { category: string; total: number }[];
-      const spendMap = Object.fromEntries(
-        spending.map((r) => [r.category, r.total]),
-      );
+      const spendMap = Object.fromEntries(spending.map((r) => [r.category, r.total]));
       const totalBudget = budgets.reduce((s, b) => s + b.budget, 0);
-      const totalSpent = budgets.reduce(
-        (s, b) => s + (spendMap[b.category] ?? 0),
-        0,
-      );
+      const totalSpent = budgets.reduce((s, b) => s + (spendMap[b.category] ?? 0), 0);
       if (totalBudget > 0) {
         const ratio = totalSpent / totalBudget;
         budgetScore =

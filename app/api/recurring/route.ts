@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 
 function normalize(desc: string): string {
@@ -73,8 +74,7 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     const consistent = g.amounts.every((a) => Math.abs(a - avg) / avg <= 0.15);
     if (!consistent) continue;
     if (existingKeys.has(key)) continue;
-    if ([...existingKeys].some((ek) => ek.includes(key) || key.includes(ek)))
-      continue;
+    if ([...existingKeys].some((ek) => ek.includes(key) || key.includes(ek))) continue;
 
     candidates.push({
       description: g.description,
@@ -86,8 +86,6 @@ export const GET = withAuth(async (_req, { userId, db }) => {
     });
   }
 
-  candidates.sort(
-    (a, b) => b.months_seen - a.months_seen || b.avg_amount - a.avg_amount,
-  );
+  candidates.sort((a, b) => b.months_seen - a.months_seen || b.avg_amount - a.avg_amount);
   return NextResponse.json(candidates);
 });

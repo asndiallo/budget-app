@@ -3,13 +3,7 @@
 // ── User & Auth ───────────────────────────────────────────────────────────────
 
 export type UserRole = 'admin' | 'user' | 'viewer';
-export type Branch =
-  | 'Army'
-  | 'Navy'
-  | 'Air Force'
-  | 'Marines'
-  | 'Coast Guard'
-  | 'Space Force';
+export type Branch = 'Army' | 'Navy' | 'Air Force' | 'Marines' | 'Coast Guard' | 'Space Force';
 export type Component = 'Active' | 'Reserve' | 'Guard';
 
 export interface UserProfile {
@@ -261,13 +255,7 @@ export interface ContributionLimits {
 
 // ── Allotments ────────────────────────────────────────────────────────────────
 
-export type AllotmentType =
-  | 'savings'
-  | 'loan'
-  | 'family'
-  | 'insurance'
-  | 'charity'
-  | 'other';
+export type AllotmentType = 'savings' | 'loan' | 'family' | 'insurance' | 'charity' | 'other';
 
 export interface Allotment {
   id: number;

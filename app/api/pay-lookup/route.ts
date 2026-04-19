@@ -1,17 +1,11 @@
 // Returns computed pay figures for a given grade / YOS / duty station.
 // Used by the profile wizard to preview auto-filled income values.
 
-import {
-  INSTALLATIONS,
-  getBAH,
-  getBAS,
-  getBasePay,
-  getRankTitle,
-} from '@/lib/pay-tables';
-
-import type { Branch } from '@/lib/types';
 import { NextResponse } from 'next/server';
+
 import type { PayGrade } from '@/lib/pay-tables';
+import { getBAH, getBAS, getBasePay, getRankTitle, INSTALLATIONS } from '@/lib/pay-tables';
+import type { Branch } from '@/lib/types';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

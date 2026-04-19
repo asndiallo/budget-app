@@ -4,11 +4,11 @@
 import type {
   Allotment,
   Asset,
-  TaxYearSummary,
   AssetCategory,
   BillPayment,
-  CategoryBudget,
   CategorizationRule,
+  CategoryBudget,
+  ContributionLimits,
   CsvRow,
   Debt,
   FixedExpense,
@@ -18,11 +18,11 @@ import type {
   IncomeConfig,
   IncomeEntry,
   IncomeProfile,
+  NetWorthSnapshot,
   PaymentSource,
   Receivable,
-  ContributionLimits,
-  NetWorthSnapshot,
   SpendingInsights,
+  TaxYearSummary,
   Transaction,
   UserProfile,
   YearOverview,
@@ -42,23 +42,17 @@ const send = (method: string, url: string, body: unknown) =>
 export const api = {
   auth: {
     me: () => fetch('/api/auth/me').then(asJson<UserProfile>),
-    logout: () =>
-      send('POST', '/api/auth/logout', {}).then(asJson<{ ok: boolean }>),
+    logout: () => send('POST', '/api/auth/logout', {}).then(asJson<{ ok: boolean }>),
     updateProfile: (data: Partial<UserProfile> & { reseed_income?: boolean }) =>
       send('PATCH', '/api/auth/profile', data).then(asJson<{ ok: boolean }>),
   },
 
   income: {
-    get: (month: string) =>
-      fetch(`/api/income?month=${month}`).then(asJson<IncomeConfig>),
+    get: (month: string) => fetch(`/api/income?month=${month}`).then(asJson<IncomeConfig>),
     update: (month: string, data: Partial<IncomeConfig>) =>
-      send('POST', '/api/income', { month, ...data }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('POST', '/api/income', { month, ...data }).then(asJson<{ ok: boolean }>),
     suggest: () =>
-      fetch('/api/income/suggest').then(
-        asJson<{ base_pay: number; bas: number; bah: number }>,
-      ),
+      fetch('/api/income/suggest').then(asJson<{ base_pay: number; bas: number; bah: number }>),
   },
 
   fixedExpenses: {
@@ -81,9 +75,7 @@ export const api = {
         ...data,
       }).then(asJson<FixedExpense>),
     remove: (id: number) =>
-      send('DELETE', '/api/fixed-expenses', { id }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/fixed-expenses', { id }).then(asJson<{ ok: boolean }>),
     update: (data: {
       id: number;
       label: string;
@@ -96,38 +88,25 @@ export const api = {
       recurrence?: 'monthly' | 'biweekly';
       recurrence_anchor?: string | null;
       end_date?: string | null;
-    }) =>
-      send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
+    }) => send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
   },
 
   transactions: {
-    list: (month: string) =>
-      fetch(`/api/transactions?month=${month}`).then(asJson<Transaction[]>),
+    list: (month: string) => fetch(`/api/transactions?month=${month}`).then(asJson<Transaction[]>),
     search: (q: string) =>
-      fetch(`/api/transactions?q=${encodeURIComponent(q)}`).then(
-        asJson<Transaction[]>,
-      ),
+      fetch(`/api/transactions?q=${encodeURIComponent(q)}`).then(asJson<Transaction[]>),
     add: (data: Omit<Transaction, 'id' | 'created_at'> & { source?: string }) =>
       send('POST', '/api/transactions', data).then(asJson<Transaction>),
     update: (
       id: number,
-      data: Partial<
-        Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>
-      >,
-    ) =>
-      send('PATCH', '/api/transactions', { id, ...data }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>>,
+    ) => send('PATCH', '/api/transactions', { id, ...data }).then(asJson<{ ok: boolean }>),
     remove: (id: number) =>
       send('DELETE', '/api/transactions', { id }).then(asJson<{ ok: boolean }>),
     bulkDelete: (ids: number[]) =>
-      send('DELETE', '/api/transactions', { ids }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/transactions', { ids }).then(asJson<{ ok: boolean }>),
     bulkRecategorize: (ids: number[], category: string) =>
-      send('PATCH', '/api/transactions', { ids, category }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('PATCH', '/api/transactions', { ids, category }).then(asJson<{ ok: boolean }>),
     importCsv: (rows: CsvRow[], month: string, source: string) =>
       send('POST', '/api/csv-import', { rows, month, source }).then(
         asJson<{ ok: boolean; imported: number; months: string[]; billsMatched: number }>,
@@ -138,22 +117,14 @@ export const api = {
     list: () => fetch('/api/goals').then(asJson<Goal[]>),
     add: (name: string, target: number, color: string) =>
       send('POST', '/api/goals', { name, target, color }).then(asJson<Goal>),
-    update: (
-      id: number,
-      fields: Partial<Pick<Goal, 'name' | 'target' | 'saved' | 'color'>>,
-    ) =>
-      send('PATCH', '/api/goals', { id, ...fields }).then(
-        asJson<{ ok: boolean }>,
-      ),
-    remove: (id: number) =>
-      send('DELETE', '/api/goals', { id }).then(asJson<{ ok: boolean }>),
+    update: (id: number, fields: Partial<Pick<Goal, 'name' | 'target' | 'saved' | 'color'>>) =>
+      send('PATCH', '/api/goals', { id, ...fields }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) => send('DELETE', '/api/goals', { id }).then(asJson<{ ok: boolean }>),
   },
 
   goalContributions: {
     list: (goalId: number) =>
-      fetch(`/api/goal-contributions?goal_id=${goalId}`).then(
-        asJson<GoalContribution[]>,
-      ),
+      fetch(`/api/goal-contributions?goal_id=${goalId}`).then(asJson<GoalContribution[]>),
     add: (goalId: number, amount: number, note?: string | null) =>
       send('POST', '/api/goal-contributions', {
         goal_id: goalId,
@@ -195,18 +166,10 @@ export const api = {
   assets: {
     list: () => fetch('/api/assets').then(asJson<Asset[]>),
     add: (label: string, category: AssetCategory, balance: number) =>
-      send('POST', '/api/assets', { label, category, balance }).then(
-        asJson<Asset>,
-      ),
-    update: (
-      id: number,
-      data: Partial<Pick<Asset, 'label' | 'category' | 'balance'>>,
-    ) =>
-      send('PATCH', '/api/assets', { id, ...data }).then(
-        asJson<{ ok: boolean }>,
-      ),
-    remove: (id: number) =>
-      send('DELETE', '/api/assets', { id }).then(asJson<{ ok: boolean }>),
+      send('POST', '/api/assets', { label, category, balance }).then(asJson<Asset>),
+    update: (id: number, data: Partial<Pick<Asset, 'label' | 'category' | 'balance'>>) =>
+      send('PATCH', '/api/assets', { id, ...data }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) => send('DELETE', '/api/assets', { id }).then(asJson<{ ok: boolean }>),
   },
 
   healthScore: {
@@ -214,13 +177,11 @@ export const api = {
   },
 
   ytd: {
-    get: (month: string) =>
-      fetch(`/api/ytd?month=${month}`).then(asJson<YtdSummary>),
+    get: (month: string) => fetch(`/api/ytd?month=${month}`).then(asJson<YtdSummary>),
   },
 
   overview: {
-    get: (year: number) =>
-      fetch(`/api/overview?year=${year}`).then(asJson<YearOverview>),
+    get: (year: number) => fetch(`/api/overview?year=${year}`).then(asJson<YearOverview>),
   },
 
   categoryBudgets: {
@@ -232,18 +193,13 @@ export const api = {
         percentage,
       }).then(asJson<{ ok: boolean }>),
     remove: (category: string) =>
-      send('DELETE', '/api/category-budgets', { category }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/category-budgets', { category }).then(asJson<{ ok: boolean }>),
   },
 
   billPayments: {
-    list: (month: string) =>
-      fetch(`/api/bill-payments?month=${month}`).then(asJson<BillPayment[]>),
+    list: (month: string) => fetch(`/api/bill-payments?month=${month}`).then(asJson<BillPayment[]>),
     markPaid: (fixed_expense_id: number, month: string) =>
-      send('POST', '/api/bill-payments', { fixed_expense_id, month }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('POST', '/api/bill-payments', { fixed_expense_id, month }).then(asJson<{ ok: boolean }>),
     unmark: (fixed_expense_id: number, month: string) =>
       send('DELETE', '/api/bill-payments', { fixed_expense_id, month }).then(
         asJson<{ ok: boolean }>,
@@ -251,56 +207,38 @@ export const api = {
   },
 
   categorizationRules: {
-    list: () =>
-      fetch('/api/categorization-rules').then(asJson<CategorizationRule[]>),
+    list: () => fetch('/api/categorization-rules').then(asJson<CategorizationRule[]>),
     add: (keyword: string, category: string) =>
       send('POST', '/api/categorization-rules', { keyword, category }).then(
         asJson<CategorizationRule>,
       ),
     remove: (id: number) =>
-      send('DELETE', '/api/categorization-rules', { id }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/categorization-rules', { id }).then(asJson<{ ok: boolean }>),
   },
 
   paymentSources: {
     list: () => fetch('/api/payment-sources').then(asJson<PaymentSource[]>),
     add: (label: string) =>
-      send('POST', '/api/payment-sources', { label }).then(
-        asJson<PaymentSource>,
-      ),
+      send('POST', '/api/payment-sources', { label }).then(asJson<PaymentSource>),
     remove: (id: number) =>
-      send('DELETE', '/api/payment-sources', { id }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/payment-sources', { id }).then(asJson<{ ok: boolean }>),
   },
 
   debts: {
     list: () => fetch('/api/debts').then(asJson<Debt[]>),
-    add: (data: Omit<Debt, 'id'>) =>
-      send('POST', '/api/debts', data).then(asJson<Debt>),
+    add: (data: Omit<Debt, 'id'>) => send('POST', '/api/debts', data).then(asJson<Debt>),
     update: (id: number, data: Partial<Omit<Debt, 'id'>>) =>
-      send('PATCH', '/api/debts', { id, ...data }).then(
-        asJson<{ ok: boolean }>,
-      ),
-    remove: (id: number) =>
-      send('DELETE', '/api/debts', { id }).then(asJson<{ ok: boolean }>),
+      send('PATCH', '/api/debts', { id, ...data }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) => send('DELETE', '/api/debts', { id }).then(asJson<{ ok: boolean }>),
   },
 
   incomeEntries: {
     list: (month: string) =>
       fetch(`/api/income-entries?month=${month}`).then(asJson<IncomeEntry[]>),
-    add: (data: {
-      description: string;
-      amount: number;
-      month: string;
-      source: string;
-    }) =>
+    add: (data: { description: string; amount: number; month: string; source: string }) =>
       send('POST', '/api/income-entries', data).then(asJson<IncomeEntry>),
     remove: (id: number) =>
-      send('DELETE', '/api/income-entries', { id }).then(
-        asJson<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/income-entries', { id }).then(asJson<{ ok: boolean }>),
   },
 
   importHistory: {
@@ -342,9 +280,7 @@ export const api = {
         (r) => r.json() as Promise<import('./types').LeaveEvent>,
       ),
     removeEvent: (id: number) =>
-      send('DELETE', '/api/leave', { id }).then(
-        (r) => r.json() as Promise<{ ok: boolean }>,
-      ),
+      send('DELETE', '/api/leave', { id }).then((r) => r.json() as Promise<{ ok: boolean }>),
     /** Set the LES anchor (balance as of the end of the LES period) */
     setLesAnchor: (balance_days: number, les_period: string) =>
       send('PATCH', '/api/leave', { balance_days, les_period }).then(
@@ -362,20 +298,10 @@ export const api = {
 
   receivables: {
     list: () => fetch('/api/receivables').then(asJson<Receivable[]>),
-    add: (data: {
-      name: string;
-      description: string;
-      amount: number;
-      month_created: string;
-    }) =>
+    add: (data: { name: string; description: string; amount: number; month_created: string }) =>
       send('POST', '/api/receivables', data).then(asJson<Receivable>),
-    update: (
-      id: number,
-      data: Partial<Pick<Receivable, 'name' | 'description' | 'amount'>>,
-    ) =>
-      send('PATCH', '/api/receivables', { id, ...data }).then(
-        asJson<{ ok: boolean }>,
-      ),
+    update: (id: number, data: Partial<Pick<Receivable, 'name' | 'description' | 'amount'>>) =>
+      send('PATCH', '/api/receivables', { id, ...data }).then(asJson<{ ok: boolean }>),
     recordPayment: (id: number, payment: number, month: string) =>
       send('PATCH', '/api/receivables', { id, payment, month }).then(
         asJson<{ ok: boolean; fullyPaid: boolean }>,
@@ -385,8 +311,7 @@ export const api = {
   },
 
   netWorthHistory: {
-    list: () =>
-      fetch('/api/net-worth-history').then(asJson<NetWorthSnapshot[]>),
+    list: () => fetch('/api/net-worth-history').then(asJson<NetWorthSnapshot[]>),
   },
 
   contributionLimits: {
@@ -395,8 +320,7 @@ export const api = {
   },
 
   taxYearSummary: {
-    get: (year: number) =>
-      fetch(`/api/tax-year-summary?year=${year}`).then(asJson<TaxYearSummary>),
+    get: (year: number) => fetch(`/api/tax-year-summary?year=${year}`).then(asJson<TaxYearSummary>),
   },
 
   allotments: {
@@ -405,8 +329,7 @@ export const api = {
       send('POST', '/api/allotments', data).then(asJson<{ id: number }>),
     update: (id: number, data: Partial<Omit<Allotment, 'id' | 'created_at'>>) =>
       send('PATCH', '/api/allotments', { id, ...data }).then(asJson<{ ok: boolean }>),
-    remove: (id: number) =>
-      send('DELETE', '/api/allotments', { id }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) => send('DELETE', '/api/allotments', { id }).then(asJson<{ ok: boolean }>),
   },
 
   incomeProfiles: {

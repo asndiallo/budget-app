@@ -5,18 +5,12 @@
 /** Monthly DoD TSP contribution rate under BRS given a member's contribution rate. */
 export function dodMatchRate(memberRate: number): number {
   // 1% automatic + dollar-for-dollar on first 3% + $0.50 per dollar on next 2%
-  const match =
-    Math.min(memberRate, 0.03) +
-    0.5 * Math.max(0, Math.min(memberRate - 0.03, 0.02));
+  const match = Math.min(memberRate, 0.03) + 0.5 * Math.max(0, Math.min(memberRate - 0.03, 0.02));
   return 0.01 + match; // 1% auto always, max 5% total at 5%+ member rate
 }
 
 /** Future value of fixed monthly contributions compounding monthly. */
-function fvAnnuity(
-  monthlyPmt: number,
-  annualRate: number,
-  months: number,
-): number {
+function fvAnnuity(monthlyPmt: number, annualRate: number, months: number): number {
   if (months <= 0 || monthlyPmt <= 0) return 0;
   const r = annualRate / 12;
   if (r === 0) return monthlyPmt * months;
@@ -70,14 +64,7 @@ export interface BrsResult {
 }
 
 export function calcBrs(inputs: BrsInputs): BrsResult {
-  const {
-    basePay,
-    tspRate,
-    currentYos,
-    retirementYos,
-    annualReturn,
-    contPayMultiplier,
-  } = inputs;
+  const { basePay, tspRate, currentYos, retirementYos, annualReturn, contPayMultiplier } = inputs;
 
   const monthsToRetirement = Math.max(0, (retirementYos - currentYos) * 12);
 
@@ -96,23 +83,16 @@ export function calcBrs(inputs: BrsInputs): BrsResult {
     annualReturn,
     monthsToRetirement,
   );
-  const tspWithoutMatch = fvAnnuity(
-    memberContribMonthly,
-    annualReturn,
-    monthsToRetirement,
-  );
+  const tspWithoutMatch = fvAnnuity(memberContribMonthly, annualReturn, monthsToRetirement);
 
   // ── Continuation pay ─────────────────────────────────────────────────────────
   // Paid at 12 YOS, only relevant if member hasn't passed that point.
   const contPayLumpSum = currentYos < 12 ? basePay * contPayMultiplier : 0;
   const monthsContPayToRetirement =
-    contPayLumpSum > 0
-      ? Math.max(0, (retirementYos - Math.max(currentYos, 12)) * 12)
-      : 0;
+    contPayLumpSum > 0 ? Math.max(0, (retirementYos - Math.max(currentYos, 12)) * 12) : 0;
   const contPayFvAtRetirement =
     contPayLumpSum > 0
-      ? contPayLumpSum *
-        Math.pow(1 + annualReturn / 12, monthsContPayToRetirement)
+      ? contPayLumpSum * Math.pow(1 + annualReturn / 12, monthsContPayToRetirement)
       : 0;
 
   // ── Wealth at retirement ──────────────────────────────────────────────────────

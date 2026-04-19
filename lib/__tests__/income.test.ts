@@ -1,7 +1,7 @@
-import { computeMonthlyFinancials, incomeForMonth } from '../income';
 import { describe, expect, it } from 'vitest';
 
 import { TSP_CONFIG } from '../config';
+import { computeMonthlyFinancials, incomeForMonth } from '../income';
 
 // ── Mock DB helper ────────────────────────────────────────────────────────────
 // Builds a minimal fake DB object whose .prepare().all() returns the provided rows.
@@ -138,11 +138,7 @@ describe('computeMonthlyFinancials', () => {
         { key: 'other', value: 0 },
         { key: 'tsp_rate', value: 0.05 },
       ]);
-      const { totalIncome, tsp } = computeMonthlyFinancials(
-        db,
-        '2026-03',
-        'u1',
-      );
+      const { totalIncome, tsp } = computeMonthlyFinancials(db, '2026-03', 'u1');
       expect(totalIncome).toBeCloseTo(5135.8, 1);
       expect(tsp).toBe(Math.round(2836.8 * 0.05)); // 142
     });
@@ -152,11 +148,7 @@ describe('computeMonthlyFinancials', () => {
         { key: 'base_pay', value: 0 },
         { key: 'tsp_rate', value: 0 },
       ]);
-      const { totalIncome, tsp } = computeMonthlyFinancials(
-        db,
-        '2026-03',
-        'u1',
-      );
+      const { totalIncome, tsp } = computeMonthlyFinancials(db, '2026-03', 'u1');
       expect(totalIncome).toBeGreaterThanOrEqual(0);
       expect(tsp).toBeGreaterThanOrEqual(0);
     });

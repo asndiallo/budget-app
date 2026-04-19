@@ -1,10 +1,10 @@
 'use client';
 
-import { BTN_BLUE_CLS, CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
-import type { CategoryBudget, SpendingInsights, Transaction } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
+import { BTN_BLUE_CLS, CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
+import type { CategoryBudget, SpendingInsights, Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface CategoryRow {
@@ -31,10 +31,7 @@ function buildRows(
     insights.categoryInsights.map((ci) => [ci.category, ci.suggestedBudget]),
   );
 
-  const allCats = new Set([
-    ...Object.keys(spending),
-    ...Object.keys(saved),
-  ]);
+  const allCats = new Set([...Object.keys(spending), ...Object.keys(saved)]);
 
   return [...allCats]
     .map((category): CategoryRow => {
@@ -45,7 +42,7 @@ function buildRows(
         ? isPct && monthlyIncome
           ? Math.round((monthlyIncome * entry.percentage!) / 100)
           : entry.budget
-        : suggestedMap[category] ?? 0;
+        : (suggestedMap[category] ?? 0);
 
       return {
         category,
@@ -83,17 +80,10 @@ export default function BudgetActualPanel({
 
   const reload = (m: string) => {
     setLoading(true);
-    Promise.all([
-      api.transactions.list(m),
-      api.categoryBudgets.list(),
-      api.insights.get(),
-    ])
+    Promise.all([api.transactions.list(m), api.categoryBudgets.list(), api.insights.get()])
       .then(([txs, saved, insights]) => {
         const savedMap = Object.fromEntries(
-          (saved as CategoryBudget[]).map((r) => [
-            r.category,
-            { budget: r.budget, percentage: r.percentage },
-          ]),
+          saved.map((r) => [r.category, { budget: r.budget, percentage: r.percentage }]),
         );
         setRows(buildRows(txs, savedMap, insights, monthlyIncome));
       })
@@ -137,21 +127,17 @@ export default function BudgetActualPanel({
   }
 
   if (loading) {
-    return <p className="text-xs text-text-3 text-center py-8">Loading…</p>;
+    return <p className="text-text-3 py-8 text-center text-xs">Loading…</p>;
   }
 
   if (rows.length === 0) {
     return (
-      <p className="text-xs text-text-3 text-center py-8">
-        No spending or budgets for this month.
-      </p>
+      <p className="text-text-3 py-8 text-center text-xs">No spending or budgets for this month.</p>
     );
   }
 
   const totalSpent = rows.reduce((s, r) => s + r.spent, 0);
-  const totalBudgeted = rows
-    .filter((r) => r.budget > 0)
-    .reduce((s, r) => s + r.budget, 0);
+  const totalBudgeted = rows.filter((r) => r.budget > 0).reduce((s, r) => s + r.budget, 0);
   const overCount = rows.filter((r) => r.budget > 0 && r.spent > r.budget).length;
   const overallPct =
     totalBudgeted > 0 ? Math.min(100, Math.round((totalSpent / totalBudgeted) * 100)) : 0;
@@ -159,21 +145,19 @@ export default function BudgetActualPanel({
   return (
     <div className="space-y-4">
       {/* Summary header */}
-      <div className="bg-surface border border-border rounded-xl px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-text-3">
+      <div className="bg-surface border-border rounded-xl border px-4 py-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-text-3 text-xs">
             Spent vs. budgeted
             {overCount > 0 && (
-              <span className="ml-2 text-[#ff4560] font-semibold">
-                · {overCount} over budget
-              </span>
+              <span className="ml-2 font-semibold text-[#ff4560]">· {overCount} over budget</span>
             )}
           </span>
-          <span className="text-xs font-mono text-text-2">
+          <span className="text-text-2 font-mono text-xs">
             <span
               className={
                 totalBudgeted > 0 && totalSpent > totalBudgeted
-                  ? 'text-[#ff4560] font-semibold'
+                  ? 'font-semibold text-[#ff4560]'
                   : 'text-text'
               }
             >
@@ -185,17 +169,13 @@ export default function BudgetActualPanel({
           </span>
         </div>
         {totalBudgeted > 0 && (
-          <div className="h-1.5 bg-bg rounded-full overflow-hidden">
+          <div className="bg-bg h-1.5 overflow-hidden rounded-full">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${overallPct}%`,
                 backgroundColor:
-                  totalSpent > totalBudgeted
-                    ? '#ff4560'
-                    : overallPct >= 80
-                      ? '#f5aa2a'
-                      : '#00d98a',
+                  totalSpent > totalBudgeted ? '#ff4560' : overallPct >= 80 ? '#f5aa2a' : '#00d98a',
               }}
             />
           </div>
@@ -216,29 +196,24 @@ export default function BudgetActualPanel({
           const isEditing = editingCat === category;
 
           return (
-            <div
-              key={category}
-              className="bg-bg border border-border rounded-xl px-3.5 py-3"
-            >
-              <div className="flex items-center gap-2 mb-2">
+            <div key={category} className="bg-bg border-border rounded-xl border px-3.5 py-3">
+              <div className="mb-2 flex items-center gap-2">
                 <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${catClass}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${catClass}`}
                 >
                   {category}
                 </span>
                 <span
-                  className={`ml-auto text-xs font-mono ${over ? 'text-[#ff4560] font-semibold' : warn ? 'text-[#f5aa2a]' : 'text-text-2'}`}
+                  className={`ml-auto font-mono text-xs ${over ? 'font-semibold text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-text-2'}`}
                 >
                   {formatCurrency(spent)}
                   {hasBudget && (
-                    <span className="text-text-4 font-normal">
-                      {' '}/{' '}{formatCurrency(budget)}
-                    </span>
+                    <span className="text-text-4 font-normal"> / {formatCurrency(budget)}</span>
                   )}
                 </span>
                 {hasBudget && (
                   <span
-                    className={`text-[10px] font-mono shrink-0 ${over ? 'text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-text-4'}`}
+                    className={`shrink-0 font-mono text-[10px] ${over ? 'text-[#ff4560]' : warn ? 'text-[#f5aa2a]' : 'text-text-4'}`}
                   >
                     {pct}%
                   </span>
@@ -246,8 +221,8 @@ export default function BudgetActualPanel({
               </div>
 
               {isEditing ? (
-                <div className="flex items-center gap-2 flex-wrap mt-1">
-                  <div className="flex rounded-lg border border-border overflow-hidden text-[10px]">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <div className="border-border flex overflow-hidden rounded-lg border text-[10px]">
                     <button
                       onClick={() => setEditMode('$')}
                       className={`px-2 py-1 transition-colors ${editMode === '$' ? 'bg-surface-raised text-text' : 'text-text-4 hover:text-text-3'}`}
@@ -271,22 +246,26 @@ export default function BudgetActualPanel({
                       if (e.key === 'Enter') saveEdit(category);
                       if (e.key === 'Escape') cancelEdit();
                     }}
-                    className="w-24 text-sm font-mono bg-surface border border-border rounded-lg px-2.5 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors"
+                    className="bg-surface border-border text-text w-24 rounded-lg border px-2.5 py-1 font-mono text-sm transition-colors focus:border-blue-600 focus:outline-none"
                   />
                   {editMode === '%' && monthlyIncome && (
-                    <span className="text-[10px] text-text-4">
-                      ≈ {formatCurrency(Math.round((monthlyIncome * (parseFloat(editValue) || 0)) / 100))}/mo
+                    <span className="text-text-4 text-[10px]">
+                      ≈{' '}
+                      {formatCurrency(
+                        Math.round((monthlyIncome * (parseFloat(editValue) || 0)) / 100),
+                      )}
+                      /mo
                     </span>
                   )}
                   <button
                     onClick={() => saveEdit(category)}
-                    className={`text-xs px-2.5 py-1 ${BTN_BLUE_CLS}`}
+                    className={`px-2.5 py-1 text-xs ${BTN_BLUE_CLS}`}
                   >
                     Save
                   </button>
                   <button
                     onClick={cancelEdit}
-                    className="text-xs px-2.5 py-1 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
+                    className="border-border text-text-2 hover:text-text rounded-lg border px-2.5 py-1 text-xs transition-colors"
                   >
                     Cancel
                   </button>
@@ -294,22 +273,22 @@ export default function BudgetActualPanel({
               ) : (
                 <div className="flex items-center gap-2">
                   {hasBudget ? (
-                    <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
+                    <div className="bg-surface h-1.5 flex-1 overflow-hidden rounded-full">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${pct}%`, backgroundColor: barColor }}
                       />
                     </div>
                   ) : (
-                    <span className="flex-1 text-[10px] text-text-4">no budget set</span>
+                    <span className="text-text-4 flex-1 text-[10px]">no budget set</span>
                   )}
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     {!isUserBudget && hasBudget && (
-                      <span className="text-[10px] text-text-4">est</span>
+                      <span className="text-text-4 text-[10px]">est</span>
                     )}
                     {isUserBudget && percentage != null && (
-                      <span className="text-[10px] font-mono text-text-4">{percentage}%</span>
+                      <span className="text-text-4 font-mono text-[10px]">{percentage}%</span>
                     )}
                     <button
                       onClick={() => startEdit(row)}
@@ -321,7 +300,7 @@ export default function BudgetActualPanel({
                     {isUserBudget && (
                       <button
                         onClick={() => clearBudget(category)}
-                        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                        className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
                         title="Clear budget"
                       >
                         ✕
@@ -334,9 +313,7 @@ export default function BudgetActualPanel({
               {over && !isEditing && (
                 <p className="mt-1.5 text-[10px] text-[#ff4560]">
                   Over by{' '}
-                  <span className="font-mono font-semibold">
-                    {formatCurrency(spent - budget)}
-                  </span>
+                  <span className="font-mono font-semibold">{formatCurrency(spent - budget)}</span>
                 </p>
               )}
             </div>

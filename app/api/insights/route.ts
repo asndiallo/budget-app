@@ -1,9 +1,9 @@
-import type { CategoryInsight, SpendingInsights } from '@/lib/types';
-
 import { NextResponse } from 'next/server';
+
 import { computeMonthlyFinancials } from '@/lib/income';
-import { currentMonth } from '@/lib/utils';
 import { withAuth } from '@/lib/route-helpers';
+import type { CategoryInsight, SpendingInsights } from '@/lib/types';
+import { currentMonth } from '@/lib/utils';
 
 function prevMonths(to: string, count: number): string[] {
   const [y, m] = to.split('-').map(Number);
@@ -90,10 +90,8 @@ export const GET = withAuth(async (req, { userId, db }) => {
     return { spending, net: totalIncome - tsp - investmentFixed - spending };
   });
 
-  const avgMonthlyExpenses =
-    monthlyData.reduce((s, d) => s + d.spending, 0) / withData6.length;
-  const avgMonthlyNet =
-    monthlyData.reduce((s, d) => s + d.net, 0) / withData6.length;
+  const avgMonthlyExpenses = monthlyData.reduce((s, d) => s + d.spending, 0) / withData6.length;
+  const avgMonthlyNet = monthlyData.reduce((s, d) => s + d.net, 0) / withData6.length;
   const allCategories = [...new Set(rows.map((r) => r.category))];
 
   const avg = (months: string[], cat: string) => {
@@ -104,13 +102,11 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const categoryInsights: CategoryInsight[] = allCategories.map((category) => {
     const avg6m = avg(withData6, category);
     const avg3m = withData3.length > 0 ? avg(withData3, category) : avg6m;
-    const lastMonth =
-      byMonth.get(withData6[withData6.length - 1])?.[category] ?? 0;
+    const lastMonth = byMonth.get(withData6[withData6.length - 1])?.[category] ?? 0;
     const trendRatio = avg6m > 0 ? (avg3m - avg6m) / avg6m : 0;
     const trend: CategoryInsight['trend'] =
       trendRatio > 0.05 ? 'up' : trendRatio < -0.05 ? 'down' : 'stable';
-    const suggestedBudget =
-      Math.round((trend === 'up' ? avg3m * 1.05 : avg3m) / 5) * 5;
+    const suggestedBudget = Math.round((trend === 'up' ? avg3m * 1.05 : avg3m) / 5) * 5;
     return { category, avg3m, avg6m, lastMonth, trend, suggestedBudget };
   });
 

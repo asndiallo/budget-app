@@ -1,9 +1,9 @@
-import { currentMonth, isBeforeMonth } from '@/lib/utils';
-
 import { NextResponse } from 'next/server';
-import type { YtdSummary } from '@/lib/types';
+
 import { computeMonthlyFinancials } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
+import type { YtdSummary } from '@/lib/types';
+import { currentMonth, isBeforeMonth } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -11,10 +11,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
 
   const year = month.slice(0, 4);
   const [, m] = month.split('-').map(Number);
-  const months = Array.from(
-    { length: m },
-    (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`,
-  );
+  const months = Array.from({ length: m }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 
   const spendingRows = db
     .prepare(
@@ -25,13 +22,11 @@ export const GET = withAuth(async (req, { userId, db }) => {
     )
     .all(userId, ...months) as { month: string; total: number }[];
 
-  const spendingByMonth = Object.fromEntries(
-    spendingRows.map((r) => [r.month, r.total]),
-  );
+  const spendingByMonth = Object.fromEntries(spendingRows.map((r) => [r.month, r.total]));
 
-  const userRow = db
-    .prepare('SELECT joined_at FROM users WHERE id = ?')
-    .get(userId) as { joined_at: string | null };
+  const userRow = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as {
+    joined_at: string | null;
+  };
   const joinedAt = userRow?.joined_at || null;
 
   const investmentFixedMonthly = (

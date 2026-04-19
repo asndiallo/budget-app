@@ -1,17 +1,12 @@
 // Server-only helpers for income calculations — shared across API routes.
 
 import { INCOME_FIELDS, SPECIAL_PAY_FIELDS, TSP_CONFIG } from './config';
-
-import { getDb } from './db';
+import { type getDb } from './db';
 
 type Db = ReturnType<typeof getDb>;
 
 /** Nearest-prior snapshot: returns the income config as of the given month for a user. */
-export function incomeForMonth(
-  db: Db,
-  month: string,
-  userId: string,
-): Record<string, number> {
+export function incomeForMonth(db: Db, month: string, userId: string): Record<string, number> {
   const rows = db
     .prepare(
       `SELECT key, value FROM income_config i1

@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
@@ -13,7 +13,16 @@ export default defineConfig({
     include: ['lib/__tests__/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['lib/pay-tables.ts', 'lib/les-parser.ts', 'lib/utils.ts', 'lib/csv-utils.ts', 'lib/income.ts', 'lib/config.ts', 'lib/brs-calc.ts', 'lib/bill-match.ts'],
+      include: [
+        'lib/pay-tables.ts',
+        'lib/les-parser.ts',
+        'lib/utils.ts',
+        'lib/csv-utils.ts',
+        'lib/income.ts',
+        'lib/config.ts',
+        'lib/brs-calc.ts',
+        'lib/bill-match.ts',
+      ],
       reporter: ['text', 'lcov'],
     },
   },

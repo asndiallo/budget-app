@@ -1,11 +1,8 @@
 'use client';
 
-import type {
-  Allotment,
-  IncomeConfig,
-  IncomeEntry,
-  IncomeProfile,
-} from '@/lib/types';
+import { useEffect, useState } from 'react';
+
+import { api } from '@/lib/api';
 import {
   BTN_BLUE_CLS,
   DEDUCTION_FIELDS,
@@ -16,12 +13,11 @@ import {
   SPECIAL_PAY_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
-import { useEffect, useState } from 'react';
+import type { Allotment, IncomeConfig, IncomeEntry, IncomeProfile } from '@/lib/types';
 
 import AllotementsManager from './AllotementsManager';
 import IncomeProfilesManager from './IncomeProfilesManager';
 import LesImportButton from './LesImportButton';
-import { api } from '@/lib/api';
 
 interface PaySuggestion {
   base_pay: number;
@@ -29,13 +25,7 @@ interface PaySuggestion {
   bah: number;
 }
 
-export default function IncomePanel({
-  month,
-  onUpdate,
-}: {
-  month: string;
-  onUpdate: () => void;
-}) {
+export default function IncomePanel({ month, onUpdate }: { month: string; onUpdate: () => void }) {
   const [income, setIncome] = useState<IncomeConfig | null>(null);
   const [tspRateLocal, setTspRateLocal] = useState('');
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
@@ -67,9 +57,7 @@ export default function IncomePanel({
       setIncome(data);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
-      const hasSpecialPay = SPECIAL_PAY_FIELDS.some(
-        (f) => (data[f.key] ?? 0) > 0,
-      );
+      const hasSpecialPay = SPECIAL_PAY_FIELDS.some((f) => (data[f.key] ?? 0) > 0);
       if (hasSpecialPay) setShowSpecialPay(true);
       // Silently check for BAH rate change
       api.income
@@ -108,20 +96,14 @@ export default function IncomePanel({
     onUpdate();
   }
 
-  if (!income) return <p className="text-sm text-text-3 py-4">Loading…</p>;
+  if (!income) return <p className="text-text-3 py-4 text-sm">Loading…</p>;
 
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round((income.base_pay || 0) * tspRate);
   const combatZone = !!income.combat_zone;
 
-  const militaryTotal = INCOME_FIELDS.reduce(
-    (s, f) => s + (income[f.key] || 0),
-    0,
-  );
-  const specialPayTotal = SPECIAL_PAY_FIELDS.reduce(
-    (s, f) => s + (income[f.key] || 0),
-    0,
-  );
+  const militaryTotal = INCOME_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
+  const specialPayTotal = SPECIAL_PAY_FIELDS.reduce((s, f) => s + (income[f.key] || 0), 0);
   const extraTotal = entries.reduce((s, e) => s + e.amount, 0);
   const activeAllotments = allotments.filter(
     (a) => a.start_date <= month && (!a.end_date || a.end_date >= month),
@@ -160,17 +142,14 @@ export default function IncomePanel({
   async function applySuggestion() {
     if (!suggestion || !income) return;
     const changed: Partial<IncomeConfig> = {};
-    if (suggestion.base_pay !== income.base_pay)
-      changed.base_pay = suggestion.base_pay;
+    if (suggestion.base_pay !== income.base_pay) changed.base_pay = suggestion.base_pay;
     if (suggestion.bas !== income.bas) changed.bas = suggestion.bas;
     if (suggestion.bah !== income.bah) changed.bah = suggestion.bah;
     if (Object.keys(changed).length === 0) {
       setSuggestion(null);
       return;
     }
-    setIncome((prev) =>
-      prev ? { ...prev, ...(changed as IncomeConfig) } : prev,
-    );
+    setIncome((prev) => (prev ? { ...prev, ...(changed as IncomeConfig) } : prev));
     await api.income.update(month, changed);
     setSuggestion(null);
     onUpdate();
@@ -184,9 +163,7 @@ export default function IncomePanel({
     // Re-fetch to get server-confirmed state (handles combat_zone flag, etc.)
     const fresh = await api.income.get(month);
     setIncome(fresh);
-    setTspRateLocal(
-      String(Math.round((fresh.tsp_rate ?? TSP_CONFIG.rate) * 100)),
-    );
+    setTspRateLocal(String(Math.round((fresh.tsp_rate ?? TSP_CONFIG.rate) * 100)));
     setApplyingId(null);
     onUpdate();
   }
@@ -200,14 +177,9 @@ export default function IncomePanel({
 
   async function handleLesImport() {
     // Re-fetch income and entries after LES import
-    const [data, ents] = await Promise.all([
-      api.income.get(month),
-      api.incomeEntries.list(month),
-    ]);
+    const [data, ents] = await Promise.all([api.income.get(month), api.incomeEntries.list(month)]);
     setIncome(data);
-    setTspRateLocal(
-      String(Math.round((data.tsp_rate ?? TSP_CONFIG.rate) * 100)),
-    );
+    setTspRateLocal(String(Math.round((data.tsp_rate ?? TSP_CONFIG.rate) * 100)));
     setEntries(ents);
     onUpdate();
   }
@@ -250,10 +222,7 @@ export default function IncomePanel({
               <p className="text-xs font-semibold" style={{ color: cfg.color }}>
                 {cfg.label}: {p.name}
               </p>
-              <p
-                className="text-[11px] mt-0.5"
-                style={{ color: cfg.color + 'aa' }}
-              >
+              <p className="mt-0.5 text-[11px]" style={{ color: cfg.color + 'aa' }}>
                 {p.start_date} – {p.end_date ?? 'ongoing'}
                 {hasFields && (
                   <>
@@ -268,12 +237,11 @@ export default function IncomePanel({
               <button
                 onClick={() => applyProfile(p)}
                 disabled={applyingId === p.id}
-                className="text-[11px] px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-40"
+                className="rounded-lg border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-40"
                 style={{
                   borderColor: cfg.color + '44',
                   color: cfg.color,
-                  backgroundColor:
-                    applyingId === p.id ? cfg.color + '22' : 'transparent',
+                  backgroundColor: applyingId === p.id ? cfg.color + '22' : 'transparent',
                 }}
               >
                 {applyingId === p.id ? 'Applying…' : 'Apply to month'}
@@ -290,15 +258,14 @@ export default function IncomePanel({
             <p className="text-xs font-semibold text-emerald-400">
               Combat zone tax exclusion active
             </p>
-            <p className="text-[11px] text-emerald-500/70 mt-0.5">
+            <p className="mt-0.5 text-[11px] text-emerald-500/70">
               Federal income tax exempt
-              {taxSavings > 0 &&
-                ` · saving ~$${Math.round(taxSavings).toLocaleString()}/mo`}
+              {taxSavings > 0 && ` · saving ~$${Math.round(taxSavings).toLocaleString()}/mo`}
             </p>
           </div>
           <button
             onClick={toggleCombatZone}
-            className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            className="rounded-lg border border-emerald-500/30 px-2.5 py-1 text-[11px] text-emerald-400 transition-colors hover:bg-emerald-500/20"
           >
             Deactivate
           </button>
@@ -315,7 +282,7 @@ export default function IncomePanel({
               <button
                 onClick={toggleCombatZone}
                 title="Mark this month as combat zone — exempts federal income tax"
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-raised text-text-3 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                className="bg-surface-raised text-text-3 rounded-lg px-2.5 py-1 text-[11px] transition-colors hover:bg-amber-500/10 hover:text-amber-400"
               >
                 ⚔ Combat zone
               </button>
@@ -323,10 +290,10 @@ export default function IncomePanel({
             <button
               onClick={() => setShowProfiles((v) => !v)}
               title="Manage deployment / income profiles"
-              className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
+              className={`rounded-lg px-2.5 py-1 text-[11px] transition-colors ${
                 showProfiles
                   ? 'bg-purple-500/15 text-purple-400'
-                  : 'bg-surface-raised text-text-3 hover:text-purple-400 hover:bg-purple-500/10'
+                  : 'bg-surface-raised text-text-3 hover:bg-purple-500/10 hover:text-purple-400'
               }`}
             >
               ⇄ Profiles{profiles.length > 0 ? ` (${profiles.length})` : ''}
@@ -335,7 +302,7 @@ export default function IncomePanel({
               onClick={fetchSuggestion}
               disabled={syncLoading}
               title="Sync base pay, BAS, and BAH from your profile"
-              className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-raised text-text-3 hover:text-text-2 hover:bg-surface-raised/80 transition-colors disabled:opacity-40"
+              className="bg-surface-raised text-text-3 hover:text-text-2 hover:bg-surface-raised/80 rounded-lg px-2.5 py-1 text-[11px] transition-colors disabled:opacity-40"
             >
               {syncLoading ? '…' : '⟳ Sync from profile'}
             </button>
@@ -344,24 +311,24 @@ export default function IncomePanel({
         }
       >
         {suggestion && (
-          <div className="mb-2 rounded-xl border border-blue-500/20 bg-surface-blue/30 px-4 py-3 space-y-2">
+          <div className="bg-surface-blue/30 mb-2 space-y-2 rounded-xl border border-blue-500/20 px-4 py-3">
             {suggestionDiff.length === 0 ? (
-              <p className="text-xs text-text-2">
+              <p className="text-text-2 text-xs">
                 Your pay values already match your profile — nothing to update.
               </p>
             ) : (
               <>
-                <p className="text-[11px] text-text-3 font-medium uppercase tracking-wider">
+                <p className="text-text-3 text-[11px] font-medium tracking-wider uppercase">
                   Calculated from your profile
                 </p>
                 {suggestionDiff.map(({ key, label, current, suggested }) => (
                   <div key={key} className="flex items-center gap-2 text-xs">
-                    <span className="w-20 text-text-3">{label}</span>
-                    <span className="font-mono text-text-3 line-through">
+                    <span className="text-text-3 w-20">{label}</span>
+                    <span className="text-text-3 font-mono line-through">
                       ${Math.round(current).toLocaleString()}
                     </span>
                     <span className="text-text-4">→</span>
-                    <span className="font-mono text-[#4a8cff] font-medium">
+                    <span className="font-mono font-medium text-[#4a8cff]">
                       ${Math.round(suggested).toLocaleString()}
                     </span>
                   </div>
@@ -372,14 +339,14 @@ export default function IncomePanel({
               {suggestionDiff.length > 0 && (
                 <button
                   onClick={applySuggestion}
-                  className="text-xs px-3 py-1 rounded-lg bg-[#4a8cff]/15 text-[#4a8cff] hover:bg-[#4a8cff]/25 transition-colors"
+                  className="rounded-lg bg-[#4a8cff]/15 px-3 py-1 text-xs text-[#4a8cff] transition-colors hover:bg-[#4a8cff]/25"
                 >
                   Apply
                 </button>
               )}
               <button
                 onClick={() => setSuggestion(null)}
-                className="text-xs px-3 py-1 rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-colors"
+                className="text-text-3 hover:text-text-2 hover:bg-surface-raised rounded-lg px-3 py-1 text-xs transition-colors"
               >
                 Dismiss
               </button>
@@ -408,7 +375,7 @@ export default function IncomePanel({
         <div className="pt-1">
           <button
             onClick={() => setShowSpecialPay((v) => !v)}
-            className="flex items-center gap-1.5 text-[11px] text-text-3 hover:text-text-2 transition-colors py-1"
+            className="text-text-3 hover:text-text-2 flex items-center gap-1.5 py-1 text-[11px] transition-colors"
           >
             <span className="text-[10px]">{showSpecialPay ? '▼' : '▶'}</span>
             Special &amp; incentive pays
@@ -419,7 +386,7 @@ export default function IncomePanel({
             )}
           </button>
           {showSpecialPay && (
-            <div className="mt-1 pl-3 border-l-2 border-border">
+            <div className="border-border mt-1 border-l-2 pl-3">
               {SPECIAL_PAY_FIELDS.map((f) => (
                 <Row
                   key={f.key}
@@ -447,12 +414,9 @@ export default function IncomePanel({
 
         {/* Deployment / income profiles */}
         {showProfiles && (
-          <div className="mt-4 pt-4 border-t border-border">
+          <div className="border-border mt-4 border-t pt-4">
             <p className={`${LABEL_CLS} mb-3`}>Deployment & income profiles</p>
-            <IncomeProfilesManager
-              profiles={profiles}
-              onRefresh={reloadProfiles}
-            />
+            <IncomeProfilesManager profiles={profiles} onRefresh={reloadProfiles} />
           </div>
         )}
       </Section>
@@ -466,10 +430,10 @@ export default function IncomePanel({
           <button
             onClick={() => setShowAllotments((v) => !v)}
             title="Manage allotments — fixed deductions from gross pay"
-            className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
+            className={`rounded-lg px-2.5 py-1 text-[11px] transition-colors ${
               showAllotments
                 ? 'bg-blue-500/15 text-[#4a8cff]'
-                : 'bg-surface-raised text-text-3 hover:text-[#4a8cff] hover:bg-blue-500/10'
+                : 'bg-surface-raised text-text-3 hover:bg-blue-500/10 hover:text-[#4a8cff]'
             }`}
           >
             Allotments{allotments.length > 0 ? ` (${allotments.length})` : ''}
@@ -477,10 +441,10 @@ export default function IncomePanel({
         }
       >
         {/* TSP — rate-editable row */}
-        <div className="flex items-center py-3 border-b border-border-dim">
+        <div className="border-border-dim flex items-center border-b py-3">
           <div className="flex-1">
-            <p className="text-sm text-text">Roth TSP</p>
-            <p className="text-[11px] text-text-3 mt-0.5">
+            <p className="text-text text-sm">Roth TSP</p>
+            <p className="text-text-3 mt-0.5 text-[11px]">
               {TSP_CONFIG.note} ·{' '}
               <a
                 href="https://www.tsp.gov"
@@ -492,17 +456,17 @@ export default function IncomePanel({
               </a>
             </p>
           </div>
-          <div className="flex items-center gap-1.5 mr-4">
+          <div className="mr-4 flex items-center gap-1.5">
             <input
               type="number"
               value={tspRateLocal}
               onChange={(e) => setTspRateLocal(e.target.value)}
               onBlur={saveTspRate}
-              className="w-14 text-sm text-right font-mono bg-bg border border-border rounded-lg px-2 py-1 text-[#4a8cff] focus:outline-none focus:border-blue-600 transition-colors"
+              className="bg-bg border-border w-14 rounded-lg border px-2 py-1 text-right font-mono text-sm text-[#4a8cff] transition-colors focus:border-blue-600 focus:outline-none"
             />
-            <span className="text-xs text-text-3">% of base</span>
+            <span className="text-text-3 text-xs">% of base</span>
           </div>
-          <span className="font-mono text-sm text-[#ff4560] w-24 text-right">
+          <span className="w-24 text-right font-mono text-sm text-[#ff4560]">
             −${tsp.toLocaleString()}
           </span>
         </div>
@@ -512,17 +476,13 @@ export default function IncomePanel({
           return isExempt ? (
             <div
               key={f.key}
-              className="flex items-center py-3 border-b border-border-dim opacity-50"
+              className="border-border-dim flex items-center border-b py-3 opacity-50"
             >
               <div className="flex-1">
-                <p className="text-sm text-text line-through">{f.label}</p>
-                <p className="text-[11px] text-emerald-400 mt-0.5">
-                  Exempt — combat zone
-                </p>
+                <p className="text-text text-sm line-through">{f.label}</p>
+                <p className="mt-0.5 text-[11px] text-emerald-400">Exempt — combat zone</p>
               </div>
-              <span className="font-mono text-sm text-emerald-400 w-24 text-right">
-                $0
-              </span>
+              <span className="w-24 text-right font-mono text-sm text-emerald-400">$0</span>
             </div>
           ) : (
             <Row
@@ -539,17 +499,12 @@ export default function IncomePanel({
 
         {/* Active allotment rows — read-only; managed via the Allotments panel */}
         {activeAllotments.map((a) => (
-          <div
-            key={a.id}
-            className="flex items-center py-3 border-b border-border-dim"
-          >
+          <div key={a.id} className="border-border-dim flex items-center border-b py-3">
             <div className="flex-1">
-              <p className="text-sm text-text">{a.label}</p>
-              <p className="text-[11px] text-text-3 mt-0.5">
-                Allotment · {a.type}
-              </p>
+              <p className="text-text text-sm">{a.label}</p>
+              <p className="text-text-3 mt-0.5 text-[11px]">Allotment · {a.type}</p>
             </div>
-            <span className="font-mono text-sm text-[#ff4560] w-24 text-right">
+            <span className="w-24 text-right font-mono text-sm text-[#ff4560]">
               −${a.amount.toLocaleString()}
             </span>
           </div>
@@ -557,12 +512,9 @@ export default function IncomePanel({
 
         {/* Allotments manager */}
         {showAllotments && (
-          <div className="mt-4 pt-4 border-t border-border">
+          <div className="border-border mt-4 border-t pt-4">
             <p className={`${LABEL_CLS} mb-3`}>Manage allotments</p>
-            <AllotementsManager
-              allotments={allotments}
-              onRefresh={reloadAllotments}
-            />
+            <AllotementsManager allotments={allotments} onRefresh={reloadAllotments} />
           </div>
         )}
       </Section>
@@ -574,37 +526,32 @@ export default function IncomePanel({
         totalColor="text-[#00d98a]"
       >
         {entries.map((e) => (
-          <div
-            key={e.id}
-            className="flex items-center py-3 border-b border-border-dim gap-3"
-          >
+          <div key={e.id} className="border-border-dim flex items-center gap-3 border-b py-3">
             <div className="flex-1">
-              <p className="text-sm text-text">{e.description}</p>
+              <p className="text-text text-sm">{e.description}</p>
               {e.source && e.source !== 'Other' && (
-                <span className="inline-block text-[11px] px-2 py-0.5 rounded-full bg-surface-raised text-text-2 mt-0.5">
+                <span className="bg-surface-raised text-text-2 mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px]">
                   {e.source}
                 </span>
               )}
             </div>
-            <span className="font-mono text-sm text-[#00d98a]">
-              +${e.amount.toLocaleString()}
-            </span>
+            <span className="font-mono text-sm text-[#00d98a]">+${e.amount.toLocaleString()}</span>
             <button
               onClick={() => removeEntry(e.id)}
-              className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+              className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
             >
               ✕
             </button>
           </div>
         ))}
 
-        <div className="flex gap-2 flex-wrap pt-3">
+        <div className="flex flex-wrap gap-2 pt-3">
           <input
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Description"
-            className={`flex-1 min-w-36 ${INPUT_CLS}`}
+            className={`min-w-36 flex-1 ${INPUT_CLS}`}
           />
           <input
             value={newAmt}
@@ -619,12 +566,9 @@ export default function IncomePanel({
             onChange={(e) => setNewSource(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addEntry()}
             placeholder="Source (optional)"
-            className={`flex-1 min-w-28 ${INPUT_CLS}`}
+            className={`min-w-28 flex-1 ${INPUT_CLS}`}
           />
-          <button
-            onClick={addEntry}
-            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-          >
+          <button onClick={addEntry} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
             + Add
           </button>
         </div>
@@ -650,7 +594,7 @@ function Section({
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className={LABEL_CLS}>{title}</h3>
         <div className="flex items-center gap-3">
           {action}
@@ -690,31 +634,31 @@ function Row({
   }, [value]);
 
   return (
-    <div className="flex items-center py-3 border-b border-border-dim">
+    <div className="border-border-dim flex items-center border-b py-3">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm text-text">{label}</p>
+          <p className="text-text text-sm">{label}</p>
           {alert && (
             <button
               onClick={alert.onAction}
               title={alert.label}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors font-medium"
+              className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400 transition-colors hover:bg-amber-500/25"
             >
               ⚠ {alert.label}
             </button>
           )}
         </div>
-        {note && <p className="text-[11px] text-text-3 mt-0.5">{note}</p>}
+        {note && <p className="text-text-3 mt-0.5 text-[11px]">{note}</p>}
       </div>
       <div className="flex items-center gap-1.5">
-        {prefix && <span className="text-sm text-text-3">{prefix}</span>}
-        <span className="text-sm text-text-3">$</span>
+        {prefix && <span className="text-text-3 text-sm">{prefix}</span>}
+        <span className="text-text-3 text-sm">$</span>
         <input
           type="number"
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           onBlur={() => onChange(parseFloat(local) || 0)}
-          className={`w-24 text-sm text-right font-mono bg-bg border border-border rounded-lg px-2 py-1 focus:outline-none focus:border-blue-600 transition-colors ${valueColor}`}
+          className={`bg-bg border-border w-24 rounded-lg border px-2 py-1 text-right font-mono text-sm transition-colors focus:border-blue-600 focus:outline-none ${valueColor}`}
         />
       </div>
     </div>
@@ -727,7 +671,7 @@ function ResourceLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-[11px] text-text-4 hover:text-[#4a8cff] transition-colors"
+      className="text-text-4 text-[11px] transition-colors hover:text-[#4a8cff]"
     >
       ↗ {label}
     </a>

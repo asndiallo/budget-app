@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -9,11 +10,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useEffect, useState } from 'react';
 
-import type { NetWorthSnapshot } from '@/lib/types';
-import { LABEL_CLS } from '@/lib/config';
 import { api } from '@/lib/api';
+import { LABEL_CLS } from '@/lib/config';
+import type { NetWorthSnapshot } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 const fmtK = (n: number) => {
@@ -26,7 +26,20 @@ const fmtK = (n: number) => {
 function fmtDate(iso: string) {
   // iso = YYYY-MM-DD
   const [, m, d] = iso.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return `${months[parseInt(m) - 1]} ${parseInt(d)}`;
 }
 
@@ -62,13 +75,13 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
 
   useEffect(() => {
     reload();
-  }, [onUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onUpdate]);
 
   if (loading) return null;
 
   if (data.length < 2) {
     return (
-      <p className="text-xs text-text-4 text-center py-3">
+      <p className="text-text-4 py-3 text-center text-xs">
         Update balances over time to build a net worth trend.
       </p>
     );
@@ -86,9 +99,9 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
   const pad = (yMax - yMin) * 0.12;
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
+    <div className="bg-surface border-border relative overflow-hidden rounded-xl border p-4">
       <div
-        className="absolute top-0 left-0 right-0 h-0.5"
+        className="absolute top-0 right-0 left-0 h-0.5"
         style={{
           background: positive
             ? 'linear-gradient(90deg, #00d98acc, #00d98a22 60%, transparent)'
@@ -97,11 +110,11 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="mb-4 flex items-start justify-between">
         <div>
           <p className={`${LABEL_CLS} mb-1`}>Net Worth Trend</p>
           <p
-            className={`text-xl font-mono font-semibold leading-none ${
+            className={`font-mono text-xl leading-none font-semibold ${
               latest.netWorth >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]'
             }`}
           >
@@ -110,9 +123,9 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-text-4 mb-0.5">since {fmtDate(earliest.date)}</p>
+          <p className="text-text-4 mb-0.5 text-[10px]">since {fmtDate(earliest.date)}</p>
           <p
-            className={`text-sm font-mono font-semibold ${
+            className={`font-mono text-sm font-semibold ${
               positive ? 'text-[#00d98a]' : 'text-[#ff4560]'
             }`}
           >
@@ -190,7 +203,7 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
       </ResponsiveContainer>
 
       {/* Legend + stats */}
-      <div className="flex items-center justify-between mt-3">
+      <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {[
             { color: '#4a8cff', label: 'Assets', value: latest.assets },
@@ -198,8 +211,8 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
             { color: '#00d98a', label: 'Net Worth', value: latest.netWorth },
           ].map(({ color, label, value }) => (
             <div key={label} className="flex items-center gap-1.5">
-              <div className="w-5 h-px" style={{ background: color }} />
-              <span className="text-[10px] text-text-4">
+              <div className="h-px w-5" style={{ background: color }} />
+              <span className="text-text-4 text-[10px]">
                 {label}{' '}
                 <span className="font-mono" style={{ color }}>
                   {formatCurrency(value)}
@@ -208,7 +221,7 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
             </div>
           ))}
         </div>
-        <span className="text-[9px] text-text-4">{data.length} snapshots</span>
+        <span className="text-text-4 text-[9px]">{data.length} snapshots</span>
       </div>
     </div>
   );

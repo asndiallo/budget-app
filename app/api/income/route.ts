@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { currentMonth } from '@/lib/utils';
+
 import { withAuth } from '@/lib/route-helpers';
+import { currentMonth } from '@/lib/utils';
 
 function getIncomeForMonth(
   db: ReturnType<typeof import('@/lib/db').getDb>,
@@ -27,17 +28,12 @@ export const GET = withAuth(async (req, { userId, db }) => {
 });
 
 export const POST = withAuth(async (req, { userId, db }) => {
-  const { month: reqMonth, ...updates } = (await req.json()) as Record<
-    string,
-    number | string
-  >;
+  const { month: reqMonth, ...updates } = (await req.json()) as Record<string, number | string>;
   const month = (reqMonth as string) || currentMonth();
 
   const hasSnapshot = (
     db
-      .prepare(
-        'SELECT COUNT(*) as n FROM income_config WHERE user_id = ? AND month = ?',
-      )
+      .prepare('SELECT COUNT(*) as n FROM income_config WHERE user_id = ? AND month = ?')
       .get(userId, month) as { n: number }
   ).n;
 

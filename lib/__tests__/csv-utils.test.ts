@@ -1,5 +1,6 @@
-import { CATEGORIES, CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '../config';
 import { describe, expect, it } from 'vitest';
+
+import { CATEGORIES, CSV_CATEGORY_MAP, DEFAULT_CATEGORY } from '../config';
 import { mapCategory, parseDate } from '../csv-utils';
 
 // ── parseDate ────────────────────────────────────────────────────────────────

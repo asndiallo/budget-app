@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+import { api } from '@/lib/api';
 import { LABEL_CLS } from '@/lib/config';
 import type { TaxYearSummary } from '@/lib/types';
-import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
 function Row({
@@ -22,12 +23,16 @@ function Row({
   bold?: boolean;
 }) {
   return (
-    <div className={`flex items-baseline justify-between py-2 border-b border-border-dim ${indent ? 'pl-4' : ''}`}>
-      <div className="flex-1 min-w-0 pr-4">
-        <span className={`text-sm ${bold ? 'font-semibold text-text' : 'text-text-2'}`}>{label}</span>
-        {sub && <span className="ml-2 text-[10px] text-text-4">{sub}</span>}
+    <div
+      className={`border-border-dim flex items-baseline justify-between border-b py-2 ${indent ? 'pl-4' : ''}`}
+    >
+      <div className="min-w-0 flex-1 pr-4">
+        <span className={`text-sm ${bold ? 'text-text font-semibold' : 'text-text-2'}`}>
+          {label}
+        </span>
+        {sub && <span className="text-text-4 ml-2 text-[10px]">{sub}</span>}
       </div>
-      <span className={`font-mono text-sm shrink-0 ${bold ? 'font-semibold' : ''} ${valueColor}`}>
+      <span className={`shrink-0 font-mono text-sm ${bold ? 'font-semibold' : ''} ${valueColor}`}>
         {formatCurrency(value)}
       </span>
     </div>
@@ -50,11 +55,12 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
     api.taxYearSummary.get(year).then(setData);
   }, [year]);
 
-  if (!data) return <p className="text-sm text-text-3 py-4">Loading…</p>;
+  if (!data) return <p className="text-text-3 py-4 text-sm">Loading…</p>;
   if (data.monthsWithData === 0) {
     return (
-      <p className="text-sm text-text-3 py-4">
-        No income data found for {year}. Navigate to a month within {year} in the Pay tab to populate data.
+      <p className="text-text-3 py-4 text-sm">
+        No income data found for {year}. Navigate to a month within {year} in the Pay tab to
+        populate data.
       </p>
     );
   }
@@ -67,18 +73,20 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
       {/* Header */}
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="text-xs text-text-3">
+          <p className="text-text-3 text-xs">
             {data.monthsWithData} month{data.monthsWithData !== 1 ? 's' : ''} of data
             {data.combatZoneMonths > 0 && (
-              <span className="ml-2 text-amber-400 font-medium">
+              <span className="ml-2 font-medium text-amber-400">
                 · {data.combatZoneMonths} combat zone month{data.combatZoneMonths !== 1 ? 's' : ''}
               </span>
             )}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-text-4 uppercase tracking-widest">Estimated taxable income</p>
-          <p className="font-mono text-lg font-bold text-text">
+          <p className="text-text-4 text-[10px] tracking-widest uppercase">
+            Estimated taxable income
+          </p>
+          <p className="text-text font-mono text-lg font-bold">
             {formatCurrency(data.estimatedTaxableIncome)}
           </p>
         </div>
@@ -88,7 +96,11 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
       <Section title="Gross income">
         <Row label="Base military pay" value={data.grossMilitaryPay} />
         {data.specialPays > 0 && (
-          <Row label="Special & incentive pays" value={data.specialPays} sub="flight, IDP, jump, SDAP, SRB…" />
+          <Row
+            label="Special & incentive pays"
+            value={data.specialPays}
+            sub="flight, IDP, jump, SDAP, SRB…"
+          />
         )}
         <Row
           label="Allowances"
@@ -120,8 +132,9 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
             valueColor="text-[#ff4560]"
           />
         ) : (
-          <p className="text-[11px] text-text-4 py-2">
-            No pre-tax deductions — Roth TSP contributions are post-tax (see Post-tax savings below).
+          <p className="text-text-4 py-2 text-[11px]">
+            No pre-tax deductions — Roth TSP contributions are post-tax (see Post-tax savings
+            below).
           </p>
         )}
       </Section>
@@ -140,9 +153,18 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
           sub={`effective rate: ${(data.effectiveFederalRate * 100).toFixed(1)}%`}
           valueColor="text-[#ff4560]"
         />
-        <Row label="FICA — Social Security" value={data.ficaSocialSecurity} valueColor="text-[#ff4560]" />
+        <Row
+          label="FICA — Social Security"
+          value={data.ficaSocialSecurity}
+          valueColor="text-[#ff4560]"
+        />
         <Row label="FICA — Medicare" value={data.ficaMedicare} valueColor="text-[#ff4560]" />
-        <Row label="Total taxes withheld" value={data.totalTaxesWithheld} bold valueColor="text-[#ff4560]" />
+        <Row
+          label="Total taxes withheld"
+          value={data.totalTaxesWithheld}
+          bold
+          valueColor="text-[#ff4560]"
+        />
       </Section>
 
       {/* Tax efficiency summary */}
@@ -167,10 +189,10 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
             color: 'text-[#4a8cff]',
           },
         ].map(({ label, value, sub, color }) => (
-          <div key={label} className="bg-bg rounded-xl border border-border p-3.5">
+          <div key={label} className="bg-bg border-border rounded-xl border p-3.5">
             <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
             <p className={`font-mono text-base font-semibold ${color}`}>{value}</p>
-            {sub && <p className="text-[10px] text-text-4 mt-0.5">{sub}</p>}
+            {sub && <p className="text-text-4 mt-0.5 text-[10px]">{sub}</p>}
           </div>
         ))}
       </div>
@@ -204,12 +226,12 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
       )}
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-text-4 leading-relaxed border-t border-border-dim pt-3">
-        This summary is an estimate based on your income entries and is not tax advice.
-        BAH and BAS are excluded from taxable income per 26 U.S.C. §134.
-        Roth TSP contributions are post-tax and do not reduce taxable income.
-        Combat zone base pay exclusion applies to enlisted members (officers capped at $10,000/mo).
-        Consult a tax professional or use your official W-2 / LES for filing.
+      <p className="text-text-4 border-border-dim border-t pt-3 text-[10px] leading-relaxed">
+        This summary is an estimate based on your income entries and is not tax advice. BAH and BAS
+        are excluded from taxable income per 26 U.S.C. §134. Roth TSP contributions are post-tax and
+        do not reduce taxable income. Combat zone base pay exclusion applies to enlisted members
+        (officers capped at $10,000/mo). Consult a tax professional or use your official W-2 / LES
+        for filing.
       </p>
     </div>
   );

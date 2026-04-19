@@ -1,5 +1,6 @@
-import { calcBrs, dodMatchRate, inferRetirementSystem } from '../brs-calc';
 import { describe, expect, it } from 'vitest';
+
+import { calcBrs, dodMatchRate, inferRetirementSystem } from '../brs-calc';
 
 // ── dodMatchRate ──────────────────────────────────────────────────────────────
 
@@ -181,9 +182,7 @@ describe('calcBrs — wealth at retirement', () => {
 
   it('BRS wealth = tspWithMatch + contPayFv', () => {
     const r = calcBrs(BASE_INPUTS);
-    expect(r.brsWealthAtRetirement).toBeCloseTo(
-      r.tspWithMatch + r.contPayFvAtRetirement,
-    );
+    expect(r.brsWealthAtRetirement).toBeCloseTo(r.tspWithMatch + r.contPayFvAtRetirement);
   });
 });
 
@@ -208,9 +207,7 @@ describe('calcBrs — break-even', () => {
     const legacyCumulative = r.legacyPension * N + r.legacyWealthAtRetirement;
     const brsCumulative = r.brsPension * N + r.brsWealthAtRetirement;
     // Should be within 1 month's pension of each other
-    expect(Math.abs(legacyCumulative - brsCumulative)).toBeLessThanOrEqual(
-      r.legacyPension + 1,
-    );
+    expect(Math.abs(legacyCumulative - brsCumulative)).toBeLessThanOrEqual(r.legacyPension + 1);
   });
 
   it('break-even is null when TSP rate is 0 (no DoD match advantage, no cont pay if past 12 YOS)', () => {

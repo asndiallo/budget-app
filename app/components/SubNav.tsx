@@ -10,14 +10,14 @@ export default function SubNav({
   onChange: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-1 mb-5 p-1 bg-surface-raised rounded-xl border border-border w-fit">
+    <div className="bg-surface-raised border-border mb-5 flex w-fit gap-1 rounded-xl border p-1">
       {options.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
             active === key
-              ? 'bg-bg text-text shadow-sm border border-border'
+              ? 'bg-bg text-text border-border border shadow-sm'
               : 'text-text-3 hover:text-text-2'
           }`}
         >

@@ -54,11 +54,7 @@ function amountMatches(txAmount: number, billAmount: number): boolean {
  *
  * @returns the number of new auto-match records created
  */
-export function autoMatchBills(
-  db: Database.Database,
-  userId: string,
-  months: string[],
-): number {
+export function autoMatchBills(db: Database.Database, userId: string, months: string[]): number {
   if (months.length === 0) return 0;
 
   // Only monthly (non-biweekly) bills — biweekly per-occurrence matching is unreliable
@@ -118,9 +114,7 @@ export function autoMatchBills(
 
         const monthTxs = txsByMonth[month] ?? [];
         const hit = monthTxs.find(
-          (tx) =>
-            descriptionMatches(tx.description, bill) &&
-            amountMatches(tx.amount, matchAmount),
+          (tx) => descriptionMatches(tx.description, bill) && amountMatches(tx.amount, matchAmount),
         );
         if (hit) {
           insert.run(userId, bill.id, month, hit.id);

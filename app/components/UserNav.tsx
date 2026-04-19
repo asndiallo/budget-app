@@ -1,5 +1,10 @@
 'use client';
 
+import { differenceInMonths, parseISO } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { authClient } from '@/lib/auth-client';
 import {
   BRANCHES,
   COMPONENTS,
@@ -8,13 +13,9 @@ import {
   WARRANT_GRADES,
 } from '@/lib/pay-tables';
 import type { Branch, Component, UserProfile } from '@/lib/types';
-import { differenceInMonths, parseISO } from 'date-fns';
 
 import DatePicker from './DatePicker';
 import DutyStationSelect from './DutyStationSelect';
-import { authClient } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 interface Props {
   user: UserProfile;
@@ -91,41 +92,27 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
       {/* Trigger */}
       <button
         onClick={() => setPanel(panel === 'profile' ? 'none' : 'profile')}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors border border-transparent hover:border-border"
+        className="hover:bg-surface-raised hover:border-border flex items-center gap-2 rounded-lg border border-transparent px-3 py-1.5 transition-colors"
       >
-        <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
           {(user.name || user.email).charAt(0).toUpperCase()}
         </div>
-        <div className="text-left hidden sm:block">
-          <p className="text-xs font-medium text-text leading-tight">
-            {user.name || user.email}
-          </p>
-          <p className="text-[10px] text-text-3 leading-tight">{gradeLabel}</p>
+        <div className="hidden text-left sm:block">
+          <p className="text-text text-xs leading-tight font-medium">{user.name || user.email}</p>
+          <p className="text-text-3 text-[10px] leading-tight">{gradeLabel}</p>
         </div>
-        <svg
-          className="w-3 h-3 text-text-3"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+        <svg className="text-text-3 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {/* Dropdown panel */}
       {panel === 'profile' && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl z-50 p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-text">
-              Military Profile
-            </h3>
+        <div className="bg-surface border-border absolute top-full right-0 z-50 mt-2 w-80 rounded-xl border p-4 shadow-2xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-text text-sm font-semibold">Military Profile</h3>
             <span
-              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                 user.role === 'admin'
                   ? 'bg-amber-500/20 text-amber-400'
                   : user.role === 'viewer'
@@ -139,9 +126,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
           <form onSubmit={handleSaveProfile} className="space-y-3">
             <div>
-              <label className="block text-[10px] text-text-3 mb-0.5">
-                Display name
-              </label>
+              <label className="text-text-3 mb-0.5 block text-[10px]">Display name</label>
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -151,9 +136,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Branch
-                </label>
+                <label className="text-text-3 mb-0.5 block text-[10px]">Branch</label>
                 <select
                   value={branch}
                   onChange={(e) => setBranch(e.target.value as Branch)}
@@ -165,9 +148,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Component
-                </label>
+                <label className="text-text-3 mb-0.5 block text-[10px]">Component</label>
                 <select
                   value={component}
                   onChange={(e) => setComponent(e.target.value as Component)}
@@ -182,9 +163,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Pay grade
-                </label>
+                <label className="text-text-3 mb-0.5 block text-[10px]">Pay grade</label>
                 <select
                   value={payGrade}
                   onChange={(e) => setPayGrade(e.target.value)}
@@ -208,9 +187,7 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Years of service
-                </label>
+                <label className="text-text-3 mb-0.5 block text-[10px]">Years of service</label>
                 <div
                   className={`${inputCls} text-text-3 bg-surface-raised cursor-default select-none`}
                 >
@@ -221,19 +198,11 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Service start
-                </label>
-                <DatePicker
-                  value={joinedAt}
-                  onChange={setJoinedAt}
-                  placeholder="Select date"
-                />
+                <label className="text-text-3 mb-0.5 block text-[10px]">Service start</label>
+                <DatePicker value={joinedAt} onChange={setJoinedAt} placeholder="Select date" />
               </div>
               <div>
-                <label className="block text-[10px] text-text-3 mb-0.5">
-                  Dependents
-                </label>
+                <label className="text-text-3 mb-0.5 block text-[10px]">Dependents</label>
                 <select
                   value={dependents}
                   onChange={(e) => setDependents(parseInt(e.target.value))}
@@ -246,19 +215,12 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
             </div>
 
             <div>
-              <label className="block text-[10px] text-text-3 mb-0.5">
-                Duty station
-              </label>
-              <DutyStationSelect
-                value={dutyStation}
-                onChange={setDutyStation}
-              />
+              <label className="text-text-3 mb-0.5 block text-[10px]">Duty station</label>
+              <DutyStationSelect value={dutyStation} onChange={setDutyStation} />
             </div>
 
             <div>
-              <label className="block text-[10px] text-text-3 mb-0.5">
-                MOS / Rate / AFSC
-              </label>
+              <label className="text-text-3 mb-0.5 block text-[10px]">MOS / Rate / AFSC</label>
               <input
                 value={mos}
                 onChange={(e) => setMos(e.target.value.toUpperCase())}
@@ -267,30 +229,28 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
               />
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 checked={reseedIncome}
                 onChange={(e) => setReseedIncome(e.target.checked)}
                 className="accent-[#4a8cff]"
               />
-              <span className="text-xs text-text-3">
-                Recalculate income from pay tables
-              </span>
+              <span className="text-text-3 text-xs">Recalculate income from pay tables</span>
             </label>
 
             <div className="flex gap-2 pt-1">
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-lg bg-blue-600 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save profile'}
               </button>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-3 py-1.5 text-xs rounded-lg border border-border text-text-3 hover:text-[#ff4560] hover:border-[#ff4560]/40 transition-colors"
+                className="border-border text-text-3 rounded-lg border px-3 py-1.5 text-xs transition-colors hover:border-[#ff4560]/40 hover:text-[#ff4560]"
               >
                 Sign out
               </button>

@@ -13,11 +13,7 @@ interface Props {
   className?: string;
 }
 
-export default function DutyStationSelect({
-  value,
-  onChange,
-  className = '',
-}: Props) {
+export default function DutyStationSelect({ value, onChange, className = '' }: Props) {
   // Derive the current state from the current value, defaulting to the first state
   const currentState = INSTALLATIONS.find((i) => i.name === value)?.state ?? '';
 
@@ -59,7 +55,7 @@ export default function DutyStationSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={!selectedState}
-        className={`flex-1 ${selectCls} disabled:opacity-50 disabled:cursor-not-allowed`}
+        className={`flex-1 ${selectCls} disabled:cursor-not-allowed disabled:opacity-50`}
         aria-label="Installation"
       >
         {!selectedState && <option value="">Select a state first</option>}

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { autoMatchBills } from '../bill-match';
 
 // ── Helper: re-exported internal helpers via dynamic import trick ─────────────
@@ -32,9 +33,7 @@ describe('keywords()', () => {
 
   it('splits on hyphens, underscores, commas, dots, slashes, ampersands, parens, plus', () => {
     // AT&T → "at" + "t" (both < 3 chars, filtered); remaining words kept
-    expect(keywords('AT&T/Phone-bill_monthly.plan')).toEqual([
-      'phone', 'bill', 'monthly', 'plan',
-    ]);
+    expect(keywords('AT&T/Phone-bill_monthly.plan')).toEqual(['phone', 'bill', 'monthly', 'plan']);
   });
 
   it('filters out words shorter than 3 characters', () => {
@@ -93,7 +92,7 @@ describe('amountMatches()', () => {
   });
 
   it('within $2 absolute tolerance returns true', () => {
-    expect(amountMatches(98.50, 100)).toBe(true);
+    expect(amountMatches(98.5, 100)).toBe(true);
     expect(amountMatches(101.99, 100)).toBe(true);
   });
 
@@ -185,105 +184,216 @@ describe('autoMatchBills()', () => {
   });
 
   it('returns 0 when no active bills exist', () => {
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'Netflix charge', 15, '2025-01');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'Netflix charge',
+      15,
+      '2025-01',
+    );
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('returns 0 when no transactions exist', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('matches a transaction to a bill and inserts bill_payment', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM', 15, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM',
+      15,
+      '2025-01',
+    );
 
     const count = autoMatchBills(db, USER, ['2025-01']);
     expect(count).toBe(1);
 
-    const payment = db.prepare(`SELECT * FROM bill_payments WHERE user_id = ?`).get(USER) as { fixed_expense_id: number; month: string; matched_tx_id: number };
+    const payment = db.prepare(`SELECT * FROM bill_payments WHERE user_id = ?`).get(USER) as {
+      fixed_expense_id: number;
+      month: string;
+      matched_tx_id: number;
+    };
     expect(payment).toBeTruthy();
     expect(payment.month).toBe('2025-01');
     expect(payment.matched_tx_id).toBe(1);
   });
 
   it('does not match a transaction with wrong amount', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM', 50, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM',
+      50,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('does not match a transaction with wrong description', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'AMAZON PRIME VIDEO', 15, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'AMAZON PRIME VIDEO',
+      15,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('skips biweekly bills', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,recurrence,active) VALUES (?,?,?,?,?,1)`).run(USER, 'Roth IRA', 200, 'monthly', 'biweekly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'ROTH IRA TRANSFER', 200, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,recurrence,active) VALUES (?,?,?,?,?,1)`,
+    ).run(USER, 'Roth IRA', 200, 'monthly', 'biweekly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'ROTH IRA TRANSFER',
+      200,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('skips inactive bills', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,0)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM', 15, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,0)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM',
+      15,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('does not double-match a bill that already has a payment', () => {
-    const { lastInsertRowid: billId } = db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM', 15, '2025-01');
-    db.prepare(`INSERT INTO bill_payments (user_id,fixed_expense_id,month) VALUES (?,?,?)`).run(USER, billId, '2025-01');
+    const { lastInsertRowid: billId } = db
+      .prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`)
+      .run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM',
+      15,
+      '2025-01',
+    );
+    db.prepare(`INSERT INTO bill_payments (user_id,fixed_expense_id,month) VALUES (?,?,?)`).run(
+      USER,
+      billId,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('matches across multiple months', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Spotify', 11, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'SPOTIFY USA', 11, '2025-01');
-    db.prepare(`INSERT INTO transactions VALUES (2,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'SPOTIFY USA', 11, '2025-02');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Spotify', 11, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'SPOTIFY USA',
+      11,
+      '2025-01',
+    );
+    db.prepare(`INSERT INTO transactions VALUES (2,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'SPOTIFY USA',
+      11,
+      '2025-02',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01', '2025-02'])).toBe(2);
   });
 
   it('matches only within correct months, not outside requested range', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Gym', 50, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'GYM MEMBERSHIP', 50, '2025-03');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Gym', 50, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'GYM MEMBERSHIP',
+      50,
+      '2025-03',
+    );
     // Only request 2025-01
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('isolates by user_id — does not match other users bills', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run('other-user', 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM', 15, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run('other-user', 'Netflix', 15, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM',
+      15,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(0);
   });
 
   it('matches multiple different bills in one month', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Netflix', 15, 'monthly');
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Spotify', 11, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'NETFLIX.COM CHARGE', 15, '2025-01');
-    db.prepare(`INSERT INTO transactions VALUES (2,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'SPOTIFY SUBSCRIPTION', 11, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Netflix', 15, 'monthly');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Spotify', 11, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'NETFLIX.COM CHARGE',
+      15,
+      '2025-01',
+    );
+    db.prepare(`INSERT INTO transactions VALUES (2,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'SPOTIFY SUBSCRIPTION',
+      11,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(2);
   });
 
   it('allows $2 amount tolerance for a match', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Electric', 100, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'CITY ELECTRIC BILL', 101.99, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Electric', 100, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'CITY ELECTRIC BILL',
+      101.99,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(1);
   });
 
   it('allows 10% relative amount tolerance for a match', () => {
-    db.prepare(`INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`).run(USER, 'Electric', 100, 'monthly');
-    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(USER, 'CITY ELECTRIC BILL', 108, '2025-01');
+    db.prepare(
+      `INSERT INTO fixed_expenses (user_id,label,amount,period,active) VALUES (?,?,?,?,1)`,
+    ).run(USER, 'Electric', 100, 'monthly');
+    db.prepare(`INSERT INTO transactions VALUES (1,?,?,?,?,'Other','manual',datetime('now'))`).run(
+      USER,
+      'CITY ELECTRIC BILL',
+      108,
+      '2025-01',
+    );
 
     expect(autoMatchBills(db, USER, ['2025-01'])).toBe(1);
   });

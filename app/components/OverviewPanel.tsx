@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -10,12 +11,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useEffect, useState } from 'react';
 
-import type { YearOverview } from '@/lib/types';
 import { api } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
 import { LABEL_CLS } from '@/lib/config';
+import type { YearOverview } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 const MONTH_ABBR = [
   'Jan',
@@ -35,9 +35,7 @@ const Q_RANGES = ['Jan – Mar', 'Apr – Jun', 'Jul – Sep', 'Oct – Dec'];
 
 const fmtK = (n: number) => {
   const abs = Math.abs(n);
-  return abs >= 1000
-    ? '$' + (abs / 1000).toFixed(1) + 'k'
-    : '$' + Math.round(abs);
+  return abs >= 1000 ? '$' + (abs / 1000).toFixed(1) + 'k' : '$' + Math.round(abs);
 };
 
 function getYearRange() {
@@ -45,11 +43,7 @@ function getYearRange() {
   return Array.from({ length: 4 }, (_, i) => y - 2 + i);
 }
 
-export default function OverviewPanel({
-  initialYear,
-}: {
-  initialYear: number;
-}) {
+export default function OverviewPanel({ initialYear }: { initialYear: number }) {
   const [year, setYear] = useState(initialYear);
   const [data, setData] = useState<YearOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,10 +77,10 @@ export default function OverviewPanel({
           <button
             key={y}
             onClick={() => setYear(y)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+            className={`rounded-lg border px-3 py-1.5 text-xs transition-all ${
               y === year
                 ? 'bg-surface-raised border-border text-text font-medium'
-                : 'border-transparent text-text-4 hover:text-text-3'
+                : 'text-text-4 hover:text-text-3 border-transparent'
             }`}
           >
             {y}
@@ -94,12 +88,10 @@ export default function OverviewPanel({
         ))}
       </div>
 
-      {loading && (
-        <p className="text-sm text-text-3 py-8 text-center">Loading…</p>
-      )}
+      {loading && <p className="text-text-3 py-8 text-center text-sm">Loading…</p>}
 
       {!loading && data && data.annual.monthsWithData === 0 && (
-        <p className="text-sm text-text-3 py-8">No data recorded for {year}.</p>
+        <p className="text-text-3 py-8 text-sm">No data recorded for {year}.</p>
       )}
 
       {!loading && data && data.annual.monthsWithData > 0 && (
@@ -110,7 +102,7 @@ export default function OverviewPanel({
               {year} · {data.annual.monthsWithData}{' '}
               {data.annual.monthsWithData === 1 ? 'month' : 'months'} recorded
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
               {(
                 [
                   {
@@ -133,12 +125,8 @@ export default function OverviewPanel({
                   },
                   {
                     label: 'Net Saved',
-                    value:
-                      (data.annual.net < 0 ? '−' : '') + formatCurrency(data.annual.net),
-                    color:
-                      data.annual.net >= 0
-                        ? 'text-[#00d98a]'
-                        : 'text-[#ff4560]',
+                    value: (data.annual.net < 0 ? '−' : '') + formatCurrency(data.annual.net),
+                    color: data.annual.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
                     accent: data.annual.net >= 0 ? '#00d98a' : '#ff4560',
                   },
                   {
@@ -156,38 +144,29 @@ export default function OverviewPanel({
               ).map(({ label, value, color, accent }) => (
                 <div
                   key={label}
-                  className="bg-bg rounded-xl border border-border p-3.5 relative overflow-hidden"
+                  className="bg-bg border-border relative overflow-hidden rounded-xl border p-3.5"
                 >
                   {accent && (
                     <div
-                      className="absolute top-0 left-0 right-0 h-0.5"
+                      className="absolute top-0 right-0 left-0 h-0.5"
                       style={{
                         background: `linear-gradient(90deg, ${accent}cc, ${accent}22 60%, transparent)`,
                       }}
                     />
                   )}
-                  <p className={`${LABEL_CLS} mb-1.5`}>
-                    {label}
-                  </p>
-                  <p className={`font-mono text-base font-semibold ${color}`}>
-                    {value}
-                  </p>
+                  <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
+                  <p className={`font-mono text-base font-semibold ${color}`}>{value}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Monthly chart */}
-          <div className="bg-bg rounded-xl border border-border p-4">
-            <p className={`${LABEL_CLS} mb-4`}>
-              Monthly Breakdown
-            </p>
+          <div className="bg-bg border-border rounded-xl border p-4">
+            <p className={`${LABEL_CLS} mb-4`}>Monthly Breakdown</p>
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={chartData} barGap={1} barCategoryGap="28%">
-                <CartesianGrid
-                  vertical={false}
-                  stroke="var(--color-border-dim)"
-                />
+                <CartesianGrid vertical={false} stroke="var(--color-border-dim)" />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 10, fill: 'var(--color-text-4)' }}
@@ -259,7 +238,7 @@ export default function OverviewPanel({
                 />
               </ComposedChart>
             </ResponsiveContainer>
-            <div className="flex items-center gap-5 mt-3">
+            <div className="mt-3 flex items-center gap-5">
               {[
                 { bg: '#4a8cff33', label: 'Income', isBar: true },
                 { bg: '#ff4560a6', label: 'Spending', isBar: true },
@@ -268,17 +247,11 @@ export default function OverviewPanel({
               ].map(({ bg, label, isBar }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   {isBar ? (
-                    <div
-                      className="w-2.5 h-2.5 rounded-sm"
-                      style={{ background: bg }}
-                    />
+                    <div className="h-2.5 w-2.5 rounded-sm" style={{ background: bg }} />
                   ) : (
-                    <div
-                      className="w-5 h-px rounded-full"
-                      style={{ background: bg }}
-                    />
+                    <div className="h-px w-5 rounded-full" style={{ background: bg }} />
                   )}
-                  <span className="text-[10px] text-text-4">{label}</span>
+                  <span className="text-text-4 text-[10px]">{label}</span>
                 </div>
               ))}
             </div>
@@ -286,10 +259,8 @@ export default function OverviewPanel({
 
           {/* Quarterly breakdown */}
           <div>
-            <p className={`${LABEL_CLS} mb-3`}>
-              Quarterly
-            </p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <p className={`${LABEL_CLS} mb-3`}>Quarterly</p>
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
               {data.quarters.map((q) => {
                 const qMonthly = data.monthly.slice((q.q - 1) * 3, q.q * 3);
                 const allProjected = qMonthly.every((m) => m.projected);
@@ -299,25 +270,21 @@ export default function OverviewPanel({
                     key={q.q}
                     className={`bg-bg rounded-xl border p-4 transition-opacity ${
                       allProjected
-                        ? 'border-dashed border-border opacity-60'
+                        ? 'border-border border-dashed opacity-60'
                         : !q.hasData
                           ? 'border-border opacity-40'
                           : 'border-border'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold text-text">
-                        Q{q.q}
-                      </span>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-text text-sm font-semibold">Q{q.q}</span>
                       <div className="flex items-center gap-1.5">
                         {someProjected && (
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#f5a623]/10 text-[#f5a623]">
+                          <span className="rounded bg-[#f5a623]/10 px-1.5 py-0.5 text-[9px] font-medium text-[#f5a623]">
                             {allProjected ? 'Projected' : 'Partial'}
                           </span>
                         )}
-                        <span className="text-[10px] text-text-4">
-                          {Q_RANGES[q.q - 1]}
-                        </span>
+                        <span className="text-text-4 text-[10px]">{Q_RANGES[q.q - 1]}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -341,21 +308,13 @@ export default function OverviewPanel({
                           {
                             label: 'Net',
                             val: (q.net < 0 ? '−' : '') + formatCurrency(q.net),
-                            color:
-                              q.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
+                            color: q.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
                           },
                         ] as { label: string; val: string; color: string }[]
                       ).map(({ label, val, color }) => (
-                        <div
-                          key={label}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-[10px] text-text-4">
-                            {label}
-                          </span>
-                          <span
-                            className={`text-xs font-mono font-medium ${color}`}
-                          >
+                        <div key={label} className="flex items-center justify-between">
+                          <span className="text-text-4 text-[10px]">{label}</span>
+                          <span className={`font-mono text-xs font-medium ${color}`}>
                             {q.hasData ? val : '—'}
                           </span>
                         </div>
@@ -364,7 +323,7 @@ export default function OverviewPanel({
                     {q.hasData && q.income > 0 && (
                       <div className="mt-3">
                         {/* Stacked bar: spending (red) + invested (blue) out of income */}
-                        <div className="h-1.5 rounded-full bg-surface overflow-hidden flex">
+                        <div className="bg-surface flex h-1.5 overflow-hidden rounded-full">
                           <div
                             className="h-full"
                             style={{
@@ -382,9 +341,9 @@ export default function OverviewPanel({
                             }}
                           />
                         </div>
-                        <p className="text-[9px] text-text-4 mt-1">
-                          {Math.round((q.spending / q.income) * 100)}% spent ·{' '}
-                          {q.savingsRate}% saved
+                        <p className="text-text-4 mt-1 text-[9px]">
+                          {Math.round((q.spending / q.income) * 100)}% spent · {q.savingsRate}%
+                          saved
                         </p>
                       </div>
                     )}
@@ -397,24 +356,22 @@ export default function OverviewPanel({
           {/* Top categories */}
           {data.categories.length > 0 && (
             <div>
-              <p className={`${LABEL_CLS} mb-3`}>
-                Spending by Category
-              </p>
-              <div className="bg-bg rounded-xl border border-border p-4 space-y-3.5">
+              <p className={`${LABEL_CLS} mb-3`}>Spending by Category</p>
+              <div className="bg-bg border-border space-y-3.5 rounded-xl border p-4">
                 {data.categories.slice(0, 10).map(({ category, total }) => (
                   <div key={category}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-text">{category}</span>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-text text-xs">{category}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-text-4">
+                        <span className="text-text-4 text-[10px]">
                           {Math.round((total / data.annual.spending) * 100)}%
                         </span>
-                        <span className="text-xs font-mono text-text-2 w-20 text-right">
+                        <span className="text-text-2 w-20 text-right font-mono text-xs">
                           {formatCurrency(total)}
                         </span>
                       </div>
                     </div>
-                    <div className="h-1 rounded-full bg-surface overflow-hidden">
+                    <div className="bg-surface h-1 overflow-hidden rounded-full">
                       <div
                         className="h-full rounded-full"
                         style={{

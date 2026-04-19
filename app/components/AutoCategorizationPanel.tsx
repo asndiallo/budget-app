@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
+import { api } from '@/lib/api';
 import { CATEGORIES, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import type { CategorizationRule } from '@/lib/types';
-import { api } from '@/lib/api';
 
 export default function AutoCategorizationPanel() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
@@ -15,7 +15,7 @@ export default function AutoCategorizationPanel() {
 
   useEffect(() => {
     reload();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addRule() {
     if (!newKeyword.trim()) return;
@@ -31,39 +31,33 @@ export default function AutoCategorizationPanel() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={LABEL_CLS}>
-          Auto-categorization rules
-        </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className={LABEL_CLS}>Auto-categorization rules</h3>
         {rules.length > 0 && (
-          <span className="text-[10px] text-text-4">
+          <span className="text-text-4 text-[10px]">
             {rules.length} rule{rules.length !== 1 ? 's' : ''}
           </span>
         )}
       </div>
 
-      <p className="text-[11px] text-text-4 mb-3">
-        When a transaction description contains a keyword, it's automatically
-        assigned to that category on import.
+      <p className="text-text-4 mb-3 text-[11px]">
+        When a transaction description contains a keyword, it's automatically assigned to that
+        category on import.
       </p>
 
       {rules.length > 0 && (
-        <div className="space-y-1 mb-4">
+        <div className="mb-4 space-y-1">
           {rules.map((r) => (
             <div
               key={r.id}
-              className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-bg border border-border-dim hover:border-border transition-colors group"
+              className="bg-bg border-border-dim hover:border-border group flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-colors"
             >
-              <code className="flex-1 text-xs text-text font-mono">
-                {r.keyword}
-              </code>
+              <code className="text-text flex-1 font-mono text-xs">{r.keyword}</code>
               <span className="text-text-4 text-xs">→</span>
-              <span className="text-xs text-[#4a8cff] font-medium">
-                {r.category}
-              </span>
+              <span className="text-xs font-medium text-[#4a8cff]">{r.category}</span>
               <button
                 onClick={() => removeRule(r.id)}
-                className="text-text-4 hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100"
+                className="text-text-4 text-xs opacity-0 transition-colors group-hover:opacity-100 hover:text-[#ff4560]"
                 title="Remove rule"
               >
                 ✕
@@ -73,18 +67,18 @@ export default function AutoCategorizationPanel() {
         </div>
       )}
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-wrap gap-2">
         <input
           value={newKeyword}
           onChange={(e) => setNewKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addRule()}
           placeholder="keyword (e.g. mcdonald)"
-          className={`flex-1 min-w-32 ${INPUT_CLS}`}
+          className={`min-w-32 flex-1 ${INPUT_CLS}`}
         />
         <select
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
-          className="text-sm bg-bg border border-border rounded-lg px-2 py-1.5 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+          className="bg-bg border-border text-text cursor-pointer rounded-lg border px-2 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
         >
           {CATEGORIES.map((c) => (
             <option key={c}>{c}</option>
@@ -92,7 +86,7 @@ export default function AutoCategorizationPanel() {
         </select>
         <button
           onClick={addRule}
-          className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:border-[#2d4080] hover:text-text transition-colors"
+          className="border-border text-text-2 hover:text-text rounded-lg border px-3 py-1.5 text-sm transition-colors hover:border-[#2d4080]"
         >
           + Add rule
         </button>

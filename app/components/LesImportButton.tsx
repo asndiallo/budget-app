@@ -1,9 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { parseLes, type LesParseResult } from '@/lib/les-parser';
+
 import { api } from '@/lib/api';
 import { LABEL_CLS } from '@/lib/config';
+import { type LesParseResult, parseLes } from '@/lib/les-parser';
 
 interface Props {
   month: string;
@@ -63,7 +64,7 @@ export default function LesImportButton({ month, onImport }: Props) {
     return (
       <button
         onClick={() => setStep('input')}
-        className="text-[11px] px-2 py-1 rounded-lg border border-border text-text-3 hover:text-[#4a8cff] hover:border-[#4a8cff]/40 transition-colors"
+        className="border-border text-text-3 rounded-lg border px-2 py-1 text-[11px] transition-colors hover:border-[#4a8cff]/40 hover:text-[#4a8cff]"
         title="Import from Leave & Earnings Statement"
       >
         Import LES
@@ -75,10 +76,7 @@ export default function LesImportButton({ month, onImport }: Props) {
     return (
       <div className="flex items-center gap-2 text-[11px] text-[#00d98a]">
         <span>✓ Imported</span>
-        <button
-          onClick={reset}
-          className="text-text-4 hover:text-text-3 transition-colors"
-        >
+        <button onClick={reset} className="text-text-4 hover:text-text-3 transition-colors">
           ✕
         </button>
       </div>
@@ -86,25 +84,21 @@ export default function LesImportButton({ month, onImport }: Props) {
   }
 
   return (
-    <div className="mt-4 border border-border rounded-xl p-4 space-y-4 bg-bg">
+    <div className="border-border bg-bg mt-4 space-y-4 rounded-xl border p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-text">Import LES</p>
-        <button
-          onClick={reset}
-          className="text-text-4 hover:text-text-3 text-xs transition-colors"
-        >
+        <p className="text-text text-xs font-semibold">Import LES</p>
+        <button onClick={reset} className="text-text-4 hover:text-text-3 text-xs transition-colors">
           ✕
         </button>
       </div>
 
       {/* Input area — shown until we have a parsed result */}
-      {(step === 'input' ||
-        (step === 'preview' && !result?.preview.length)) && (
+      {(step === 'input' || (step === 'preview' && !result?.preview.length)) && (
         <div className="space-y-3">
-          <p className="text-[11px] text-text-4 leading-relaxed">
-            Paste your LES text below, or upload the{' '}
-            <code className="text-text-3">.txt</code> file from{' '}
+          <p className="text-text-4 text-[11px] leading-relaxed">
+            Paste your LES text below, or upload the <code className="text-text-3">.txt</code> file
+            from{' '}
             <a
               href="https://mypay.dfas.mil"
               target="_blank"
@@ -114,11 +108,11 @@ export default function LesImportButton({ month, onImport }: Props) {
               myPay
             </a>
             . For a PDF: open it, press{' '}
-            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">
+            <kbd className="bg-surface text-text-2 rounded px-1 py-0.5 font-mono text-[10px]">
               ⌘A
             </kbd>{' '}
             then{' '}
-            <kbd className="px-1 py-0.5 rounded bg-surface text-text-2 font-mono text-[10px]">
+            <kbd className="bg-surface text-text-2 rounded px-1 py-0.5 font-mono text-[10px]">
               ⌘C
             </kbd>
             , then paste here.
@@ -129,10 +123,10 @@ export default function LesImportButton({ month, onImport }: Props) {
             onChange={(e) => handleText(e.target.value)}
             placeholder="Paste LES text here…"
             rows={6}
-            className="w-full text-xs font-mono bg-surface border border-border rounded-lg px-3 py-2 text-text placeholder-text-4 focus:outline-none focus:border-blue-500 transition-colors resize-y"
+            className="bg-surface border-border text-text placeholder-text-4 w-full resize-y rounded-lg border px-3 py-2 font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
           />
           <div className="flex items-center gap-2">
-            <label className="text-[11px] text-[#4a8cff] hover:underline cursor-pointer">
+            <label className="cursor-pointer text-[11px] text-[#4a8cff] hover:underline">
               Upload .txt file
               <input
                 ref={fileRef}
@@ -151,21 +145,17 @@ export default function LesImportButton({ month, onImport }: Props) {
         <div className="space-y-3">
           {/* Detected fields */}
           <div>
-            <p className={`${LABEL_CLS} mb-2`}>
-              Extracted fields ({result.preview.length})
-            </p>
-            <div className="rounded-lg border border-border overflow-hidden">
+            <p className={`${LABEL_CLS} mb-2`}>Extracted fields ({result.preview.length})</p>
+            <div className="border-border overflow-hidden rounded-lg border">
               {result.preview.map(({ key, label, value }, i) => (
                 <div
                   key={key}
                   className={`flex items-center justify-between px-3 py-2 text-xs ${
-                    i < result.preview.length - 1
-                      ? 'border-b border-border-dim'
-                      : ''
+                    i < result.preview.length - 1 ? 'border-border-dim border-b' : ''
                   }`}
                 >
                   <span className="text-text-3">{label}</span>
-                  <span className="font-mono text-text">
+                  <span className="text-text font-mono">
                     {key === 'tsp_rate'
                       ? `${Math.round(value * 100)}% of base`
                       : `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -179,10 +169,7 @@ export default function LesImportButton({ month, onImport }: Props) {
           {result.warnings.length > 0 && (
             <div className="space-y-1">
               {result.warnings.map((w) => (
-                <p
-                  key={w}
-                  className="text-[11px] text-amber-400 flex items-start gap-1.5"
-                >
+                <p key={w} className="flex items-start gap-1.5 text-[11px] text-amber-400">
                   <span className="shrink-0">⚠</span>
                   <span>{w}</span>
                 </p>
@@ -192,14 +179,12 @@ export default function LesImportButton({ month, onImport }: Props) {
 
           {/* Month confirmation */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-3 shrink-0">
-              Apply to month
-            </span>
+            <span className="text-text-3 shrink-0 text-[11px]">Apply to month</span>
             <input
               type="month"
               value={targetMonth}
               onChange={(e) => setTargetMonth(e.target.value)}
-              className="text-xs bg-surface border border-border rounded-lg px-2 py-1 text-text focus:outline-none focus:border-blue-500 transition-colors"
+              className="bg-surface border-border text-text rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-500 focus:outline-none"
             />
           </div>
 
@@ -211,7 +196,7 @@ export default function LesImportButton({ month, onImport }: Props) {
                 setResult(null);
                 setStep('input');
               }}
-              className="text-[11px] text-text-4 hover:text-text-3 transition-colors"
+              className="text-text-4 hover:text-text-3 text-[11px] transition-colors"
             >
               ← Paste different LES
             </button>
@@ -222,13 +207,13 @@ export default function LesImportButton({ month, onImport }: Props) {
             <button
               onClick={applyImport}
               disabled={applying || !targetMonth}
-              className="flex-1 py-2 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition-colors"
+              className="flex-1 rounded-lg bg-blue-600 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
             >
               {applying ? 'Applying…' : `Apply to ${targetMonth}`}
             </button>
             <button
               onClick={reset}
-              className="px-4 py-2 text-xs rounded-lg border border-border text-text-2 hover:text-text transition-colors"
+              className="border-border text-text-2 hover:text-text rounded-lg border px-4 py-2 text-xs transition-colors"
             >
               Cancel
             </button>

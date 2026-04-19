@@ -5,8 +5,7 @@
 // Keep these in sync with tailwind.config.js content array (./lib/**).
 
 /** Section / field label: small caps, muted colour. */
-export const LABEL_CLS =
-  'text-[10px] font-semibold uppercase tracking-widest text-text-3';
+export const LABEL_CLS = 'text-[10px] font-semibold uppercase tracking-widest text-text-3';
 
 /** Standard single-line text/select input. */
 export const INPUT_CLS =
@@ -231,7 +230,7 @@ export const INCOME_PROFILE_TYPES = {
     label: 'School / Training',
     color: '#4a8cff',
     defaultFields: {} as Record<string, number>,
-    hint: 'Override fields that change during school (e.g. BAH if in gov\'t quarters)',
+    hint: "Override fields that change during school (e.g. BAH if in gov't quarters)",
   },
   custom: {
     label: 'Custom',
@@ -243,33 +242,27 @@ export const INCOME_PROFILE_TYPES = {
 
 /** All income_config field keys with display labels, for use in profile field overrides. */
 export const INCOME_PROFILE_FIELD_OPTIONS = [
-  { key: 'base_pay',           label: 'Base pay',              group: 'Income' },
-  { key: 'bas',                label: 'BAS',                   group: 'Income' },
-  { key: 'bah',                label: 'BAH',                   group: 'Income' },
-  { key: 'other',              label: 'Other income',          group: 'Income' },
-  { key: 'flight_pay',         label: 'Aviation / flight pay', group: 'Special pay' },
-  { key: 'hazardous_duty_pay', label: 'Hazardous duty pay',   group: 'Special pay' },
-  { key: 'jump_pay',           label: 'Jump pay',              group: 'Special pay' },
-  { key: 'hostile_fire_idp',   label: 'Hostile fire / IDP',   group: 'Special pay' },
-  { key: 'sdap',               label: 'SDAP',                  group: 'Special pay' },
-  { key: 'sep',                label: 'SRB / bonus',           group: 'Special pay' },
-  { key: 'taxes',              label: 'Federal taxes',         group: 'Deductions' },
-  { key: 'fica_soc_security',  label: 'FICA-Soc Security',    group: 'Deductions' },
-  { key: 'fica_medicare',      label: 'FICA-Medicare',        group: 'Deductions' },
-  { key: 'sgli',               label: 'SGLI',                  group: 'Deductions' },
-  { key: 'afrh',               label: 'AFRH',                  group: 'Deductions' },
-  { key: 'meal_deduction',     label: 'Meal deduction',        group: 'Deductions' },
-  { key: 'tsp_rate',           label: 'TSP rate (0–1 decimal)', group: 'Other' },
-  { key: 'combat_zone',        label: 'Combat zone flag (0 / 1)', group: 'Other' },
+  { key: 'base_pay', label: 'Base pay', group: 'Income' },
+  { key: 'bas', label: 'BAS', group: 'Income' },
+  { key: 'bah', label: 'BAH', group: 'Income' },
+  { key: 'other', label: 'Other income', group: 'Income' },
+  { key: 'flight_pay', label: 'Aviation / flight pay', group: 'Special pay' },
+  { key: 'hazardous_duty_pay', label: 'Hazardous duty pay', group: 'Special pay' },
+  { key: 'jump_pay', label: 'Jump pay', group: 'Special pay' },
+  { key: 'hostile_fire_idp', label: 'Hostile fire / IDP', group: 'Special pay' },
+  { key: 'sdap', label: 'SDAP', group: 'Special pay' },
+  { key: 'sep', label: 'SRB / bonus', group: 'Special pay' },
+  { key: 'taxes', label: 'Federal taxes', group: 'Deductions' },
+  { key: 'fica_soc_security', label: 'FICA-Soc Security', group: 'Deductions' },
+  { key: 'fica_medicare', label: 'FICA-Medicare', group: 'Deductions' },
+  { key: 'sgli', label: 'SGLI', group: 'Deductions' },
+  { key: 'afrh', label: 'AFRH', group: 'Deductions' },
+  { key: 'meal_deduction', label: 'Meal deduction', group: 'Deductions' },
+  { key: 'tsp_rate', label: 'TSP rate (0–1 decimal)', group: 'Other' },
+  { key: 'combat_zone', label: 'Combat zone flag (0 / 1)', group: 'Other' },
 ] as const;
 
-export const GOAL_COLORS = [
-  'blue',
-  'green',
-  'amber',
-  'rose',
-  'purple',
-] as const;
+export const GOAL_COLORS = ['blue', 'green', 'amber', 'rose', 'purple'] as const;
 
 export type GoalColor = (typeof GOAL_COLORS)[number];
 
@@ -314,10 +307,7 @@ export const SEED_FIXED_EXPENSES: {
   period: 'monthly' | 'annual';
 }[] = [{ label: 'Phone bill', amount: 250, period: 'annual' }];
 
-export const SEED_PAYMENT_SOURCES = [
-  { label: 'Apple Card' },
-  { label: 'Cash / Other' },
-];
+export const SEED_PAYMENT_SOURCES = [{ label: 'Apple Card' }, { label: 'Cash / Other' }];
 
 export const SEED_DEBTS = [
   {

@@ -1,10 +1,17 @@
 'use client';
 
-import { BTN_BLUE_CLS, CATEGORIES, CAT_COLORS, DEFAULT_CATEGORY, INPUT_CLS, LABEL_CLS } from '@/lib/config';
-import type { PaymentSource, Transaction } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
+import {
+  BTN_BLUE_CLS,
+  CAT_COLORS,
+  CATEGORIES,
+  DEFAULT_CATEGORY,
+  INPUT_CLS,
+  LABEL_CLS,
+} from '@/lib/config';
+import type { PaymentSource, Transaction } from '@/lib/types';
 import { parseCSVLine } from '@/lib/utils';
 
 export default function TransactionsPanel({
@@ -23,13 +30,9 @@ export default function TransactionsPanel({
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
   const [source, setSource] = useState('manual');
   const [csvSource, setCsvSource] = useState('');
-  const [filterCat, setFilterCat] = useState<string | null>(
-    initialCategory ?? null,
-  );
+  const [filterCat, setFilterCat] = useState<string | null>(initialCategory ?? null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Transaction[] | null>(
-    null,
-  );
+  const [searchResults, setSearchResults] = useState<Transaction[] | null>(null);
   const [period, setPeriod] = useState<'all' | '1' | '2'>('all');
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
@@ -60,8 +63,7 @@ export default function TransactionsPanel({
   const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const reloadImportHistory = () =>
-    api.importHistory.list().then(setImportHistory);
+  const reloadImportHistory = () => api.importHistory.list().then(setImportHistory);
 
   useEffect(() => {
     if (initialCategory) setFilterCat(initialCategory);
@@ -83,7 +85,7 @@ export default function TransactionsPanel({
   useEffect(() => {
     reloadSources();
     reloadImportHistory();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addTx() {
     if (!desc.trim() || !amt) return;
@@ -137,9 +139,7 @@ export default function TransactionsPanel({
 
   function toggleSelectAll() {
     setSelectedIds((prev) =>
-      prev.size === filtered.length
-        ? new Set()
-        : new Set(filtered.map((t) => t.id)),
+      prev.size === filtered.length ? new Set() : new Set(filtered.map((t) => t.id)),
     );
   }
 
@@ -174,15 +174,10 @@ export default function TransactionsPanel({
 
     const text = await file.text();
     const lines = text.trim().split('\n');
-    const headers = lines[0]
-      .split(',')
-      .map((h) => h.replace(/"/g, '').trim().toLowerCase());
+    const headers = lines[0].split(',').map((h) => h.replace(/"/g, '').trim().toLowerCase());
 
-    const creditDebitIdx = headers.findIndex(
-      (h) => h === 'credit debit indicator',
-    );
-    const isNavyFed =
-      creditDebitIdx >= 0 && headers.some((h) => h === 'type group');
+    const creditDebitIdx = headers.findIndex((h) => h === 'credit debit indicator');
+    const isNavyFed = creditDebitIdx >= 0 && headers.some((h) => h === 'type group');
     const debitIdx = headers.findIndex((h) => h === 'debit');
     const creditIdx = headers.findIndex((h) => h === 'credit');
     const isCapitalOne = debitIdx >= 0 && creditIdx >= 0 && !isNavyFed;
@@ -191,18 +186,14 @@ export default function TransactionsPanel({
     const statusIdx = headers.findIndex((h) => h === 'status');
     const isUsaa = origDescIdx >= 0 && statusIdx >= 0;
     // BofA bank: has 'running bal.' column
-    const runningBalIdx = headers.findIndex((h) =>
-      h.includes('running bal'),
-    );
+    const runningBalIdx = headers.findIndex((h) => h.includes('running bal'));
     const isBofaBank = runningBalIdx >= 0;
     // BofA credit: has 'reference number' and 'payee' columns
     const refNumIdx = headers.findIndex((h) => h === 'reference number');
     const payeeIdx = headers.findIndex((h) => h === 'payee');
     const isBofaCredit = refNumIdx >= 0 && payeeIdx >= 0;
 
-    const dateIdx = headers.findIndex(
-      (h) => h.includes('transaction date') || h === 'date',
-    );
+    const dateIdx = headers.findIndex((h) => h.includes('transaction date') || h === 'date');
     const merchantIdx = headers.findIndex((h) => h === 'merchant');
     const descIdx = headers.findIndex((h) => h === 'description');
     const catIdx = headers.findIndex((h) => h === 'category');
@@ -215,13 +206,15 @@ export default function TransactionsPanel({
       if (vals.length < 2) continue;
 
       const description =
-        vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] ||
-        'Unknown';
+        vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] || 'Unknown';
       const isTaptap = description.toLowerCase().includes('taptap');
 
       if (isUsaa) {
         // USAA: negative amounts = debits (expenses), positive = credits
-        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 2] || '0').replace(/[^0-9.-]/g, '');
+        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 2] || '0').replace(
+          /[^0-9.-]/g,
+          '',
+        );
         const rawNum = parseFloat(rawAmt);
         if (rawNum >= 0) continue; // skip credits/deposits
         const amount = Math.abs(rawNum);
@@ -239,14 +232,23 @@ export default function TransactionsPanel({
         if (rawNum >= 0) continue; // skip deposits
         const amount = Math.abs(rawNum);
         const date = vals[0] || '';
-        if (amount > 0) rows.push({ description: vals[1] || 'Unknown', amount, category: DEFAULT_CATEGORY, date });
+        if (amount > 0)
+          rows.push({
+            description: vals[1] || 'Unknown',
+            amount,
+            category: DEFAULT_CATEGORY,
+            date,
+          });
         continue;
       }
 
       if (isBofaCredit) {
         // BofA credit: Transaction Date, Posted Date, Reference Number, Payee, Address, Amount
         // negative Amount = charge (expense)
-        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(/[^0-9.-]/g, '');
+        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(
+          /[^0-9.-]/g,
+          '',
+        );
         const rawNum = parseFloat(rawAmt);
         if (rawNum >= 0) continue; // skip payments/credits
         const amount = Math.abs(rawNum);
@@ -275,17 +277,11 @@ export default function TransactionsPanel({
         if (!isTaptap) continue;
       } else {
         const type = (vals[typeIdx] || '').toLowerCase();
-        if (['payment', 'return', 'reversal', 'adjustment'].includes(type))
-          continue;
+        if (['payment', 'return', 'reversal', 'adjustment'].includes(type)) continue;
       }
 
       const amount = Math.abs(
-        parseFloat(
-          (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(
-            /[^0-9.-]/g,
-            '',
-          ),
-        ),
+        parseFloat((vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(/[^0-9.-]/g, '')),
       );
       const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
 
@@ -307,11 +303,7 @@ export default function TransactionsPanel({
   async function applyPendingImport() {
     if (!pendingRows.length) return;
     setCommitting(true);
-    const data = await api.transactions.importCsv(
-      pendingRows,
-      month,
-      csvSource,
-    );
+    const data = await api.transactions.importCsv(pendingRows, month, csvSource);
     const monthLabels = (data.months ?? [])
       .sort()
       .map((m) => {
@@ -390,14 +382,7 @@ export default function TransactionsPanel({
       const date = t.date || t.created_at.slice(0, 10);
       const desc = `"${(t.description || '').replace(/"/g, '""')}"`;
       const notes = t.notes ? `"${t.notes.replace(/"/g, '""')}"` : '';
-      return [
-        date,
-        desc,
-        t.amount.toFixed(2),
-        t.category,
-        t.source,
-        notes,
-      ].join(',');
+      return [date, desc, t.amount.toFixed(2), t.category, t.source, notes].join(',');
     });
     const csv = [header, ...lines].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -442,18 +427,18 @@ export default function TransactionsPanel({
   return (
     <div className="space-y-5">
       {/* CSV import card */}
-      <div className="bg-bg rounded-xl border border-border p-4">
+      <div className="bg-bg border-border rounded-xl border p-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text">Import CSV</p>
-            <p className="text-xs text-text-3 mt-0.5">
+          <div className="min-w-0 flex-1">
+            <p className="text-text text-sm font-semibold">Import CSV</p>
+            <p className="text-text-3 mt-0.5 text-xs">
               Apple Card · Chase · Capital One · Navy Federal · USAA · BofA
             </p>
             {sources.length > 0 && (
               <select
                 value={csvSource}
                 onChange={(e) => setCsvSource(e.target.value)}
-                className="mt-2 text-xs bg-surface border border-border rounded-lg px-2 py-1 text-text-2 focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                className="bg-surface border-border text-text-2 mt-2 cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-600 focus:outline-none"
               >
                 {sources.map((s) => (
                   <option key={s.id} value={s.label}>
@@ -463,12 +448,12 @@ export default function TransactionsPanel({
               </select>
             )}
           </div>
-          <label className="cursor-pointer shrink-0">
+          <label className="shrink-0 cursor-pointer">
             <span
-              className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap ${
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm whitespace-nowrap transition-all ${
                 importing
                   ? 'border-border text-text-3'
-                  : 'border-border text-text-2 hover:border-[#4a8cff]/40 hover:text-[#4a8cff] hover:bg-surface-blue/40'
+                  : 'border-border text-text-2 hover:bg-surface-blue/40 hover:border-[#4a8cff]/40 hover:text-[#4a8cff]'
               }`}
             >
               {importing ? (
@@ -489,7 +474,7 @@ export default function TransactionsPanel({
           </label>
         </div>
         {importMsg && (
-          <p className="text-xs text-[#00d98a] mt-2.5 font-mono flex items-center gap-1.5">
+          <p className="mt-2.5 flex items-center gap-1.5 font-mono text-xs text-[#00d98a]">
             <span>✓</span> {importMsg}
           </p>
         )}
@@ -497,19 +482,17 @@ export default function TransactionsPanel({
 
       {/* CSV review grid */}
       {pendingRows.length > 0 && (
-        <div className="bg-bg border border-border rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="bg-bg border-border overflow-hidden rounded-xl border">
+          <div className="border-border flex items-center justify-between border-b px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-text">Review import</p>
-              <p className="text-xs text-text-3 mt-0.5">
+              <p className="text-text text-sm font-semibold">Review import</p>
+              <p className="text-text-3 mt-0.5 text-xs">
                 {pendingRows.length} transaction
                 {pendingRows.length !== 1 ? 's' : ''} ·{' '}
                 <span className="text-amber-400">
                   {
                     pendingRows.filter(
-                      (r) =>
-                        r.category === DEFAULT_CATEGORY ||
-                        r.category === 'Other',
+                      (r) => r.category === DEFAULT_CATEGORY || r.category === 'Other',
                     ).length
                   }{' '}
                   uncategorized
@@ -519,55 +502,51 @@ export default function TransactionsPanel({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPendingRows([])}
-                className="text-xs px-3 py-1.5 rounded-lg border border-border text-text-3 hover:text-text-2 transition-colors"
+                className="border-border text-text-3 hover:text-text-2 rounded-lg border px-3 py-1.5 text-xs transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={applyPendingImport}
                 disabled={committing}
-                className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition-colors"
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
               >
                 {committing ? 'Importing…' : `Import ${pendingRows.length}`}
               </button>
             </div>
           </div>
           {/* Column headers */}
-          <div className="grid grid-cols-[90px_1fr_80px_140px] gap-2 px-4 py-2 bg-surface-raised border-b border-border-dim">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+          <div className="bg-surface-raised border-border-dim grid grid-cols-[90px_1fr_80px_140px] gap-2 border-b px-4 py-2">
+            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
               Date
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
               Description
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4 text-right">
+            <span className="text-text-4 text-right text-[10px] font-semibold tracking-wider uppercase">
               Amount
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-4">
+            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
               Category
             </span>
           </div>
-          <div className="max-h-80 overflow-y-auto divide-y divide-border-dim">
+          <div className="divide-border-dim max-h-80 divide-y overflow-y-auto">
             {pendingRows.map((row, i) => {
-              const isUncategorized =
-                row.category === DEFAULT_CATEGORY || row.category === 'Other';
+              const isUncategorized = row.category === DEFAULT_CATEGORY || row.category === 'Other';
               return (
                 <div
                   key={i}
-                  className={`grid grid-cols-[90px_1fr_80px_140px] gap-2 px-4 py-2 items-center transition-colors ${
+                  className={`grid grid-cols-[90px_1fr_80px_140px] items-center gap-2 px-4 py-2 transition-colors ${
                     isUncategorized ? 'bg-amber-500/5' : 'hover:bg-surface/40'
                   }`}
                 >
-                  <span className="text-[11px] font-mono text-text-4 truncate">
+                  <span className="text-text-4 truncate font-mono text-[11px]">
                     {row.date || '—'}
                   </span>
-                  <span
-                    className="text-xs text-text truncate"
-                    title={row.description}
-                  >
+                  <span className="text-text truncate text-xs" title={row.description}>
                     {row.description}
                   </span>
-                  <span className="text-xs font-mono text-text text-right">
+                  <span className="text-text text-right font-mono text-xs">
                     ${row.amount.toFixed(2)}
                   </span>
                   <select
@@ -575,12 +554,10 @@ export default function TransactionsPanel({
                     onChange={(e) => {
                       const cat = e.target.value;
                       setPendingRows((prev) =>
-                        prev.map((r, j) =>
-                          j === i ? { ...r, category: cat } : r,
-                        ),
+                        prev.map((r, j) => (j === i ? { ...r, category: cat } : r)),
                       );
                     }}
-                    className={`text-xs rounded-lg px-2 py-1 border focus:outline-none focus:border-blue-500 transition-colors cursor-pointer bg-surface ${
+                    className={`bg-surface cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-500 focus:outline-none ${
                       isUncategorized
                         ? 'border-amber-500/40 text-amber-400'
                         : 'border-border text-text'
@@ -604,46 +581,39 @@ export default function TransactionsPanel({
         <div>
           <button
             onClick={() => setShowImportHistory((v) => !v)}
-            className="text-xs text-text-3 hover:text-text-2 transition-colors flex items-center gap-1"
+            className="text-text-3 hover:text-text-2 flex items-center gap-1 text-xs transition-colors"
           >
             <span className="text-[10px]">{showImportHistory ? '▾' : '▸'}</span>
             Recent imports
-            <span className="text-text-4 font-mono ml-0.5">
-              ({importHistory.length})
-            </span>
+            <span className="text-text-4 ml-0.5 font-mono">({importHistory.length})</span>
           </button>
           {showImportHistory && (
-            <div className="mt-2 bg-bg border border-border rounded-xl divide-y divide-border-dim overflow-hidden">
+            <div className="bg-bg border-border divide-border-dim mt-2 divide-y overflow-hidden rounded-xl border">
               {importHistory.map((imp) => {
                 const label =
                   imp.min_month === imp.max_month
                     ? imp.min_month
                     : `${imp.min_month} – ${imp.max_month}`;
-                const when = new Date(imp.imported_at).toLocaleDateString(
-                  'en-US',
-                  {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                );
+                const when = new Date(imp.imported_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
                 return (
                   <div
                     key={imp.import_id}
-                    className="flex items-center justify-between px-3 py-2.5 gap-3"
+                    className="flex items-center justify-between gap-3 px-3 py-2.5"
                   >
                     <div className="min-w-0">
-                      <span className="text-xs font-medium text-text">
-                        {imp.source}
-                      </span>
-                      <span className="text-xs text-text-4 ml-2">
+                      <span className="text-text text-xs font-medium">{imp.source}</span>
+                      <span className="text-text-4 ml-2 text-xs">
                         {imp.count} txns · {label} · {when}
                       </span>
                     </div>
                     <button
                       onClick={() => undoImport(imp.import_id)}
-                      className="text-xs text-text-3 hover:text-[#ff4560] transition-colors shrink-0"
+                      className="text-text-3 shrink-0 text-xs transition-colors hover:text-[#ff4560]"
                       title="Remove this import batch"
                     >
                       Undo
@@ -660,36 +630,33 @@ export default function TransactionsPanel({
       <div>
         <button
           onClick={() => setManagingCards((v) => !v)}
-          className="text-xs text-text-3 hover:text-text-2 transition-colors flex items-center gap-1"
+          className="text-text-3 hover:text-text-2 flex items-center gap-1 text-xs transition-colors"
         >
           <span className="text-[10px]">{managingCards ? '▾' : '▸'}</span>
           Manage cards
         </button>
         {managingCards && (
-          <div className="mt-2 bg-bg border border-border rounded-xl p-3 space-y-2">
+          <div className="bg-bg border-border mt-2 space-y-2 rounded-xl border p-3">
             {sources.map((s) => (
               <div key={s.id} className="flex items-center justify-between">
-                <span className="text-sm text-text">{s.label}</span>
+                <span className="text-text text-sm">{s.label}</span>
                 <button
                   onClick={() => removeCard(s.id)}
-                  className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+                  className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
                 >
                   ✕
                 </button>
               </div>
             ))}
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
               <input
                 value={newCard}
                 onChange={(e) => setNewCard(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 placeholder="Card name"
-                className="flex-1 text-sm bg-surface border border-border rounded-lg px-3 py-1.5 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+                className="bg-surface border-border text-text placeholder-text-4 flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors focus:border-blue-600 focus:outline-none"
               />
-              <button
-                onClick={addCard}
-                className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-              >
+              <button onClick={addCard} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
                 + Add
               </button>
             </div>
@@ -699,7 +666,7 @@ export default function TransactionsPanel({
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-4 text-sm pointer-events-none select-none">
+        <span className="text-text-4 pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm select-none">
           ⌕
         </span>
         <input
@@ -707,10 +674,10 @@ export default function TransactionsPanel({
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search all transactions…"
-          className="w-full text-sm bg-bg border border-border rounded-xl pl-8 pr-4 py-2 text-text placeholder-text-4 focus:outline-none focus:border-blue-600 transition-colors"
+          className="bg-bg border-border text-text placeholder-text-4 w-full rounded-xl border py-2 pr-4 pl-8 text-sm transition-colors focus:border-blue-600 focus:outline-none"
         />
         {isSearching && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-4 font-mono">
+          <span className="text-text-4 absolute top-1/2 right-3 -translate-y-1/2 font-mono text-[10px]">
             {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -719,7 +686,7 @@ export default function TransactionsPanel({
       {/* Pay period toggle */}
       {!isSearching && (
         <div className="flex items-center gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-4 mr-1">
+          <span className="text-text-4 mr-1 text-[10px] font-semibold tracking-widest uppercase">
             Period
           </span>
           {[
@@ -730,15 +697,15 @@ export default function TransactionsPanel({
             <button
               key={key}
               onClick={() => setPeriod(key)}
-              className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+              className={`rounded-lg border px-2.5 py-1 text-xs transition-all ${
                 period === key
                   ? 'bg-surface-raised border-border text-text font-medium'
-                  : 'border-transparent text-text-4 hover:text-text-3'
+                  : 'text-text-4 hover:text-text-3 border-transparent'
               }`}
             >
               {label}
               {total !== null && total > 0 && (
-                <span className="ml-1 font-mono text-text-4">
+                <span className="text-text-4 ml-1 font-mono">
                   ${Math.round(total).toLocaleString()}
                 </span>
               )}
@@ -749,10 +716,10 @@ export default function TransactionsPanel({
 
       {/* Category filter chips */}
       {Object.keys(catTotals).length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setFilterCat(null)}
-            className={`text-xs px-3 py-1 rounded-full border transition-all ${
+            className={`rounded-full border px-3 py-1 text-xs transition-all ${
               !filterCat
                 ? 'bg-text text-bg border-text font-medium'
                 : 'border-border text-text-3 hover:border-border hover:text-text-2'
@@ -766,7 +733,7 @@ export default function TransactionsPanel({
               <button
                 key={c}
                 onClick={() => setFilterCat(filterCat === c ? null : c)}
-                className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                className={`rounded-full border px-3 py-1 text-xs transition-all ${
                   filterCat === c
                     ? `${CAT_COLORS[c] ?? 'bg-gray-500/10 text-gray-500'} border-current`
                     : 'border-border text-text-3 hover:text-text-2'
@@ -780,23 +747,21 @@ export default function TransactionsPanel({
 
       {/* Transaction list */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className={LABEL_CLS}>
-            {isSearching ? 'Search results' : 'Transactions'}
-          </h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className={LABEL_CLS}>{isSearching ? 'Search results' : 'Transactions'}</h3>
           <div className="flex items-center gap-3">
             {filtered.length > 0 && !selectMode && (
               <>
                 <button
                   onClick={() => exportCsv(filtered, month, filterCat)}
-                  className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+                  className="text-text-4 hover:text-text-2 text-[10px] transition-colors"
                   title="Export visible transactions as CSV"
                 >
                   ↓ CSV
                 </button>
                 <button
                   onClick={() => setSelectMode(true)}
-                  className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+                  className="text-text-4 hover:text-text-2 text-[10px] transition-colors"
                 >
                   Select
                 </button>
@@ -805,7 +770,7 @@ export default function TransactionsPanel({
             {selectMode && (
               <button
                 onClick={exitSelectMode}
-                className="text-[10px] text-text-4 hover:text-text-2 transition-colors"
+                className="text-text-4 hover:text-text-2 text-[10px] transition-colors"
               >
                 Cancel
               </button>
@@ -815,26 +780,22 @@ export default function TransactionsPanel({
 
         {/* Bulk action bar */}
         {selectMode && filtered.length > 0 && (
-          <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-surface border border-border rounded-xl">
+          <div className="bg-surface border-border mb-3 flex items-center gap-3 rounded-xl border px-3 py-2">
             <input
               type="checkbox"
-              checked={
-                selectedIds.size === filtered.length && filtered.length > 0
-              }
+              checked={selectedIds.size === filtered.length && filtered.length > 0}
               onChange={toggleSelectAll}
-              className="accent-[#4a8cff] cursor-pointer"
+              className="cursor-pointer accent-[#4a8cff]"
             />
-            <span className="text-xs text-text-3 flex-1">
-              {selectedIds.size > 0
-                ? `${selectedIds.size} selected`
-                : 'Select all'}
+            <span className="text-text-3 flex-1 text-xs">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
             </span>
             {selectedIds.size > 0 && (
               <>
                 <select
                   value={bulkCat}
                   onChange={(e) => setBulkCat(e.target.value)}
-                  className="text-xs bg-bg border border-border rounded-lg px-2 py-1 text-text focus:outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                  className="bg-bg border-border text-text cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-600 focus:outline-none"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c}>{c}</option>
@@ -842,13 +803,13 @@ export default function TransactionsPanel({
                 </select>
                 <button
                   onClick={bulkRecategorize}
-                  className={`text-xs px-2.5 py-1 ${BTN_BLUE_CLS} whitespace-nowrap`}
+                  className={`px-2.5 py-1 text-xs ${BTN_BLUE_CLS} whitespace-nowrap`}
                 >
                   Re-categorize
                 </button>
                 <button
                   onClick={bulkDelete}
-                  className="text-xs px-2.5 py-1 rounded-lg text-[#ff4560] hover:bg-[#ff4560]/10 border border-[#ff4560]/20 transition-colors"
+                  className="rounded-lg border border-[#ff4560]/20 px-2.5 py-1 text-xs text-[#ff4560] transition-colors hover:bg-[#ff4560]/10"
                 >
                   Delete
                 </button>
@@ -858,7 +819,7 @@ export default function TransactionsPanel({
         )}
 
         {filtered.length === 0 && (
-          <p className="text-sm text-text-3 py-4">
+          <p className="text-text-3 py-4 text-sm">
             {isSearching
               ? 'No transactions match your search.'
               : 'No transactions yet for this month.'}
@@ -880,11 +841,11 @@ export default function TransactionsPanel({
 
       {/* Undo toast */}
       {undoTx && (
-        <div className="flex items-center gap-3 px-3 py-2 bg-surface border border-border rounded-xl text-xs animate-in fade-in">
+        <div className="bg-surface border-border animate-in fade-in flex items-center gap-3 rounded-xl border px-3 py-2 text-xs">
           <span className="text-text-2">Transaction added</span>
           <button
             onClick={handleUndoAdd}
-            className="ml-auto text-[#4a8cff] hover:text-[#4a8cff]/80 font-medium transition-colors"
+            className="ml-auto font-medium text-[#4a8cff] transition-colors hover:text-[#4a8cff]/80"
           >
             Undo
           </button>
@@ -893,16 +854,14 @@ export default function TransactionsPanel({
 
       {/* Add transaction */}
       <div>
-        <h3 className={`${LABEL_CLS} mb-3`}>
-          Add manually
-        </h3>
-        <div className="flex gap-2 flex-wrap">
+        <h3 className={`${LABEL_CLS} mb-3`}>Add manually</h3>
+        <div className="flex flex-wrap gap-2">
           <input
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTx()}
             placeholder="Description"
-            className={`flex-1 min-w-40 ${INPUT_CLS}`}
+            className={`min-w-40 flex-1 ${INPUT_CLS}`}
           />
           <input
             value={amt}
@@ -933,10 +892,7 @@ export default function TransactionsPanel({
               </option>
             ))}
           </select>
-          <button
-            onClick={addTx}
-            className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-          >
+          <button onClick={addTx} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
             + Add
           </button>
         </div>
@@ -960,9 +916,7 @@ function TxRow({
   selected?: boolean;
   onToggleSelect?: () => void;
   onUpdate: (
-    data: Partial<
-      Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>
-    >,
+    data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>>,
   ) => void;
   onDelete: () => void;
 }) {
@@ -985,8 +939,7 @@ function TxRow({
 
   const saveDesc = useCallback(() => {
     setEditingDesc(false);
-    if (desc.trim() && desc !== tx.description)
-      onUpdate({ description: desc.trim() });
+    if (desc.trim() && desc !== tx.description) onUpdate({ description: desc.trim() });
   }, [desc, tx.description, onUpdate]);
 
   const saveAmt = useCallback(() => {
@@ -997,7 +950,7 @@ function TxRow({
 
   return (
     <div
-      className={`flex items-center py-2.5 border-b border-border-dim gap-3 group ${selected ? 'bg-surface-blue/20' : ''}`}
+      className={`border-border-dim group flex items-center gap-3 border-b py-2.5 ${selected ? 'bg-surface-blue/20' : ''}`}
       onClick={selectMode ? onToggleSelect : undefined}
     >
       {selectMode && (
@@ -1006,10 +959,10 @@ function TxRow({
           checked={!!selected}
           onChange={onToggleSelect}
           onClick={(e) => e.stopPropagation()}
-          className="accent-[#4a8cff] cursor-pointer shrink-0"
+          className="shrink-0 cursor-pointer accent-[#4a8cff]"
         />
       )}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {editingDesc ? (
           <input
             autoFocus
@@ -1023,22 +976,22 @@ function TxRow({
                 setEditingDesc(false);
               }
             }}
-            className="w-full text-sm border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
+            className="text-text w-full border-b border-[#4a8cff]/50 bg-transparent text-sm outline-none"
           />
         ) : (
           <p
-            className="text-sm text-text truncate cursor-pointer hover:text-text-2 transition-colors"
+            className="text-text hover:text-text-2 cursor-pointer truncate text-sm transition-colors"
             onClick={() => setEditingDesc(true)}
             title="Click to edit"
           >
             {tx.description}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="mt-0.5 flex items-center gap-2">
           <select
             value={tx.category}
             onChange={(e) => onUpdate({ category: e.target.value })}
-            className={`text-xs px-2 py-0.5 rounded-full border-0 cursor-pointer ${CAT_COLORS[tx.category] ?? CAT_COLORS[DEFAULT_CATEGORY]}`}
+            className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-xs ${CAT_COLORS[tx.category] ?? CAT_COLORS[DEFAULT_CATEGORY]}`}
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -1046,12 +999,8 @@ function TxRow({
               </option>
             ))}
           </select>
-          {tx.source !== 'manual' && (
-            <span className="text-xs text-text-4">{tx.source}</span>
-          )}
-          {showMonth && (
-            <span className="text-xs font-mono text-text-4">{tx.month}</span>
-          )}
+          {tx.source !== 'manual' && <span className="text-text-4 text-xs">{tx.source}</span>}
+          {showMonth && <span className="text-text-4 font-mono text-xs">{tx.month}</span>}
         </div>
 
         {editingNotes ? (
@@ -1074,11 +1023,11 @@ function TxRow({
               }
             }}
             placeholder="Add a note…"
-            className="mt-1 w-full text-xs border-b border-[#4a8cff]/40 bg-transparent outline-none text-text-3 placeholder-text-4"
+            className="text-text-3 placeholder-text-4 mt-1 w-full border-b border-[#4a8cff]/40 bg-transparent text-xs outline-none"
           />
         ) : tx.notes ? (
           <p
-            className="mt-1 text-xs text-text-4 italic cursor-pointer hover:text-text-3 transition-colors"
+            className="text-text-4 hover:text-text-3 mt-1 cursor-pointer text-xs italic transition-colors"
             onClick={() => setEditingNotes(true)}
           >
             {tx.notes}
@@ -1100,11 +1049,11 @@ function TxRow({
               setEditingAmt(false);
             }
           }}
-          className="w-20 text-sm text-right font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
+          className="text-text w-20 border-b border-[#4a8cff]/50 bg-transparent text-right font-mono text-sm outline-none"
         />
       ) : (
         <span
-          className="font-mono text-sm text-[#ff4560] cursor-pointer hover:text-text-2 transition-colors whitespace-nowrap"
+          className="hover:text-text-2 cursor-pointer font-mono text-sm whitespace-nowrap text-[#ff4560] transition-colors"
           onClick={() => setEditingAmt(true)}
           title="Click to edit"
         >
@@ -1113,7 +1062,7 @@ function TxRow({
       )}
 
       {!selectMode && (
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
           {!editingNotes && (
             <button
               onClick={() => setEditingNotes(true)}
@@ -1125,7 +1074,7 @@ function TxRow({
           )}
           <button
             onClick={onDelete}
-            className="text-text-3 hover:text-[#ff4560] text-xs transition-colors"
+            className="text-text-3 text-xs transition-colors hover:text-[#ff4560]"
           >
             ✕
           </button>

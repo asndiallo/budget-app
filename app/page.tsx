@@ -1,5 +1,9 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { api } from '@/lib/api';
+import { authClient } from '@/lib/auth-client';
 import {
   APP_CONFIG,
   DEDUCTION_FIELDS,
@@ -20,27 +24,21 @@ import type {
   Transaction,
   UserProfile,
 } from '@/lib/types';
-import {
-  currentMonth,
-  formatCurrency,
-  nextMonth,
-  prevMonth,
-} from '@/lib/utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BrsPanel from './components/BrsPanel';
-import BudgetBar from './components/BudgetBar';
 import BudgetActualPanel from './components/BudgetActualPanel';
+import BudgetBar from './components/BudgetBar';
 import CashFlowCalendar from './components/CashFlowCalendar';
+import ContributionLimitsPanel from './components/ContributionLimitsPanel';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GiBillPanel from './components/GiBillPanel';
 import GoalsPanel from './components/GoalsPanel';
 import HealthScoreCard from './components/HealthScoreCard';
-import ContributionLimitsPanel from './components/ContributionLimitsPanel';
 import IncomePanel from './components/IncomePanel';
 import LeavePanel from './components/LeavePanel';
 import MetricCard from './components/MetricCard';
@@ -54,12 +52,10 @@ import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import SdpPanel from './components/SdpPanel';
 import StreakBanner from './components/StreakBanner';
 import SubNav from './components/SubNav';
+import TaxYearSummaryPanel from './components/TaxYearSummaryPanel';
 import TransactionsPanel from './components/TransactionsPanel';
 import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
-import TaxYearSummaryPanel from './components/TaxYearSummaryPanel';
-import { api } from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
 
 type Tab =
   | 'income'
@@ -110,24 +106,15 @@ function calcSummary(
   const beforeService = joinedAt && month ? month < joinedAt : false;
   const militaryIncome = beforeService
     ? 0
-    : [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
-        (s, f) => s + (income[f.key] || 0),
-        0,
-      );
+    : [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce((s, f) => s + (income[f.key] || 0), 0);
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
   const totalIncome = militaryIncome + extraIncome;
   const investmentFixed = fixed.reduce(
-    (s, f) =>
-      f.is_investment
-        ? s + (f.period === 'annual' ? f.amount / 12 : f.amount)
-        : s,
+    (s, f) => (f.is_investment ? s + (f.period === 'annual' ? f.amount / 12 : f.amount) : s),
     0,
   );
   const fixedExpenses = fixed.reduce(
-    (s, f) =>
-      f.is_investment
-        ? s
-        : s + (f.period === 'annual' ? f.amount / 12 : f.amount),
+    (s, f) => (f.is_investment ? s : s + (f.period === 'annual' ? f.amount / 12 : f.amount)),
     0,
   );
   const debtPayments = debts
@@ -147,18 +134,13 @@ function calcSummary(
   const allotments =
     month && allotmentList
       ? allotmentList
-          .filter(
-            (a) =>
-              a.start_date <= month && (!a.end_date || a.end_date >= month),
-          )
+          .filter((a) => a.start_date <= month && (!a.end_date || a.end_date >= month))
           .reduce((s, a) => s + a.amount, 0)
       : 0;
   const net = totalIncome - deductions - allotments - committed - spending;
   const savingsRate =
     totalIncome > 0
-      ? Math.round(
-          ((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100,
-        )
+      ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
       : 0;
   return {
     totalIncome,
@@ -210,9 +192,7 @@ export default function Home() {
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections' | 'tax'>(
-    'pay',
-  );
+  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections' | 'tax'>('pay');
   const [assetsSub, setAssetsSub] = useState<'assets' | 'debts'>('assets');
   const [goalsSub, setGoalsSub] = useState<'goals' | 'budget'>('goals');
   const [nwVersion, setNwVersion] = useState(0);
@@ -221,11 +201,7 @@ export default function Home() {
   useEffect(() => {
     setMonth(currentMonth());
     setYearRange(getYearRange());
-    const saved = localStorage.getItem('theme') as
-      | 'light'
-      | 'dark'
-      | 'system'
-      | null;
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
     setTheme(saved ?? 'system');
     authClient
       .getSession()
@@ -256,9 +232,7 @@ export default function Home() {
         e.preventDefault();
         setTab('transactions');
         setTimeout(() => {
-          (
-            document.querySelector('[data-search-input]') as HTMLInputElement
-          )?.focus();
+          (document.querySelector('[data-search-input]') as HTMLInputElement)?.focus();
         }, 50);
         return;
       }
@@ -353,12 +327,8 @@ export default function Home() {
       return;
     }
     const joinedAt = user?.joined_at || undefined;
-    setSummary(
-      calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList),
-    );
-    setPrevSummary(
-      calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList),
-    );
+    setSummary(calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList));
+    setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList));
     api.streak.get().then((r) => setStreak(r.streak));
     api.assets.list().then(setAssets);
     api.debts.list().then(setDebts);
@@ -371,14 +341,14 @@ export default function Home() {
   }, [fetchSummary]);
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="bg-bg min-h-screen">
       {/* ── Header ── */}
-      <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+      <header className="border-border bg-bg/95 sticky top-0 z-10 border-b backdrop-blur-sm">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
           {/* Brand */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex shrink-0 items-center gap-2.5">
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
               style={{
                 background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)',
               }}
@@ -386,14 +356,13 @@ export default function Home() {
               B
             </div>
             <div>
-              <h1 className="text-[13px] font-semibold text-text tracking-tight leading-none">
+              <h1 className="text-text text-[13px] leading-none font-semibold tracking-tight">
                 {APP_CONFIG.title}
               </h1>
-              <p className="text-[10px] text-text-4 mt-0.5 tracking-wide leading-none">
+              <p className="text-text-4 mt-0.5 text-[10px] leading-none tracking-wide">
                 {user
-                  ? [user.pay_grade, user.mos, user.duty_station]
-                      .filter(Boolean)
-                      .join(' · ') || APP_CONFIG.subtitle
+                  ? [user.pay_grade, user.mos, user.duty_station].filter(Boolean).join(' · ') ||
+                    APP_CONFIG.subtitle
                   : APP_CONFIG.subtitle}
               </p>
             </div>
@@ -408,24 +377,23 @@ export default function Home() {
                   authClient
                     .getSession()
                     .then(({ data }) => {
-                      if (data?.user?.id)
-                        setUser(data.user as unknown as UserProfile);
+                      if (data?.user?.id) setUser(data.user as unknown as UserProfile);
                     })
                     .catch(() => {})
                 }
               />
             )}
-            <div className="w-px h-4 bg-border mx-0.5" />
+            <div className="bg-border mx-0.5 h-4 w-px" />
             <button
               onClick={handleExport}
               title="Export backup (JSON)"
-              className="h-7 px-2.5 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all"
+              className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 items-center justify-center rounded-lg px-2.5 text-xs transition-all"
             >
               Export
             </button>
             <label
               title="Restore from backup"
-              className="h-7 px-2.5 flex items-center justify-center rounded-lg text-xs text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all cursor-pointer"
+              className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 cursor-pointer items-center justify-center rounded-lg px-2.5 text-xs transition-all"
             >
               Restore
               <input
@@ -436,21 +404,21 @@ export default function Home() {
                 onChange={handleRestore}
               />
             </label>
-            <div className="w-px h-4 bg-border mx-0.5" />
+            <div className="bg-border mx-0.5 h-4 w-px" />
             <button
               onClick={cycleTheme}
               title={`Theme: ${theme} — click to cycle (system → light → dark)`}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-sm"
+              className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all"
             >
               {theme === 'light' ? '☀' : theme === 'dark' ? '🌙' : '◐'}
             </button>
 
             {month && (
-              <div className="flex items-center gap-0.5 ml-1">
+              <div className="ml-1 flex items-center gap-0.5">
                 {month !== currentMonth() && (
                   <button
                     onClick={() => setMonth(currentMonth())}
-                    className="text-[10px] text-[#4a8cff] hover:text-[#4a8cff]/70 transition-colors mr-1 font-medium"
+                    className="mr-1 text-[10px] font-medium text-[#4a8cff] transition-colors hover:text-[#4a8cff]/70"
                     title="Jump to current month"
                   >
                     Today
@@ -458,17 +426,15 @@ export default function Home() {
                 )}
                 <button
                   onClick={() => setMonth(prevMonth(month))}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
+                  className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
                 >
                   ‹
                 </button>
-                <div className="flex items-center bg-surface-raised rounded-lg px-1 border border-border">
+                <div className="bg-surface-raised border-border flex items-center rounded-lg border px-1">
                   <select
                     value={month.slice(5)}
-                    onChange={(e) =>
-                      setMonth(`${month.slice(0, 4)}-${e.target.value}`)
-                    }
-                    className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1 py-0.5"
+                    onChange={(e) => setMonth(`${month.slice(0, 4)}-${e.target.value}`)}
+                    className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
                   >
                     {MONTH_NAMES.map((name, i) => {
                       const val = String(i + 1).padStart(2, '0');
@@ -481,10 +447,8 @@ export default function Home() {
                   </select>
                   <select
                     value={month.slice(0, 4)}
-                    onChange={(e) =>
-                      setMonth(`${e.target.value}-${month.slice(5)}`)
-                    }
-                    className="bg-transparent text-sm text-text focus:outline-none cursor-pointer px-1 py-0.5"
+                    onChange={(e) => setMonth(`${e.target.value}-${month.slice(5)}`)}
+                    className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
                   >
                     {yearRange.map((y) => (
                       <option key={y} value={y}>
@@ -495,7 +459,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={() => setMonth(nextMonth(month))}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-text-3 hover:text-text-2 hover:bg-surface-raised transition-all text-base leading-none"
+                  className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
                 >
                   ›
                 </button>
@@ -505,19 +469,15 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-6 space-y-4">
+      <main className="mx-auto max-w-5xl space-y-4 px-6 py-6">
         {/* ── Summary metrics ── */}
         {summary && (
-          <div className="space-y-3 animate-fade-in-up">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <div className="animate-fade-in-up space-y-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
               <MetricCard
                 label="Total income"
                 value={formatCurrency(summary.totalIncome)}
-                delta={delta(
-                  summary.totalIncome,
-                  prevSummary?.totalIncome,
-                  true,
-                )}
+                delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
               />
               <MetricCard
                 label="Invested"
@@ -525,9 +485,7 @@ export default function Home() {
                 accent="blue"
                 delta={delta(
                   summary.tsp + summary.investmentFixed,
-                  prevSummary
-                    ? prevSummary.tsp + prevSummary.investmentFixed
-                    : undefined,
+                  prevSummary ? prevSummary.tsp + prevSummary.investmentFixed : undefined,
                   true,
                 )}
               />
@@ -546,9 +504,7 @@ export default function Home() {
               />
               <MetricCard
                 label="Net remaining"
-                value={
-                  (summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)
-                }
+                value={(summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)}
                 accent={summary.net >= 0 ? 'green' : 'red'}
                 delta={delta(summary.net, prevSummary?.net, true)}
               />
@@ -556,18 +512,9 @@ export default function Home() {
                 label="Savings rate"
                 value={`${summary.savingsRate}%`}
                 accent={
-                  summary.savingsRate >= 20
-                    ? 'green'
-                    : summary.savingsRate >= 10
-                      ? 'amber'
-                      : 'red'
+                  summary.savingsRate >= 20 ? 'green' : summary.savingsRate >= 10 ? 'amber' : 'red'
                 }
-                delta={delta(
-                  summary.savingsRate,
-                  prevSummary?.savingsRate,
-                  true,
-                  true,
-                )}
+                delta={delta(summary.savingsRate, prevSummary?.savingsRate, true, true)}
               />
             </div>
 
@@ -575,7 +522,7 @@ export default function Home() {
             {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
 
             {/* Net worth + Health score */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <NetWorthCard assets={assets} debts={debts} goals={goals} />
               {healthScore && <HealthScoreCard score={healthScore} />}
             </div>
@@ -586,28 +533,26 @@ export default function Home() {
         )}
 
         {/* ── Tab panel ── */}
-        <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+        <div className="bg-surface border-border overflow-hidden rounded-2xl border">
           {/* Tab navigation */}
-          <div className="flex border-b border-border">
+          <div className="border-border flex border-b">
             {TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`relative flex-1 px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                className={`relative flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-all ${
                   tab === key
                     ? 'text-text'
                     : 'text-text-3 hover:text-text-2 hover:bg-surface-raised/50'
                 }`}
               >
-                <span
-                  className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}
-                >
+                <span className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}>
                   {TAB_ICONS[key]}
                 </span>
                 {label}
                 {tab === key && (
                   <span
-                    className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-t-full"
+                    className="absolute right-1/4 bottom-0 left-1/4 h-0.5 rounded-t-full"
                     style={{
                       background: 'linear-gradient(90deg, #4a8cff, #00d98a)',
                     }}
@@ -656,9 +601,7 @@ export default function Home() {
                     <GiBillPanel yearsOfService={user?.years_of_service ?? 0} />
                   </div>
                 )}
-                {incomeSub === 'tax' && (
-                  <TaxYearSummaryPanel year={parseInt(month.slice(0, 4))} />
-                )}
+                {incomeSub === 'tax' && <TaxYearSummaryPanel year={parseInt(month.slice(0, 4))} />}
               </div>
             )}
             {tab === 'transactions' && (
@@ -680,20 +623,14 @@ export default function Home() {
                 />
                 {goalsSub === 'goals' && <GoalsPanel />}
                 {goalsSub === 'budget' && (
-                  <BudgetActualPanel
-                    month={month}
-                    monthlyIncome={summary?.totalIncome}
-                  />
+                  <BudgetActualPanel month={month} monthlyIncome={summary?.totalIncome} />
                 )}
               </div>
             )}
             {tab === 'analytics' && (
               <div className="space-y-8">
                 <YtdPanel month={month} />
-                <AnalyticsPanel
-                  month={month}
-                  onCategoryClick={handleCategoryDrill}
-                />
+                <AnalyticsPanel month={month} onCategoryClick={handleCategoryDrill} />
                 <AutoCategorizationPanel />
               </div>
             )}
@@ -710,10 +647,20 @@ export default function Home() {
                   onChange={(k) => setAssetsSub(k as typeof assetsSub)}
                 />
                 {assetsSub === 'assets' && (
-                  <AssetsPanel onUpdate={() => { fetchSummary(); setNwVersion((v) => v + 1); }} />
+                  <AssetsPanel
+                    onUpdate={() => {
+                      fetchSummary();
+                      setNwVersion((v) => v + 1);
+                    }}
+                  />
                 )}
                 {assetsSub === 'debts' && (
-                  <DebtsPanel onUpdate={() => { fetchSummary(); setNwVersion((v) => v + 1); }} />
+                  <DebtsPanel
+                    onUpdate={() => {
+                      fetchSummary();
+                      setNwVersion((v) => v + 1);
+                    }}
+                  />
                 )}
               </div>
             )}
@@ -722,18 +669,14 @@ export default function Home() {
               <CashFlowCalendar
                 month={month}
                 netMonthlyIncome={
-                  summary
-                    ? summary.net + summary.committed + summary.spending
-                    : undefined
+                  summary ? summary.net + summary.committed + summary.spending : undefined
                 }
               />
             )}
 
             {tab === 'overview' && (
               <OverviewPanel
-                initialYear={
-                  month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()
-                }
+                initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
               />
             )}
 
@@ -749,13 +692,11 @@ export default function Home() {
           onClick={() => setShowShortcuts(false)}
         >
           <div
-            className="bg-bg border border-border rounded-2xl p-6 w-80 shadow-2xl"
+            className="bg-bg border-border w-80 rounded-2xl border p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-text">
-                Keyboard shortcuts
-              </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-text text-sm font-semibold">Keyboard shortcuts</h2>
               <button
                 onClick={() => setShowShortcuts(false)}
                 className="text-text-4 hover:text-text-2 text-xs transition-colors"
@@ -773,18 +714,18 @@ export default function Home() {
               ].map(([key, desc]) => (
                 <div
                   key={key}
-                  className="flex items-center justify-between py-1.5 border-b border-border-dim last:border-0"
+                  className="border-border-dim flex items-center justify-between border-b py-1.5 last:border-0"
                 >
-                  <kbd className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface border border-border text-text-2">
+                  <kbd className="bg-surface border-border text-text-2 rounded border px-2 py-0.5 font-mono text-[11px]">
                     {key}
                   </kbd>
                   <span className="text-text-3">{desc}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-4 text-[10px] text-text-4 text-center">
-              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth
-              · 6 Calendar · 7 Overview · 8 PCS
+            <div className="text-text-4 mt-4 text-center text-[10px]">
+              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7
+              Overview · 8 PCS
             </div>
           </div>
         </div>
@@ -817,11 +758,7 @@ function projectedSpending(month: string, spending: number): string | null {
   const cm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   if (month !== cm) return null;
   const day = today.getDate();
-  const totalDays = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0,
-  ).getDate();
+  const totalDays = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   if (day < 3 || day >= totalDays) return null;
   const projected = Math.round((spending / day) * totalDays);
   return `→ ${formatCurrency(projected)} projected`;

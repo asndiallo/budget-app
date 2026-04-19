@@ -40,16 +40,12 @@ TSP                   159.90
 
 describe('parseLes — month extraction', () => {
   it('extracts month from PAY DATE MM/DD/YYYY', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 03/31/2026', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 03/31/2026', 'BASE PAY 3,198.00']));
     expect(month).toBe('2026-03');
   });
 
   it('extracts month from PAY DATE with spaces', () => {
-    const { month } = parseLes(
-      les(['PAY DATE   01/15/2026', 'BASE PAY 2,836.80']),
-    );
+    const { month } = parseLes(les(['PAY DATE   01/15/2026', 'BASE PAY 2,836.80']));
     expect(month).toBe('2026-01');
   });
 
@@ -61,19 +57,13 @@ describe('parseLes — month extraction', () => {
   });
 
   it('extracts month from ISO pay date (YYYY-MM-DD)', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 2026-03-31', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 2026-03-31', 'BASE PAY 3,198.00']));
     expect(month).toBe('2026-03');
   });
 
   it('falls back to last MM/DD/YYYY date in text', () => {
     const { month } = parseLes(
-      les([
-        'SOME EARLIER DATE 01/01/2026',
-        'BASE PAY 3,198.00',
-        'ANOTHER DATE 03/31/2026',
-      ]),
+      les(['SOME EARLIER DATE 01/01/2026', 'BASE PAY 3,198.00', 'ANOTHER DATE 03/31/2026']),
     );
     expect(month).toBe('2026-03');
   });
@@ -85,23 +75,17 @@ describe('parseLes — month extraction', () => {
   });
 
   it('handles 2-digit year (20xx)', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 03/31/26', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 03/31/26', 'BASE PAY 3,198.00']));
     expect(month).toBe('2026-03');
   });
 
   it('handles December (month 12)', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 12/31/2026', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 12/31/2026', 'BASE PAY 3,198.00']));
     expect(month).toBe('2026-12');
   });
 
   it('handles January (month 01)', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 01/31/2026', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 01/31/2026', 'BASE PAY 3,198.00']));
     expect(month).toBe('2026-01');
   });
 });
@@ -297,9 +281,7 @@ describe('parseLes — TSP rate', () => {
   });
 
   it('captures Roth TSP separately from traditional TSP', () => {
-    const { fields } = parseLes(
-      les(['BASE PAY 3,198.00', 'TSP 159.90', 'ROTH TSP 100.00']),
-    );
+    const { fields } = parseLes(les(['BASE PAY 3,198.00', 'TSP 159.90', 'ROTH TSP 100.00']));
     expect(fields.tsp_rate).toBeCloseTo(0.05, 3); // traditional
     expect(fields.roth_ira).toBe(100.0); // roth stored separately
   });
@@ -370,16 +352,12 @@ describe('parseLes — warnings', () => {
   });
 
   it('warns about missing BAS', () => {
-    const { warnings } = parseLes(
-      les(['BASE PAY 3,198.00', 'PAY DATE: 03/31/2026']),
-    );
+    const { warnings } = parseLes(les(['BASE PAY 3,198.00', 'PAY DATE: 03/31/2026']));
     expect(warnings.some((w) => /bas/i.test(w))).toBe(true);
   });
 
   it('warns about missing federal taxes', () => {
-    const { warnings } = parseLes(
-      les(['BASE PAY 3,198.00', 'PAY DATE: 03/31/2026']),
-    );
+    const { warnings } = parseLes(les(['BASE PAY 3,198.00', 'PAY DATE: 03/31/2026']));
     expect(warnings.some((w) => /tax/i.test(w))).toBe(true);
   });
 
@@ -448,9 +426,7 @@ describe('parseLes — Windows line endings (CRLF)', () => {
 
 describe('parseLes — 2-digit year ≥50 treated as 19xx', () => {
   it('handles 2-digit year in range 50–99 as 1900s', () => {
-    const { month } = parseLes(
-      les(['PAY DATE: 03/31/99', 'BASE PAY 3,198.00']),
-    );
+    const { month } = parseLes(les(['PAY DATE: 03/31/99', 'BASE PAY 3,198.00']));
     expect(month).toBe('1999-03');
   });
 });

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 
 export const GET = withAuth(async (_req, { userId, db }) => {
   const rows = db
-    .prepare(
-      'SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?',
-    )
+    .prepare('SELECT category, budget, percentage FROM category_budgets WHERE user_id = ?')
     .all(userId) as {
     category: string;
     budget: number;
@@ -24,8 +23,9 @@ export const PUT = withAuth(async (req, { userId, db }) => {
 
 export const DELETE = withAuth(async (req, { userId, db }) => {
   const { category } = await req.json();
-  db.prepare(
-    'DELETE FROM category_budgets WHERE user_id = ? AND category = ?',
-  ).run(userId, category);
+  db.prepare('DELETE FROM category_budgets WHERE user_id = ? AND category = ?').run(
+    userId,
+    category,
+  );
   return NextResponse.json({ ok: true });
 });

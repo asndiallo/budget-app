@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/route-helpers';
 
 export const GET = withAuth(async (_req, { userId, db }) => {
   const rows = db
-    .prepare(
-      'SELECT * FROM receivables WHERE user_id = ? ORDER BY paid ASC, id DESC',
-    )
+    .prepare('SELECT * FROM receivables WHERE user_id = ? ORDER BY paid ASC, id DESC')
     .all(userId);
   return NextResponse.json(rows);
 });
@@ -17,9 +16,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
       'INSERT INTO receivables (user_id, name, description, amount, month_created) VALUES (?, ?, ?, ?, ?)',
     )
     .run(userId, name, description || '', amount, month_created);
-  const row = db
-    .prepare('SELECT * FROM receivables WHERE id = ?')
-    .get(lastInsertRowid);
+  const row = db.prepare('SELECT * FROM receivables WHERE id = ?').get(lastInsertRowid);
   return NextResponse.json(row);
 });
 
@@ -73,9 +70,6 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
 
 export const DELETE = withAuth(async (req, { userId, db }) => {
   const { id } = await req.json();
-  db.prepare('DELETE FROM receivables WHERE id = ? AND user_id = ?').run(
-    id,
-    userId,
-  );
+  db.prepare('DELETE FROM receivables WHERE id = ? AND user_id = ?').run(id, userId);
   return NextResponse.json({ ok: true });
 });

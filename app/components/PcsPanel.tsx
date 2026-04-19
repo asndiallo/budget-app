@@ -1,24 +1,25 @@
 'use client';
 
+import { useMemo, useState } from 'react';
+
+import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
+import type { PayGrade } from '@/lib/pay-tables';
+import { getBAH, isOfficer } from '@/lib/pay-tables';
 import {
+  getWeightAllowanceLbs,
   MALT_RATE_PER_MILE,
   PPM_INCENTIVE_FACTOR,
   PPM_RATE_PER_LB_MILE,
   PRO_GEAR_LBS,
   TLE_DAILY_RATE,
   TLE_MAX_DAYS,
-  getWeightAllowanceLbs,
 } from '@/lib/pcs-data';
-import { getBAH, isOfficer } from '@/lib/pay-tables';
-import { useMemo, useState } from 'react';
+import type { UserProfile } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 import DutyStationSelect from './DutyStationSelect';
 import ExternalLink from './ExternalLink';
 import SubNav from './SubNav';
-import type { PayGrade } from '@/lib/pay-tables';
-import type { UserProfile } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
-import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
 
 interface Props {
   user: UserProfile | null;
@@ -36,13 +37,13 @@ function EntitlementRow({
   sub?: string;
 }) {
   return (
-    <div className="flex items-start py-3 border-b border-border-dim gap-4">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-text">{label}</p>
-        <p className="text-[11px] text-text-3 mt-0.5">{note}</p>
-        {sub && <p className="text-[11px] text-text-4 mt-0.5">{sub}</p>}
+    <div className="border-border-dim flex items-start gap-4 border-b py-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-text text-sm">{label}</p>
+        <p className="text-text-3 mt-0.5 text-[11px]">{note}</p>
+        {sub && <p className="text-text-4 mt-0.5 text-[11px]">{sub}</p>}
       </div>
-      <span className="font-mono text-sm text-text shrink-0">
+      <span className="text-text shrink-0 font-mono text-sm">
         {amount === null ? '—' : formatCurrency(amount)}
       </span>
     </div>
@@ -80,22 +81,16 @@ export default function PcsPanel({ user }: Props) {
 
     // TLE
     const days = Math.min(Math.max(parseInt(tleDays) || 0, 0), TLE_MAX_DAYS);
-    const dailyRate = hasDeps
-      ? TLE_DAILY_RATE.withDependents
-      : TLE_DAILY_RATE.withoutDependents;
+    const dailyRate = hasDeps ? TLE_DAILY_RATE.withDependents : TLE_DAILY_RATE.withoutDependents;
     const tle = days * dailyRate;
 
     // MALT
     const miles = parseFloat(distanceMiles) || 0;
     const vehicles = driving ? (hasDeps ? 2 : 1) : 0;
-    const malt =
-      driving && miles > 0 ? miles * MALT_RATE_PER_MILE * vehicles : null;
+    const malt = driving && miles > 0 ? miles * MALT_RATE_PER_MILE * vehicles : null;
 
     // PPM — 95 % of DoD's estimated transportation cost
-    const ppmWeight =
-      parseFloat(ppmWeightOverride) > 0
-        ? parseFloat(ppmWeightOverride)
-        : hhgLbs;
+    const ppmWeight = parseFloat(ppmWeightOverride) > 0 ? parseFloat(ppmWeightOverride) : hhgLbs;
     const gtc = ppmWeight * miles * PPM_RATE_PER_LB_MILE;
     const ppmIncentive = miles > 0 ? Math.round(gtc * PPM_INCENTIVE_FACTOR) : null;
 
@@ -134,330 +129,302 @@ export default function PcsPanel({ user }: Props) {
         onChange={(k) => setSub(k as typeof sub)}
       />
 
-      {sub === 'va' && <VaLoanPanel bah={currentBah} grade={grade} component={user?.component ?? 'Active'} />}
+      {sub === 'va' && (
+        <VaLoanPanel bah={currentBah} grade={grade} component={user?.component ?? 'Active'} />
+      )}
 
-      {sub === 'move' && <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h3 className={`${LABEL_CLS} mb-1`}>
-          PCS Move Planner
-        </h3>
-        <p className="text-xs text-text-3">
-          Estimates your entitlements based on your profile ({grade},{' '}
-          {hasDeps ? 'with dependents' : 'no dependents'}). Verify all values at{' '}
-          <a
-            href="https://my.move.mil"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#4a8cff] hover:underline"
-          >
-            my.move.mil
-          </a>{' '}
-          before your move.
-        </p>
-      </div>
-
-      {/* Inputs */}
-      <div className="bg-surface-raised/40 rounded-xl border border-border p-4 space-y-4">
-        <p className={LABEL_CLS}>
-          Move details
-        </p>
-
-        <div className="space-y-1">
-          <label className="text-xs text-text-3">Losing duty station</label>
-          <DutyStationSelect value={fromStation} onChange={setFromStation} />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs text-text-3">Gaining duty station</label>
-          <DutyStationSelect value={toStation} onChange={setToStation} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs text-text-3">
-              Distance (miles, one-way)
-            </label>
-            <input
-              type="number"
-              value={distanceMiles}
-              onChange={(e) => setDistanceMiles(e.target.value)}
-              placeholder="e.g. 1200"
-              className={`w-full ${INPUT_CLS}`}
-            />
+      {sub === 'move' && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div>
+            <h3 className={`${LABEL_CLS} mb-1`}>PCS Move Planner</h3>
+            <p className="text-text-3 text-xs">
+              Estimates your entitlements based on your profile ({grade},{' '}
+              {hasDeps ? 'with dependents' : 'no dependents'}). Verify all values at{' '}
+              <a
+                href="https://my.move.mil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#4a8cff] hover:underline"
+              >
+                my.move.mil
+              </a>{' '}
+              before your move.
+            </p>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs text-text-3">
-              TLE nights claimed (max {TLE_MAX_DAYS})
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={TLE_MAX_DAYS}
-              value={tleDays}
-              onChange={(e) => setTleDays(e.target.value)}
-              className={`w-full ${INPUT_CLS}`}
-            />
-          </div>
-        </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={driving}
-            onChange={(e) => setDriving(e.target.checked)}
-            className="rounded"
-          />
-          <span className="text-sm text-text-2">
-            Driving POV (
-            {hasDeps ? '2 vehicles authorized' : '1 vehicle authorized'})
-          </span>
-        </label>
-      </div>
+          {/* Inputs */}
+          <div className="bg-surface-raised/40 border-border space-y-4 rounded-xl border p-4">
+            <p className={LABEL_CLS}>Move details</p>
 
-      {/* Results */}
-      {ready ? (
-        <div>
-          <p className={`${LABEL_CLS} mb-3`}>
-            Estimated entitlements
-          </p>
+            <div className="space-y-1">
+              <label className="text-text-3 text-xs">Losing duty station</label>
+              <DutyStationSelect value={fromStation} onChange={setFromStation} />
+            </div>
 
-          <EntitlementRow
-            label="DLA — Dislocation Allowance"
-            amount={results.dla}
-            note={`BAH at higher station (${fromStation || '?'} vs ${toStation || '?'})`}
-            sub={
-              results.dlaBase === 0
-                ? 'Enter both stations to calculate'
-                : undefined
-            }
-          />
+            <div className="space-y-1">
+              <label className="text-text-3 text-xs">Gaining duty station</label>
+              <DutyStationSelect value={toStation} onChange={setToStation} />
+            </div>
 
-          <div className="py-3 border-b border-border-dim">
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <p className="text-sm text-text">Weight allowance</p>
-                <p className="text-[11px] text-text-3 mt-0.5">
-                  HHG: {results.hhgLbs.toLocaleString()} lbs + pro-gear:{' '}
-                  {(
-                    results.proGearMember + results.proGearSpouse
-                  ).toLocaleString()}{' '}
-                  lbs ={' '}
-                  {(
-                    results.hhgLbs +
-                    results.proGearMember +
-                    results.proGearSpouse
-                  ).toLocaleString()}{' '}
-                  lbs total
-                </p>
-                <p className="text-[11px] text-text-4 mt-0.5">
-                  {isOfficer(grade) ? 'Officer' : 'Enlisted'} {grade},{' '}
-                  {hasDeps ? 'with dependents' : 'without dependents'}
-                  {hasDeps
-                    ? ` · spouse pro-gear: ${results.proGearSpouse.toLocaleString()} lbs`
-                    : ''}
-                </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-text-3 text-xs">Distance (miles, one-way)</label>
+                <input
+                  type="number"
+                  value={distanceMiles}
+                  onChange={(e) => setDistanceMiles(e.target.value)}
+                  placeholder="e.g. 1200"
+                  className={`w-full ${INPUT_CLS}`}
+                />
               </div>
-              <span className="font-mono text-sm text-text-3 shrink-0">
-                non-cash
+              <div className="space-y-1">
+                <label className="text-text-3 text-xs">
+                  TLE nights claimed (max {TLE_MAX_DAYS})
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={TLE_MAX_DAYS}
+                  value={tleDays}
+                  onChange={(e) => setTleDays(e.target.value)}
+                  className={`w-full ${INPUT_CLS}`}
+                />
+              </div>
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={driving}
+                onChange={(e) => setDriving(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-text-2 text-sm">
+                Driving POV ({hasDeps ? '2 vehicles authorized' : '1 vehicle authorized'})
               </span>
-            </div>
+            </label>
           </div>
 
-          <EntitlementRow
-            label="TLE — Temporary Lodging Expense"
-            amount={results.tle}
-            note={`${formatCurrency(results.dailyRate)}/night × ${results.days} night${results.days !== 1 ? 's' : ''} (max ${TLE_MAX_DAYS})`}
-            sub="Actual reimbursement requires receipts"
-          />
+          {/* Results */}
+          {ready ? (
+            <div>
+              <p className={`${LABEL_CLS} mb-3`}>Estimated entitlements</p>
 
-          {driving && (
-            <EntitlementRow
-              label="MALT — Mileage Allowance"
-              amount={results.malt}
-              note={
-                results.miles > 0
-                  ? `${results.miles.toLocaleString()} mi × $${MALT_RATE_PER_MILE}/mi × ${results.vehicles} POV${results.vehicles !== 1 ? 's' : ''}`
-                  : 'Enter distance to calculate'
-              }
-            />
-          )}
+              <EntitlementRow
+                label="DLA — Dislocation Allowance"
+                amount={results.dla}
+                note={`BAH at higher station (${fromStation || '?'} vs ${toStation || '?'})`}
+                sub={results.dlaBase === 0 ? 'Enter both stations to calculate' : undefined}
+              />
 
-          <div className="flex items-center justify-between pt-4 mt-1">
-            <span className="text-sm font-medium text-text">
-              Estimated cash entitlements
-            </span>
-            <span className="font-mono text-base font-semibold text-[#00d98a]">
-              {formatCurrency(results.total)}
-            </span>
-          </div>
-          <p className="text-[11px] text-text-4 mt-1">
-            Excludes weight shipment (government pays directly) and any advance
-            pay.
-          </p>
-
-          {/* PPM/DITY section */}
-          <div className="mt-4 pt-4 border-t border-border-dim">
-            <div className="flex items-center justify-between mb-3">
-              <p className={LABEL_CLS}>PPM / DITY move option</p>
-              <div className="flex rounded-lg border border-border overflow-hidden text-[11px]">
-                {(['gov', 'ppm'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setPpmMode(m)}
-                    className={`px-3 py-1 transition-colors ${
-                      ppmMode === m
-                        ? 'bg-surface-blue text-[#4a8cff]'
-                        : 'text-text-3 hover:text-text-2'
-                    }`}
-                  >
-                    {m === 'gov' ? "Gov\u2019t move" : 'PPM move'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {ppmMode === 'gov' ? (
-              <p className="text-[11px] text-text-3 leading-relaxed">
-                Government-arranged move: DoD books and pays the carrier
-                directly. You pay nothing for the weight shipment but cannot
-                pocket any cost difference.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[11px] text-text-3 leading-relaxed">
-                  Personally Procured Move: you rent a truck, hire movers, or
-                  use a POD and receive <strong className="text-text-2">95 % of what DoD would have
-                  paid</strong> to ship your weight.
-                </p>
-                <div className="space-y-1">
-                  <label className="text-xs text-text-3">
-                    Actual weight to move (lbs) — leave blank to use your
-                    entitlement ({results.hhgLbs.toLocaleString()} lbs)
-                  </label>
-                  <input
-                    type="number"
-                    value={ppmWeightOverride}
-                    onChange={(e) => setPpmWeightOverride(e.target.value)}
-                    placeholder={String(results.hhgLbs)}
-                    className={`w-40 ${INPUT_CLS}`}
-                  />
-                </div>
-                {results.ppmIncentive !== null ? (
-                  <div className="rounded-xl border border-border bg-surface-raised/30 p-4 space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-text-3">Weight moved</span>
-                      <span className="font-mono text-text">
-                        {results.ppmWeight.toLocaleString()} lbs
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-text-3">Distance</span>
-                      <span className="font-mono text-text">
-                        {results.miles.toLocaleString()} mi
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-text-3">DoD est. cost (GTC)</span>
-                      <span className="font-mono text-text">
-                        {formatCurrency(results.gtc)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs border-t border-border-dim pt-2">
-                      <span className="font-medium text-text">
-                        PPM incentive (95 % of GTC)
-                      </span>
-                      <span className="font-mono font-semibold text-[#00d98a]">
-                        {formatCurrency(results.ppmIncentive)}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-text-4 pt-1">
-                      Estimate only — actual rate set by DoD/TRANSCOM regional
-                      table. Verify at{' '}
-                      <ExternalLink href="https://move.mil" label="move.mil" />.
+              <div className="border-border-dim border-b py-3">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <p className="text-text text-sm">Weight allowance</p>
+                    <p className="text-text-3 mt-0.5 text-[11px]">
+                      HHG: {results.hhgLbs.toLocaleString()} lbs + pro-gear:{' '}
+                      {(results.proGearMember + results.proGearSpouse).toLocaleString()} lbs ={' '}
+                      {(
+                        results.hhgLbs +
+                        results.proGearMember +
+                        results.proGearSpouse
+                      ).toLocaleString()}{' '}
+                      lbs total
+                    </p>
+                    <p className="text-text-4 mt-0.5 text-[11px]">
+                      {isOfficer(grade) ? 'Officer' : 'Enlisted'} {grade},{' '}
+                      {hasDeps ? 'with dependents' : 'without dependents'}
+                      {hasDeps
+                        ? ` · spouse pro-gear: ${results.proGearSpouse.toLocaleString()} lbs`
+                        : ''}
                     </p>
                   </div>
-                ) : (
-                  <p className="text-[11px] text-text-3">
-                    Enter distance above to calculate PPM incentive.
+                  <span className="text-text-3 shrink-0 font-mono text-sm">non-cash</span>
+                </div>
+              </div>
+
+              <EntitlementRow
+                label="TLE — Temporary Lodging Expense"
+                amount={results.tle}
+                note={`${formatCurrency(results.dailyRate)}/night × ${results.days} night${results.days !== 1 ? 's' : ''} (max ${TLE_MAX_DAYS})`}
+                sub="Actual reimbursement requires receipts"
+              />
+
+              {driving && (
+                <EntitlementRow
+                  label="MALT — Mileage Allowance"
+                  amount={results.malt}
+                  note={
+                    results.miles > 0
+                      ? `${results.miles.toLocaleString()} mi × $${MALT_RATE_PER_MILE}/mi × ${results.vehicles} POV${results.vehicles !== 1 ? 's' : ''}`
+                      : 'Enter distance to calculate'
+                  }
+                />
+              )}
+
+              <div className="mt-1 flex items-center justify-between pt-4">
+                <span className="text-text text-sm font-medium">Estimated cash entitlements</span>
+                <span className="font-mono text-base font-semibold text-[#00d98a]">
+                  {formatCurrency(results.total)}
+                </span>
+              </div>
+              <p className="text-text-4 mt-1 text-[11px]">
+                Excludes weight shipment (government pays directly) and any advance pay.
+              </p>
+
+              {/* PPM/DITY section */}
+              <div className="border-border-dim mt-4 border-t pt-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className={LABEL_CLS}>PPM / DITY move option</p>
+                  <div className="border-border flex overflow-hidden rounded-lg border text-[11px]">
+                    {(['gov', 'ppm'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setPpmMode(m)}
+                        className={`px-3 py-1 transition-colors ${
+                          ppmMode === m
+                            ? 'bg-surface-blue text-[#4a8cff]'
+                            : 'text-text-3 hover:text-text-2'
+                        }`}
+                      >
+                        {m === 'gov' ? 'Gov\u2019t move' : 'PPM move'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {ppmMode === 'gov' ? (
+                  <p className="text-text-3 text-[11px] leading-relaxed">
+                    Government-arranged move: DoD books and pays the carrier directly. You pay
+                    nothing for the weight shipment but cannot pocket any cost difference.
                   </p>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-text-3 text-[11px] leading-relaxed">
+                      Personally Procured Move: you rent a truck, hire movers, or use a POD and
+                      receive{' '}
+                      <strong className="text-text-2">95 % of what DoD would have paid</strong> to
+                      ship your weight.
+                    </p>
+                    <div className="space-y-1">
+                      <label className="text-text-3 text-xs">
+                        Actual weight to move (lbs) — leave blank to use your entitlement (
+                        {results.hhgLbs.toLocaleString()} lbs)
+                      </label>
+                      <input
+                        type="number"
+                        value={ppmWeightOverride}
+                        onChange={(e) => setPpmWeightOverride(e.target.value)}
+                        placeholder={String(results.hhgLbs)}
+                        className={`w-40 ${INPUT_CLS}`}
+                      />
+                    </div>
+                    {results.ppmIncentive !== null ? (
+                      <div className="border-border bg-surface-raised/30 space-y-2 rounded-xl border p-4">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-text-3">Weight moved</span>
+                          <span className="text-text font-mono">
+                            {results.ppmWeight.toLocaleString()} lbs
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-text-3">Distance</span>
+                          <span className="text-text font-mono">
+                            {results.miles.toLocaleString()} mi
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-text-3">DoD est. cost (GTC)</span>
+                          <span className="text-text font-mono">{formatCurrency(results.gtc)}</span>
+                        </div>
+                        <div className="border-border-dim flex justify-between border-t pt-2 text-xs">
+                          <span className="text-text font-medium">PPM incentive (95 % of GTC)</span>
+                          <span className="font-mono font-semibold text-[#00d98a]">
+                            {formatCurrency(results.ppmIncentive)}
+                          </span>
+                        </div>
+                        <p className="text-text-4 pt-1 text-[10px]">
+                          Estimate only — actual rate set by DoD/TRANSCOM regional table. Verify at{' '}
+                          <ExternalLink href="https://move.mil" label="move.mil" />.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-text-3 text-[11px]">
+                        Enter distance above to calculate PPM incentive.
+                      </p>
+                    )}
+                  </div>
                 )}
+              </div>
+            </div>
+          ) : (
+            <div className="border-border-dim bg-surface-raised/20 rounded-xl border px-4 py-8 text-center">
+              <p className="text-text-3 text-sm">
+                Select both duty stations to see your entitlements.
+              </p>
+            </div>
+          )}
+
+          {/* Reference info (collapsible) */}
+          <div className="border-border-dim bg-surface-raised/20 overflow-hidden rounded-xl border">
+            <button
+              onClick={() => setShowRef((v) => !v)}
+              className="hover:bg-surface-raised/40 flex w-full items-center justify-between px-4 py-3 text-left transition-colors"
+            >
+              <span className={LABEL_CLS}>Quick reference</span>
+              <span className="text-text-4 text-xs">{showRef ? '▲' : '▼'}</span>
+            </button>
+            {showRef && (
+              <div className="border-border-dim space-y-2 border-t px-4 pb-3">
+                <ul className="text-text-3 list-none space-y-1 pt-2 text-[11px]">
+                  <li>
+                    · DLA = BAH at higher station (old vs. new), your grade and dependent status —{' '}
+                    <ExternalLink
+                      href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
+                      label="JTR §5952"
+                    />
+                  </li>
+                  <li>
+                    · Weight allowance per JTR Appendix A. Pro-gear is separate and not counted
+                    against HHG limit.
+                  </li>
+                  <li>
+                    · TLE: up to 5 nights at losing PDS + 5 at gaining PDS. Requires lodging
+                    receipts.
+                  </li>
+                  <li>
+                    · MALT rate: ${MALT_RATE_PER_MILE}/mile per POV. Up to{' '}
+                    {hasDeps ? '2 POVs' : '1 POV'} authorized.
+                  </li>
+                  <li>
+                    · BAH data reflects 2026 DoD rates —{' '}
+                    <ExternalLink
+                      href="https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/"
+                      label="official BAH calculator"
+                    />
+                  </li>
+                </ul>
+                <div className="border-border-dim flex flex-wrap gap-x-4 gap-y-1 border-t pt-1">
+                  <ExternalLink href="https://move.mil" label="move.mil — book your move" />
+                  <ExternalLink
+                    href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
+                    label="Joint Travel Regulations"
+                  />
+                  <ExternalLink
+                    href="https://www.militaryonesource.mil/moving-housing/moving/"
+                    label="MilOneSource moving guide"
+                  />
+                  <ExternalLink
+                    href="https://www.militaryonesource.mil/financial-legal/personal-finance/"
+                    label="MilOneSource finances"
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
-      ) : (
-        <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-8 text-center">
-          <p className="text-sm text-text-3">
-            Select both duty stations to see your entitlements.
-          </p>
-        </div>
       )}
-
-      {/* Reference info (collapsible) */}
-      <div className="rounded-xl border border-border-dim bg-surface-raised/20 overflow-hidden">
-        <button
-          onClick={() => setShowRef((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-raised/40 transition-colors"
-        >
-          <span className={LABEL_CLS}>
-            Quick reference
-          </span>
-          <span className="text-text-4 text-xs">{showRef ? '▲' : '▼'}</span>
-        </button>
-        {showRef && (
-          <div className="px-4 pb-3 space-y-2 border-t border-border-dim">
-            <ul className="text-[11px] text-text-3 space-y-1 list-none pt-2">
-              <li>
-                · DLA = BAH at higher station (old vs. new), your grade and
-                dependent status —{' '}
-                <ExternalLink
-                  href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
-                  label="JTR §5952"
-                />
-              </li>
-              <li>
-                · Weight allowance per JTR Appendix A. Pro-gear is separate and
-                not counted against HHG limit.
-              </li>
-              <li>
-                · TLE: up to 5 nights at losing PDS + 5 at gaining PDS. Requires
-                lodging receipts.
-              </li>
-              <li>
-                · MALT rate: ${MALT_RATE_PER_MILE}/mile per POV. Up to{' '}
-                {hasDeps ? '2 POVs' : '1 POV'} authorized.
-              </li>
-              <li>
-                · BAH data reflects 2026 DoD rates —{' '}
-                <ExternalLink
-                  href="https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/"
-                  label="official BAH calculator"
-                />
-              </li>
-            </ul>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-border-dim">
-              <ExternalLink
-                href="https://move.mil"
-                label="move.mil — book your move"
-              />
-              <ExternalLink
-                href="https://www.travel.dod.mil/Policy-Regulations/Joint-Travel-Regulations/"
-                label="Joint Travel Regulations"
-              />
-              <ExternalLink
-                href="https://www.militaryonesource.mil/moving-housing/moving/"
-                label="MilOneSource moving guide"
-              />
-              <ExternalLink
-                href="https://www.militaryonesource.mil/financial-legal/personal-finance/"
-                label="MilOneSource finances"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>}
     </div>
   );
 }
@@ -540,19 +507,18 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
     <div className="space-y-6">
       <div>
         <h3 className={`${LABEL_CLS} mb-1`}>VA Loan Calculator</h3>
-        <p className="text-xs text-text-3">
-          VA-guaranteed loans require no PMI and no minimum down payment. Verify
-          your entitlement at{' '}
+        <p className="text-text-3 text-xs">
+          VA-guaranteed loans require no PMI and no minimum down payment. Verify your entitlement at{' '}
           <ExternalLink href="https://www.va.gov/housing-assistance/home-loans/" label="va.gov" />.
         </p>
       </div>
 
-      <div className="bg-surface-raised/40 rounded-xl border border-border p-4 space-y-4">
+      <div className="bg-surface-raised/40 border-border space-y-4 rounded-xl border p-4">
         <p className={LABEL_CLS}>Loan details</p>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs text-text-3">Home price ($)</label>
+            <label className="text-text-3 text-xs">Home price ($)</label>
             <input
               type="number"
               value={homePrice}
@@ -562,7 +528,7 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-3">Down payment (%)</label>
+            <label className="text-text-3 text-xs">Down payment (%)</label>
             <input
               type="number"
               value={downPct}
@@ -574,7 +540,7 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-3">Interest rate (%)</label>
+            <label className="text-text-3 text-xs">Interest rate (%)</label>
             <input
               type="number"
               value={rate}
@@ -584,8 +550,8 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-3">Loan term</label>
-            <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+            <label className="text-text-3 text-xs">Loan term</label>
+            <div className="border-border flex overflow-hidden rounded-lg border text-sm">
               {([30, 15] as const).map((y) => (
                 <button
                   key={y}
@@ -602,7 +568,7 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-3">Property tax ($/yr)</label>
+            <label className="text-text-3 text-xs">Property tax ($/yr)</label>
             <input
               type="number"
               value={propTaxYear}
@@ -612,9 +578,7 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-3">
-              Homeowner&apos;s insurance ($/yr)
-            </label>
+            <label className="text-text-3 text-xs">Homeowner&apos;s insurance ($/yr)</label>
             <input
               type="number"
               value={hoiYear}
@@ -625,17 +589,15 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             checked={firstUse}
             onChange={(e) => setFirstUse(e.target.checked)}
             className="rounded"
           />
-          <span className="text-sm text-text-2">First-time VA loan use</span>
-          <span className="text-[11px] text-text-4">
-            (affects funding fee rate)
-          </span>
+          <span className="text-text-2 text-sm">First-time VA loan use</span>
+          <span className="text-text-4 text-[11px]">(affects funding fee rate)</span>
         </label>
       </div>
 
@@ -660,27 +622,18 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
               note: 'Based on annual amount entered',
             },
           ].map(({ label, value, note }) => (
-            <div
-              key={label}
-              className="flex items-start py-2.5 border-b border-border-dim gap-4"
-            >
+            <div key={label} className="border-border-dim flex items-start gap-4 border-b py-2.5">
               <div className="flex-1">
-                <p className="text-sm text-text">{label}</p>
-                {note && (
-                  <p className="text-[11px] text-text-3 mt-0.5">{note}</p>
-                )}
+                <p className="text-text text-sm">{label}</p>
+                {note && <p className="text-text-3 mt-0.5 text-[11px]">{note}</p>}
               </div>
-              <span className="font-mono text-sm text-text shrink-0">
-                {formatCurrency(value)}
-              </span>
+              <span className="text-text shrink-0 font-mono text-sm">{formatCurrency(value)}</span>
             </div>
           ))}
 
           <div className="flex items-center justify-between pt-3">
-            <span className="text-sm font-semibold text-text">
-              Total monthly (PITI)
-            </span>
-            <span className="font-mono text-base font-semibold text-text">
+            <span className="text-text text-sm font-semibold">Total monthly (PITI)</span>
+            <span className="text-text font-mono text-base font-semibold">
               {formatCurrency(calc.total)}
             </span>
           </div>
@@ -700,32 +653,30 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
                   ? `BAH covers full payment + ${formatCurrency(Math.abs(calc.vsBAH))}/mo surplus`
                   : `${formatCurrency(calc.vsBAH)}/mo out-of-pocket above BAH`}
               </p>
-              <p className="text-[11px] text-text-4 mt-0.5">
+              <p className="text-text-4 mt-0.5 text-[11px]">
                 Current BAH: {formatCurrency(bah)}/mo
               </p>
             </div>
           )}
 
-          <div className="mt-3 rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-3 space-y-1">
+          <div className="border-border-dim bg-surface-raised/20 mt-3 space-y-1 rounded-xl border px-4 py-3">
             <p className={LABEL_CLS}>VA funding fee</p>
-            <div className="flex justify-between text-xs pt-1">
+            <div className="flex justify-between pt-1 text-xs">
               <span className="text-text-3">
                 Rate ({(calc.fundingFeePct * 100).toFixed(2)}%
                 {firstUse ? ' first use' : ' subsequent use'},{' '}
                 {parseFloat(downPct) === 0 ? 'no down payment' : `${downPct}% down`})
               </span>
-              <span className="font-mono text-text">
-                {formatCurrency(calc.fundingFee)}
-              </span>
+              <span className="text-text font-mono">{formatCurrency(calc.fundingFee)}</span>
             </div>
-            <p className="text-[10px] text-text-4">
+            <p className="text-text-4 text-[10px]">
               Rolled into loan. Exempt if receiving VA disability ≥ 10 %.
             </p>
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-border-dim bg-surface-raised/20 px-4 py-8 text-center">
-          <p className="text-sm text-text-3">Enter a home price to calculate.</p>
+        <div className="border-border-dim bg-surface-raised/20 rounded-xl border px-4 py-8 text-center">
+          <p className="text-text-3 text-sm">Enter a home price to calculate.</p>
         </div>
       )}
     </div>

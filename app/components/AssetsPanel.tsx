@@ -1,12 +1,13 @@
 'use client';
 
-import type { Asset, AssetCategory } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
-import EditableText from './EditableText';
 import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
+import type { Asset, AssetCategory } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
+
+import EditableText from './EditableText';
 
 const CATEGORIES: AssetCategory[] = [
   'Checking',
@@ -57,7 +58,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
 
   useEffect(() => {
     reload();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addAsset() {
     if (!newLabel.trim()) return;
@@ -97,10 +98,8 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={LABEL_CLS}>
-          Assets
-        </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className={LABEL_CLS}>Assets</h3>
         {totalAssets > 0 && (
           <span className="font-mono text-xs text-[#00d98a]">
             {formatCurrency(totalAssets)} total
@@ -111,12 +110,12 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
       <div className="space-y-4">
         {grouped.map(({ cat, items }) => (
           <div key={cat}>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="mb-1.5 flex items-center gap-2">
               <span className="text-xs">{CAT_ICON[cat]}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-text-4">
+              <span className="text-text-4 text-[10px] font-semibold tracking-widest uppercase">
                 {cat}
               </span>
-              <span className="text-[10px] font-mono text-text-4 ml-auto">
+              <span className="text-text-4 ml-auto font-mono text-[10px]">
                 {formatCurrency(items.reduce((s, a) => s + a.balance, 0))}
               </span>
             </div>
@@ -135,7 +134,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
       </div>
 
       {adding ? (
-        <div className="mt-4 bg-bg border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-bg border-border mt-4 space-y-3 rounded-xl border p-4">
           <div className="flex gap-2">
             <input
               autoFocus
@@ -167,17 +166,14 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
               className={`flex-1 font-mono ${INPUT_CLS}`}
             />
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <button
               onClick={() => setAdding(false)}
-              className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
+              className="border-border text-text-2 hover:text-text rounded-lg border px-3 py-1.5 text-sm transition-colors"
             >
               Cancel
             </button>
-            <button
-              onClick={addAsset}
-              className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}
-            >
+            <button onClick={addAsset} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
               Add
             </button>
           </div>
@@ -185,7 +181,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="mt-3 text-sm text-text-3 hover:text-[#4a8cff] transition-colors"
+          className="text-text-3 mt-3 text-sm transition-colors hover:text-[#4a8cff]"
         >
           + Add asset
         </button>
@@ -200,40 +196,30 @@ function AssetRow({
   onRemove,
 }: {
   asset: Asset;
-  onUpdate: (
-    asset: Asset,
-    field: keyof Omit<Asset, 'id' | 'updated_at'>,
-    value: string,
-  ) => void;
+  onUpdate: (asset: Asset, field: keyof Omit<Asset, 'id' | 'updated_at'>, value: string) => void;
   onRemove: (id: number) => void;
 }) {
   return (
-    <div className="group flex items-center gap-3 bg-bg border border-border rounded-xl px-3 py-2.5">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="group bg-bg border-border flex items-center gap-3 rounded-xl border px-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
           <EditableText
             value={asset.label}
-            className="text-sm font-medium text-text"
+            className="text-text text-sm font-medium"
             onSave={(v) => onUpdate(asset, 'label', v)}
           />
-          <CategoryField
-            value={asset.category as AssetCategory}
-            onSave={(v) => onUpdate(asset, 'category', v)}
-          />
-          <span className="text-[10px] text-text-4 ml-auto">
+          <CategoryField value={asset.category} onSave={(v) => onUpdate(asset, 'category', v)} />
+          <span className="text-text-4 ml-auto text-[10px]">
             updated {daysAgo(asset.updated_at)}
           </span>
         </div>
         <div className="mt-1">
-          <BalanceField
-            value={asset.balance}
-            onSave={(v) => onUpdate(asset, 'balance', v)}
-          />
+          <BalanceField value={asset.balance} onSave={(v) => onUpdate(asset, 'balance', v)} />
         </div>
       </div>
       <button
         onClick={() => onRemove(asset.id)}
-        className="text-text-3 hover:text-[#ff4560] text-xs transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        className="text-text-3 shrink-0 text-xs opacity-0 transition-colors group-hover:opacity-100 hover:text-[#ff4560]"
       >
         ✕
       </button>
@@ -241,13 +227,7 @@ function AssetRow({
   );
 }
 
-function CategoryField({
-  value,
-  onSave,
-}: {
-  value: AssetCategory;
-  onSave: (v: string) => void;
-}) {
+function CategoryField({ value, onSave }: { value: AssetCategory; onSave: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
@@ -260,7 +240,7 @@ function CategoryField({
           setEditing(false);
         }}
         onBlur={() => setEditing(false)}
-        className="text-[10px] bg-bg border border-[#4a8cff]/50 rounded-full px-1.5 py-0.5 text-text outline-none cursor-pointer"
+        className="bg-bg text-text cursor-pointer rounded-full border border-[#4a8cff]/50 px-1.5 py-0.5 text-[10px] outline-none"
       >
         {CATEGORIES.map((c) => (
           <option key={c} value={c}>
@@ -275,20 +255,14 @@ function CategoryField({
     <button
       onClick={() => setEditing(true)}
       title="Change category"
-      className={`text-[10px] px-1.5 py-0.5 rounded-full transition-opacity hover:opacity-70 ${CAT_COLOR[value]}`}
+      className={`rounded-full px-1.5 py-0.5 text-[10px] transition-opacity hover:opacity-70 ${CAT_COLOR[value]}`}
     >
       {value}
     </button>
   );
 }
 
-function BalanceField({
-  value,
-  onSave,
-}: {
-  value: number;
-  onSave: (v: string) => void;
-}) {
+function BalanceField({ value, onSave }: { value: number; onSave: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
 
@@ -317,13 +291,13 @@ function BalanceField({
             setEditing(false);
           }
         }}
-        className="w-32 text-sm font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
+        className="text-text w-32 border-b border-[#4a8cff]/50 bg-transparent font-mono text-sm outline-none"
       />
     );
   }
   return (
     <span
-      className="text-sm font-mono text-text-2 cursor-pointer hover:text-text transition-colors"
+      className="text-text-2 hover:text-text cursor-pointer font-mono text-sm transition-colors"
       onClick={() => {
         setDraft(String(value));
         setEditing(true);

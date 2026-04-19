@@ -1,8 +1,9 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
+import { authClient } from '@/lib/auth-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,24 +36,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
+    <div className="bg-bg flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-text">Budget Tracker</h1>
-          <p className="text-sm text-text-3 mt-1">Personal Military Finance</p>
+        <div className="mb-8 text-center">
+          <h1 className="text-text text-2xl font-bold">Budget Tracker</h1>
+          <p className="text-text-3 mt-1 text-sm">Personal Military Finance</p>
         </div>
 
-        <div className="bg-bg-card border border-border rounded-2xl p-6 shadow-lg">
-          <h2 className="text-lg font-semibold text-text mb-6">Sign in</h2>
+        <div className="bg-bg-card border-border rounded-2xl border p-6 shadow-lg">
+          <h2 className="text-text mb-6 text-lg font-semibold">Sign in</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs text-text-3 mb-1">Email</label>
+              <label className="text-text-3 mb-1 block text-xs">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-blue-500 transition-colors"
+                className="bg-bg border-border text-text w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
                 placeholder="you@example.com"
                 required
                 autoFocus
@@ -60,12 +61,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-text-3 mb-1">Password</label>
+              <label className="text-text-3 mb-1 block text-xs">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-blue-500 transition-colors"
+                className="bg-bg border-border text-text w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
                 placeholder="••••••••"
                 required
               />
@@ -76,7 +77,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+              className="w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -84,19 +85,19 @@ export default function LoginPage() {
 
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+              <div className="border-border w-full border-t" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-bg-card px-2 text-xs text-text-4">or</span>
+              <span className="bg-bg-card text-text-4 px-2 text-xs">or</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <button
               onClick={() => handleSocial('google')}
-              className="w-full flex items-center justify-center gap-2 bg-bg border border-border hover:border-text-3 text-text-2 font-medium py-2 rounded-lg text-sm transition-colors"
+              className="bg-bg border-border hover:border-text-3 text-text-2 flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -119,20 +120,16 @@ export default function LoginPage() {
 
             <button
               onClick={() => handleSocial('github')}
-              className="w-full flex items-center justify-center gap-2 bg-bg border border-border hover:border-text-3 text-text-2 font-medium py-2 rounded-lg text-sm transition-colors"
+              className="bg-bg border-border hover:border-text-3 text-text-2 flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors"
             >
-              <svg
-                className="w-4 h-4 text-text"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="text-text h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
               </svg>
               Continue with GitHub
             </button>
           </div>
 
-          <p className="text-center text-xs text-text-3 mt-6">
+          <p className="text-text-3 mt-6 text-center text-xs">
             No account?{' '}
             <a href="/register" className="text-blue-400 hover:underline">
               Create one

@@ -1,7 +1,7 @@
 'use client';
 
-import type { HealthScore } from '@/lib/types';
 import { LABEL_CLS } from '@/lib/config';
+import type { HealthScore } from '@/lib/types';
 
 export default function HealthScoreCard({ score }: { score: HealthScore }) {
   const grade =
@@ -14,42 +14,40 @@ export default function HealthScoreCard({ score }: { score: HealthScore }) {
           : { label: 'Needs work', color: '#ff4560' };
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 relative overflow-hidden">
+    <div className="bg-surface border-border relative overflow-hidden rounded-xl border p-4">
       <div
-        className="absolute top-0 left-0 right-0 h-0.5"
+        className="absolute top-0 right-0 left-0 h-0.5"
         style={{
           background: `linear-gradient(90deg, ${grade.color}cc, ${grade.color}33 60%, transparent)`,
         }}
       />
-      <div className="flex items-start justify-between mb-3">
-        <p className={LABEL_CLS}>
-          Financial Health
-        </p>
+      <div className="mb-3 flex items-start justify-between">
+        <p className={LABEL_CLS}>Financial Health</p>
         <span
-          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
           style={{ color: grade.color, background: `${grade.color}18` }}
         >
           {grade.label}
         </span>
       </div>
       <p
-        className="text-[22px] font-mono font-semibold leading-none mb-3"
+        className="mb-3 font-mono text-[22px] leading-none font-semibold"
         style={{ color: grade.color }}
       >
         {score.total}
-        <span className="text-sm font-normal text-text-4">/100</span>
+        <span className="text-text-4 text-sm font-normal">/100</span>
       </p>
       <div className="space-y-2">
         {score.components.map((c) => (
           <div key={c.name}>
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] text-text-3">{c.name}</span>
-              <span className="text-[10px] font-mono text-text-2">
+            <div className="mb-0.5 flex items-center justify-between">
+              <span className="text-text-3 text-[10px]">{c.name}</span>
+              <span className="text-text-2 font-mono text-[10px]">
                 {c.score}
                 <span className="text-text-4">/{c.max}</span>
               </span>
             </div>
-            <div className="h-1 bg-bg rounded-full overflow-hidden">
+            <div className="bg-bg h-1 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{
@@ -65,7 +63,7 @@ export default function HealthScoreCard({ score }: { score: HealthScore }) {
                 }}
               />
             </div>
-            <p className="text-[9px] text-text-4 mt-0.5">{c.detail}</p>
+            <p className="text-text-4 mt-0.5 text-[9px]">{c.detail}</p>
           </div>
         ))}
       </div>

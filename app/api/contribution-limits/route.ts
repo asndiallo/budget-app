@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { CONTRIBUTION_LIMITS } from '@/lib/config';
+
 import { dodMatchRate } from '@/lib/brs-calc';
+import { CONTRIBUTION_LIMITS } from '@/lib/config';
 import { withAuth } from '@/lib/route-helpers';
 
 const PERIOD_MS = 14 * 86_400 * 1_000;
@@ -21,7 +22,10 @@ function countBiweeklyPeriods(
   const skip = Math.ceil(diff / PERIOD_MS);
   let cur = anchorMs + skip * PERIOD_MS;
   let count = 0;
-  while (cur <= cutoffMs) { count++; cur += PERIOD_MS; }
+  while (cur <= cutoffMs) {
+    count++;
+    cur += PERIOD_MS;
+  }
   return count;
 }
 
@@ -38,11 +42,12 @@ function isVested(monthStr: string, joinedAt: string | null): boolean {
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const year =
-    parseInt(new URL(req.url).searchParams.get('year') ?? '') ||
-    new Date().getFullYear();
+    parseInt(new URL(req.url).searchParams.get('year') ?? '') || new Date().getFullYear();
 
   // Resolve limits, falling back to the most recent known year
-  const knownYears = Object.keys(CONTRIBUTION_LIMITS).map(Number).sort((a, b) => b - a);
+  const knownYears = Object.keys(CONTRIBUTION_LIMITS)
+    .map(Number)
+    .sort((a, b) => b - a);
   const limitsYear = knownYears.find((y) => y <= year) ?? knownYears[0];
   const limits = CONTRIBUTION_LIMITS[limitsYear];
 
@@ -51,9 +56,9 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const monthsElapsed = year < currentYear ? 12 : today.getMonth() + 1;
 
   // Fetch joined_at for agency match vesting calculation
-  const profile = db
-    .prepare('SELECT joined_at FROM users WHERE id = ?')
-    .get(userId) as { joined_at: string | null } | undefined;
+  const profile = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as
+    | { joined_at: string | null }
+    | undefined;
   const joinedAt = profile?.joined_at ?? null;
 
   // ── Income config: carry-forward within the year only ──────────────────────
@@ -123,8 +128,12 @@ export const GET = withAuth(async (req, { userId, db }) => {
     if (exp.recurrence === 'biweekly' && exp.recurrence_anchor) {
       iraFromExpenses +=
         exp.amount *
-        countBiweeklyPeriods(year, exp.recurrence_anchor, exp.end_date,
-          year < currentYear ? new Date(`${year}-12-31`) : today);
+        countBiweeklyPeriods(
+          year,
+          exp.recurrence_anchor,
+          exp.end_date,
+          year < currentYear ? new Date(`${year}-12-31`) : today,
+        );
     } else {
       iraFromExpenses += exp.amount * monthsElapsed;
     }

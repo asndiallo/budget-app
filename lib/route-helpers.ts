@@ -8,9 +8,10 @@
 //   });
 
 import { NextResponse } from 'next/server';
+
 import type { RequestUser } from './auth';
-import { getDb } from './db';
 import { requireAuth } from './auth';
+import { getDb } from './db';
 
 export type AuthContext = {
   userId: string;
@@ -26,9 +27,7 @@ type AuthHandler = (req: Request, ctx: AuthContext) => Promise<Response>;
  * - Returns 401 automatically when the session is absent (thrown by requireAuth).
  * - Returns 500 for all other unhandled errors.
  */
-export function withAuth(
-  handler: AuthHandler,
-): (req: Request) => Promise<Response> {
+export function withAuth(handler: AuthHandler): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     try {
       const user = await requireAuth(req);

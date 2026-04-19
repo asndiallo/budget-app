@@ -1,19 +1,14 @@
 // Better Auth server instance + request helpers.
 // Server-only — never import this in client components.
 
-import {
-  SEED_DEBTS,
-  SEED_FIXED_EXPENSES,
-  SEED_GOALS,
-  SEED_PAYMENT_SOURCES,
-} from './config';
-import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
-
-import Database from 'better-sqlite3';
-import type { PayGrade } from './pay-tables';
 import { betterAuth } from 'better-auth';
-import { getDb } from './db';
+import Database from 'better-sqlite3';
 import path from 'path';
+
+import { SEED_DEBTS, SEED_FIXED_EXPENSES, SEED_GOALS, SEED_PAYMENT_SOURCES } from './config';
+import { getDb } from './db';
+import type { PayGrade } from './pay-tables';
+import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
 
 const DB_PATH = path.join(process.cwd(), 'budget.db');
 
@@ -87,25 +82,16 @@ export const auth = betterAuth({
           const userId = user.id;
 
           // First user becomes admin
-          const count = (
-            db.prepare('SELECT count(*) as n FROM users').get() as { n: number }
-          ).n;
+          const count = (db.prepare('SELECT count(*) as n FROM users').get() as { n: number }).n;
           if (count === 1) {
-            db.prepare('UPDATE users SET role = ? WHERE id = ?').run(
-              'admin',
-              userId,
-            );
+            db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', userId);
           }
 
           // Seed income config from pay tables
-          const grade =
-            ((user as Record<string, unknown>).pay_grade as PayGrade) ?? 'E-3';
-          const yos =
-            ((user as Record<string, unknown>).years_of_service as number) ?? 0;
-          const ds =
-            ((user as Record<string, unknown>).duty_station as string) ?? '';
-          const deps =
-            ((user as Record<string, unknown>).dependents as number) ?? 0;
+          const grade = ((user as Record<string, unknown>).pay_grade as PayGrade) ?? 'E-3';
+          const yos = ((user as Record<string, unknown>).years_of_service as number) ?? 0;
+          const ds = ((user as Record<string, unknown>).duty_station as string) ?? '';
+          const deps = ((user as Record<string, unknown>).dependents as number) ?? 0;
 
           const basePay = getBasePay(grade, yos);
           const bas = getBAS(grade);
@@ -117,9 +103,7 @@ export const auth = betterAuth({
             bah,
             other: 0,
             tsp_rate: 0.05,
-            taxes:
-              Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) /
-              100,
+            taxes: Math.round(basePay * (isOfficer(grade) ? 0.12 : 0.06) * 100) / 100,
             fica_soc_security: Math.round(basePay * 0.062 * 100) / 100,
             fica_medicare: Math.round(basePay * 0.0145 * 100) / 100,
             sgli: 26.0,
@@ -137,30 +121,17 @@ export const auth = betterAuth({
 
           seedRows(
             'INSERT OR IGNORE INTO income_config (user_id, month, key, value) VALUES (?, ?, ?, ?)',
-            Object.entries(incomeSeed).map(([key, value]) => [
-              '0000-00',
-              key,
-              value,
-            ]),
+            Object.entries(incomeSeed).map(([key, value]) => ['0000-00', key, value]),
           );
 
           seedRows(
             'INSERT INTO fixed_expenses (user_id, label, amount, period) VALUES (?, ?, ?, ?)',
-            SEED_FIXED_EXPENSES.map(({ label, amount, period }) => [
-              label,
-              amount,
-              period,
-            ]),
+            SEED_FIXED_EXPENSES.map(({ label, amount, period }) => [label, amount, period]),
           );
 
           seedRows(
             'INSERT INTO goals (user_id, name, target, saved, color) VALUES (?, ?, ?, ?, ?)',
-            SEED_GOALS.map(({ name, target, saved, color }) => [
-              name,
-              target,
-              saved,
-              color,
-            ]),
+            SEED_GOALS.map(({ name, target, saved, color }) => [name, target, saved, color]),
           );
 
           seedRows(
@@ -170,15 +141,13 @@ export const auth = betterAuth({
 
           seedRows(
             'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate) VALUES (?, ?, ?, ?, ?, ?)',
-            SEED_DEBTS.map(
-              ({ label, lender, balance, monthly_payment, interest_rate }) => [
-                label,
-                lender,
-                balance,
-                monthly_payment,
-                interest_rate,
-              ],
-            ),
+            SEED_DEBTS.map(({ label, lender, balance, monthly_payment, interest_rate }) => [
+              label,
+              lender,
+              balance,
+              monthly_payment,
+              interest_rate,
+            ]),
           );
         },
       },

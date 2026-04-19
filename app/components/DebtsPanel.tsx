@@ -1,13 +1,14 @@
 'use client';
 
-import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import { useEffect, useState } from 'react';
 
+import { api } from '@/lib/api';
+import { BTN_BLUE_CLS, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import type { Debt } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
+
 import EditableText from './EditableText';
 import ExternalLink from './ExternalLink';
-import { api } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
 
 // SCRA caps pre-service debt interest at 6% while on active duty
 const SCRA_CAP = 6;
@@ -24,7 +25,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   const reload = () => api.debts.list().then(setDebts);
   useEffect(() => {
     reload();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addDebt() {
     if (!newLabel.trim()) return;
@@ -51,11 +52,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
     onUpdate();
   }
 
-  async function updateField(
-    debt: Debt,
-    field: keyof Omit<Debt, 'id'>,
-    raw: string,
-  ) {
+  async function updateField(debt: Debt, field: keyof Omit<Debt, 'id'>, raw: string) {
     const isNumeric = field !== 'label' && field !== 'lender';
     const value = isNumeric ? (raw.trim() ? parseFloat(raw) : null) : raw;
     // Always send the full object so non-COALESCE PATCH doesn't wipe unrelated fields.
@@ -64,13 +61,11 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
     onUpdate();
   }
 
-  const activeTotal = debts
-    .filter((d) => d.balance > 0)
-    .reduce((s, d) => s + d.monthly_payment, 0);
+  const activeTotal = debts.filter((d) => d.balance > 0).reduce((s, d) => s + d.monthly_payment, 0);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className={LABEL_CLS}>Debts & loans</h3>
         {activeTotal > 0 && (
           <span className="font-mono text-xs text-[#f5aa2a]">
@@ -81,19 +76,14 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
 
       <div className="space-y-2">
         {debts.map((d) => (
-          <DebtRow
-            key={d.id}
-            debt={d}
-            onUpdate={updateField}
-            onRemove={removeDebt}
-          />
+          <DebtRow key={d.id} debt={d} onUpdate={updateField} onRemove={removeDebt} />
         ))}
       </div>
 
       <DebtStrategy debts={debts} />
 
       {adding ? (
-        <div className="mt-3 bg-bg border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-bg border-border mt-3 space-y-3 rounded-xl border p-4">
           <div className="flex gap-2">
             <input
               autoFocus
@@ -132,14 +122,14 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
               className={`w-24 font-mono ${INPUT_CLS}`}
             />
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <button
               onClick={() => setAdding(false)}
-              className="text-sm px-3 py-1.5 rounded-lg border border-border text-text-2 hover:text-text transition-colors"
+              className="border-border text-text-2 hover:text-text rounded-lg border px-3 py-1.5 text-sm transition-colors"
             >
               Cancel
             </button>
-            <button onClick={addDebt} className={`text-sm px-3 py-1.5 ${BTN_BLUE_CLS}`}>
+            <button onClick={addDebt} className={`px-3 py-1.5 text-sm ${BTN_BLUE_CLS}`}>
               Add
             </button>
           </div>
@@ -147,7 +137,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="mt-3 text-sm text-text-3 hover:text-[#4a8cff] transition-colors"
+          className="text-text-3 mt-3 text-sm transition-colors hover:text-[#4a8cff]"
         >
           + Add debt / loan
         </button>
@@ -171,8 +161,7 @@ function calcPayoff(debt: Debt): PayoffInfo | null {
   }
   const r = debt.interest_rate / 100 / 12;
   if (debt.monthly_payment <= debt.balance * r) return null; // payment can't cover interest
-  const n =
-    -Math.log(1 - (r * debt.balance) / debt.monthly_payment) / Math.log(1 + r);
+  const n = -Math.log(1 - (r * debt.balance) / debt.monthly_payment) / Math.log(1 + r);
   const months = Math.ceil(n);
   return {
     months,
@@ -198,27 +187,24 @@ function DebtRow({
   const isPaidOff = debt.balance === 0;
   const [showAmort, setShowAmort] = useState(false);
   const [extraPayment, setExtraPayment] = useState('');
-  const scraMayApply =
-    !isPaidOff && debt.interest_rate > SCRA_CAP && debt.balance > 0;
+  const scraMayApply = !isPaidOff && debt.interest_rate > SCRA_CAP && debt.balance > 0;
 
   const extra = parseFloat(extraPayment) || 0;
   const debtWithExtra: Debt =
-    extra > 0
-      ? { ...debt, monthly_payment: debt.monthly_payment + extra }
-      : debt;
+    extra > 0 ? { ...debt, monthly_payment: debt.monthly_payment + extra } : debt;
 
   return (
     <div
-      className={`border rounded-xl p-3.5 transition-opacity ${
+      className={`rounded-xl border p-3.5 transition-opacity ${
         isPaidOff ? 'border-border-dim bg-bg opacity-40' : 'border-border bg-bg'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <EditableText
               value={debt.label}
-              className="text-sm font-semibold text-text"
+              className="text-text text-sm font-semibold"
               onSave={(v) => onUpdate(debt, 'label', v)}
             />
             <EditableText
@@ -227,12 +213,12 @@ function DebtRow({
               onSave={(v) => onUpdate(debt, 'lender', v)}
             />
             {isPaidOff && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#00d98a]/10 text-[#00d98a]">
+              <span className="rounded-full bg-[#00d98a]/10 px-2 py-0.5 text-[11px] text-[#00d98a]">
                 Paid off
               </span>
             )}
           </div>
-          <div className="flex gap-4 mt-2 flex-wrap">
+          <div className="mt-2 flex flex-wrap gap-4">
             <Field
               label="Balance"
               value={debt.balance}
@@ -264,25 +250,22 @@ function DebtRow({
               const info = calcPayoff(debt);
               if (!info) return null;
               return (
-                <div className="flex gap-4 mt-2 pt-2 border-t border-border-dim flex-wrap items-center">
-                  <span className="text-[11px] text-text-3">
-                    Paid off{' '}
-                    <span className="text-text font-mono">
-                      ~{payoffDate(info.months)}
-                    </span>{' '}
+                <div className="border-border-dim mt-2 flex flex-wrap items-center gap-4 border-t pt-2">
+                  <span className="text-text-3 text-[11px]">
+                    Paid off <span className="text-text font-mono">~{payoffDate(info.months)}</span>{' '}
                     <span className="text-text-4">({info.months} mo)</span>
                   </span>
                   {info.totalInterest > 0 && (
-                    <span className="text-[11px] text-text-3">
+                    <span className="text-text-3 text-[11px]">
                       Total interest{' '}
-                      <span className="text-[#ff4560] font-mono">
+                      <span className="font-mono text-[#ff4560]">
                         ${info.totalInterest.toLocaleString()}
                       </span>
                     </span>
                   )}
                   <button
                     onClick={() => setShowAmort((v) => !v)}
-                    className="ml-auto text-[11px] text-text-4 hover:text-[#4a8cff] transition-colors"
+                    className="text-text-4 ml-auto text-[11px] transition-colors hover:text-[#4a8cff]"
                   >
                     {showAmort ? 'Hide schedule ↑' : 'Show schedule ↓'}
                   </button>
@@ -300,14 +283,13 @@ function DebtRow({
           )}
 
           {scraMayApply && (
-            <div className="mt-2 pt-2 border-t border-border-dim flex items-start gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-[#4a8cff] shrink-0 mt-0.5">
+            <div className="border-border-dim mt-2 flex items-start gap-2 border-t pt-2">
+              <span className="mt-0.5 shrink-0 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-[#4a8cff]">
                 SCRA
               </span>
-              <p className="text-[11px] text-text-3 leading-snug">
-                Rate {debt.interest_rate}% may be reducible to {SCRA_CAP}% on pre-service
-                debts under the Servicemembers Civil Relief Act — send written notice to
-                your lender.{' '}
+              <p className="text-text-3 text-[11px] leading-snug">
+                Rate {debt.interest_rate}% may be reducible to {SCRA_CAP}% on pre-service debts
+                under the Servicemembers Civil Relief Act — send written notice to your lender.{' '}
                 <ExternalLink
                   href="https://www.militaryonesource.mil/financial-legal/legal/servicemembers-civil-relief-act/"
                   label="Learn more"
@@ -318,7 +300,7 @@ function DebtRow({
         </div>
         <button
           onClick={() => onRemove(debt.id)}
-          className="text-text-3 hover:text-[#ff4560] text-xs transition-colors mt-0.5 shrink-0"
+          className="text-text-3 mt-0.5 shrink-0 text-xs transition-colors hover:text-[#ff4560]"
         >
           ✕
         </button>
@@ -340,33 +322,28 @@ function AmortizationSchedule({
 }) {
   const baseInfo = calcPayoff(debt);
   const withExtra =
-    extra > 0
-      ? calcPayoff({ ...debt, monthly_payment: debt.monthly_payment + extra })
-      : null;
+    extra > 0 ? calcPayoff({ ...debt, monthly_payment: debt.monthly_payment + extra }) : null;
 
   // Build yearly milestones
   const milestones = buildYearlyMilestones(debt, extra);
 
   return (
-    <div className="mt-3 pt-3 border-t border-border-dim space-y-3">
+    <div className="border-border-dim mt-3 space-y-3 border-t pt-3">
       {/* Extra payment input */}
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-text-3 shrink-0">
-          Extra payment/mo
-        </span>
-        <span className="text-[11px] text-text-3">$</span>
+        <span className="text-text-3 shrink-0 text-[11px]">Extra payment/mo</span>
+        <span className="text-text-3 text-[11px]">$</span>
         <input
           type="number"
           min="0"
           value={extraPayment}
           onChange={(e) => onExtraChange(e.target.value)}
           placeholder="0"
-          className="w-20 text-xs font-mono bg-bg border border-border rounded px-2 py-0.5 text-text focus:outline-none focus:border-blue-500 transition-colors"
+          className="bg-bg border-border text-text w-20 rounded border px-2 py-0.5 font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
         />
         {withExtra && baseInfo && (
-          <span className="text-[11px] text-[#00d98a] font-mono">
-            saves{' '}
-            {formatCurrency(baseInfo.totalInterest - withExtra.totalInterest)} ·{' '}
+          <span className="font-mono text-[11px] text-[#00d98a]">
+            saves {formatCurrency(baseInfo.totalInterest - withExtra.totalInterest)} ·{' '}
             {baseInfo.months - withExtra.months} mo faster
           </span>
         )}
@@ -377,21 +354,21 @@ function AmortizationSchedule({
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
-              <tr className="text-text-4 border-b border-border-dim">
-                <th className="text-left pb-1 font-medium">Year</th>
-                <th className="text-right pb-1 font-medium">Balance</th>
-                <th className="text-right pb-1 font-medium">Paid</th>
-                <th className="text-right pb-1 font-medium">Interest</th>
+              <tr className="text-text-4 border-border-dim border-b">
+                <th className="pb-1 text-left font-medium">Year</th>
+                <th className="pb-1 text-right font-medium">Balance</th>
+                <th className="pb-1 text-right font-medium">Paid</th>
+                <th className="pb-1 text-right font-medium">Interest</th>
               </tr>
             </thead>
             <tbody>
               {milestones.map((m) => (
                 <tr
                   key={m.year}
-                  className="border-b border-border-dim/50 hover:bg-surface-raised/30 transition-colors"
+                  className="border-border-dim/50 hover:bg-surface-raised/30 border-b transition-colors"
                 >
-                  <td className="py-1 text-text-3 font-mono">{m.year}</td>
-                  <td className="py-1 text-right font-mono text-text">
+                  <td className="text-text-3 py-1 font-mono">{m.year}</td>
+                  <td className="text-text py-1 text-right font-mono">
                     {formatCurrency(m.balance)}
                   </td>
                   <td className="py-1 text-right font-mono text-[#4a8cff]">
@@ -417,10 +394,7 @@ interface YearlyMilestone {
   interest: number;
 }
 
-function buildYearlyMilestones(
-  debt: Debt,
-  extraPayment: number,
-): YearlyMilestone[] {
+function buildYearlyMilestones(debt: Debt, extraPayment: number): YearlyMilestone[] {
   if (debt.balance <= 0 || debt.monthly_payment <= 0) return [];
   const monthly = debt.monthly_payment + extraPayment;
   const r = debt.interest_rate / 100 / 12;
@@ -471,7 +445,7 @@ function Field({
 
   if (editing) {
     return (
-      <span className="flex items-center gap-0.5 text-xs text-text-2">
+      <span className="text-text-2 flex items-center gap-0.5 text-xs">
         <span className="text-text-3">{label}</span>
         <span className="text-text-3">{prefix}</span>
         <input
@@ -493,7 +467,7 @@ function Field({
               setEditing(false);
             }
           }}
-          className="w-20 font-mono border-b border-[#4a8cff]/50 bg-transparent outline-none text-text"
+          className="text-text w-20 border-b border-[#4a8cff]/50 bg-transparent font-mono outline-none"
         />
         <span className="text-text-3">{suffix}</span>
       </span>
@@ -501,16 +475,18 @@ function Field({
   }
   return (
     <span
-      className="text-xs cursor-pointer hover:text-text-2 transition-colors"
+      className="hover:text-text-2 cursor-pointer text-xs transition-colors"
       onClick={() => {
         setDraft(value ? String(value) : '');
         setEditing(true);
       }}
     >
-      <span className="font-sans text-text-3">{label} </span>
+      <span className="text-text-3 font-sans">{label} </span>
       {value ? (
-        <span className="font-mono text-text-3">
-          {prefix}{value.toLocaleString()}{suffix}
+        <span className="text-text-3 font-mono">
+          {prefix}
+          {value.toLocaleString()}
+          {suffix}
         </span>
       ) : (
         <span className="text-text-4 font-sans">{placeholder ?? '—'}</span>
@@ -582,15 +558,10 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
   const avalanche = simulatePayoff(active, avalancheOrder);
 
   // Snowball: lowest balance first
-  const snowballOrder = [...indices].sort(
-    (a, b) => active[a].balance - active[b].balance,
-  );
+  const snowballOrder = [...indices].sort((a, b) => active[a].balance - active[b].balance);
   const snowball = simulatePayoff(active, snowballOrder);
 
-  const best =
-    avalanche.totalInterest <= snowball.totalInterest
-      ? 'avalanche'
-      : 'snowball';
+  const best = avalanche.totalInterest <= snowball.totalInterest ? 'avalanche' : 'snowball';
   const bestResult = best === 'avalanche' ? avalanche : snowball;
   const bestOrder = best === 'avalanche' ? avalancheOrder : snowballOrder;
   const saved = current.totalInterest - bestResult.totalInterest;
@@ -613,44 +584,40 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
   ];
 
   return (
-    <div className="mt-4 pt-4 border-t border-border-dim">
+    <div className="border-border-dim mt-4 border-t pt-4">
       <h4 className={`${LABEL_CLS} mb-3`}>Payoff strategy</h4>
       <div className="grid grid-cols-2 gap-2">
         {rows.map(({ label, sub, result, order: ord, isBest }) => (
           <div
             key={label}
             className={`rounded-xl border p-3 transition-colors ${
-              isBest
-                ? 'border-[#00d98a]/30 bg-[#00d98a]/5'
-                : 'border-border bg-bg'
+              isBest ? 'border-[#00d98a]/30 bg-[#00d98a]/5' : 'border-border bg-bg'
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-xs font-semibold text-text">{label}</span>
+            <div className="mb-1 flex items-center gap-1.5">
+              <span className="text-text text-xs font-semibold">{label}</span>
               {isBest && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#00d98a]/10 text-[#00d98a]">
+                <span className="rounded-full bg-[#00d98a]/10 px-1.5 py-0.5 text-[10px] text-[#00d98a]">
                   recommended
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-text-3 mb-2">{sub}</p>
-            <p className="text-xs font-mono text-text-2">
+            <p className="text-text-3 mb-2 text-[11px]">{sub}</p>
+            <p className="text-text-2 font-mono text-xs">
               {formatCurrency(result.totalInterest)}{' '}
               <span className="text-text-4">interest · {result.months} mo</span>
             </p>
-            <p className="text-[10px] text-text-4 mt-1">
-              Focus:{' '}
-              <span className="text-text-2">{active[ord[0]]?.label}</span>
+            <p className="text-text-4 mt-1 text-[10px]">
+              Focus: <span className="text-text-2">{active[ord[0]]?.label}</span>
               {ord.length > 1 && <> → {active[ord[1]]?.label}</>}
             </p>
           </div>
         ))}
       </div>
       {saved > 50 && (
-        <p className="text-[11px] text-[#00d98a] mt-2">
+        <p className="mt-2 text-[11px] text-[#00d98a]">
           {best === 'avalanche' ? 'Avalanche' : 'Snowball'} saves{' '}
-          <span className="font-mono">{formatCurrency(saved)}</span> in interest
-          vs current order.
+          <span className="font-mono">{formatCurrency(saved)}</span> in interest vs current order.
         </p>
       )}
     </div>

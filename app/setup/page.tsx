@@ -1,5 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import DutyStationSelect from '@/app/components/DutyStationSelect';
 import {
   BRANCHES,
   COMPONENTS,
@@ -8,10 +12,6 @@ import {
   WARRANT_GRADES,
 } from '@/lib/pay-tables';
 import type { Branch, Component } from '@/lib/types';
-import { useEffect, useState } from 'react';
-
-import DutyStationSelect from '@/app/components/DutyStationSelect';
-import { useRouter } from 'next/navigation';
 
 type Step = 'credentials' | 'profile' | 'pay-preview';
 
@@ -129,15 +129,13 @@ export default function SetupPage() {
   const ALL_GRADES = [...ENLISTED_GRADES, ...WARRANT_GRADES, ...OFFICER_GRADES];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-(--bg-base) p-4">
-      <div className="w-full max-w-lg bg-(--bg-card) border border-border rounded-2xl p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-(--bg-base) p-4">
+      <div className="border-border w-full max-w-lg rounded-2xl border bg-(--bg-card) p-8 shadow-xl">
         {/* Header */}
         <div className="mb-6 text-center">
-          <div className="text-3xl mb-2">🎖️</div>
-          <h1 className="text-xl font-bold text-(--text-primary)">
-            Create Your Account
-          </h1>
-          <p className="text-sm text-(--text-muted) mt-1">
+          <div className="mb-2 text-3xl">🎖️</div>
+          <h1 className="text-xl font-bold text-(--text-primary)">Create Your Account</h1>
+          <p className="mt-1 text-sm text-(--text-muted)">
             {step === 'credentials' && 'Step 1 of 3 — Credentials'}
             {step === 'profile' && 'Step 2 of 3 — Military Profile'}
             {step === 'pay-preview' && 'Step 3 of 3 — Pay Preview'}
@@ -145,17 +143,14 @@ export default function SetupPage() {
         </div>
 
         {/* Step indicators */}
-        <div className="flex gap-2 mb-6">
+        <div className="mb-6 flex gap-2">
           {(['credentials', 'profile', 'pay-preview'] as Step[]).map((s, i) => (
             <div
               key={s}
-              className={`flex-1 h-1.5 rounded-full ${
+              className={`h-1.5 flex-1 rounded-full ${
                 step === s
                   ? 'bg-blue-500'
-                  : i <
-                      (
-                        ['credentials', 'profile', 'pay-preview'] as Step[]
-                      ).indexOf(step)
+                  : i < (['credentials', 'profile', 'pay-preview'] as Step[]).indexOf(step)
                     ? 'bg-blue-500/40'
                     : 'bg-border'
               }`}
@@ -164,7 +159,7 @@ export default function SetupPage() {
         </div>
 
         {error && (
-          <p className="mb-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <p className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
             {error}
           </p>
         )}
@@ -296,10 +291,7 @@ export default function SetupPage() {
             </Field>
 
             <Field label="Duty station">
-              <DutyStationSelect
-                value={dutyStation}
-                onChange={setDutyStation}
-              />
+              <DutyStationSelect value={dutyStation} onChange={setDutyStation} />
             </Field>
 
             <Field label="Dependents">
@@ -317,7 +309,7 @@ export default function SetupPage() {
               <button
                 type="button"
                 onClick={() => setStep('credentials')}
-                className={`${btnCls} bg-transparent border border-border text-(--text-primary) hover:bg-(--bg-base)`}
+                className={`${btnCls} border-border border bg-transparent text-(--text-primary) hover:bg-(--bg-base)`}
               >
                 ← Back
               </button>
@@ -333,8 +325,8 @@ export default function SetupPage() {
           <div className="space-y-5">
             {preview ? (
               <>
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                  <p className="text-xs text-blue-400 font-medium mb-3">
+                <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+                  <p className="mb-3 text-xs font-medium text-blue-400">
                     2025 Pay estimate for {preview.rankTitle}
                   </p>
                   <div className="space-y-2">
@@ -345,32 +337,27 @@ export default function SetupPage() {
                       value={fmt(preview.bah)}
                       note={!dutyStation ? 'No station selected' : undefined}
                     />
-                    <div className="border-t border-blue-500/20 pt-2 mt-2">
-                      <PayRow
-                        label="Gross monthly"
-                        value={fmt(preview.grossMonthly)}
-                        bold
-                      />
+                    <div className="mt-2 border-t border-blue-500/20 pt-2">
+                      <PayRow label="Gross monthly" value={fmt(preview.grossMonthly)} bold />
                     </div>
                   </div>
-                  <p className="text-xs text-(--text-muted) mt-3">
-                    These values will pre-fill your income panel. You can adjust
-                    them any time.
+                  <p className="mt-3 text-xs text-(--text-muted)">
+                    These values will pre-fill your income panel. You can adjust them any time.
                   </p>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                  <p className="text-xs text-amber-400 font-medium mb-1">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+                  <p className="mb-1 text-xs font-medium text-amber-400">
                     Deductions not included above
                   </p>
                   <p className="text-xs text-(--text-muted)">
-                    FICA, federal taxes, SGLI, and meal deductions will be
-                    estimated and editable in the income panel.
+                    FICA, federal taxes, SGLI, and meal deductions will be estimated and editable in
+                    the income panel.
                   </p>
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-(--text-muted) text-sm">
+              <div className="py-8 text-center text-sm text-(--text-muted)">
                 Loading pay preview…
               </div>
             )}
@@ -378,15 +365,11 @@ export default function SetupPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep('profile')}
-                className={`${btnCls} bg-transparent border border-border text-(--text-primary) hover:bg-(--bg-base)`}
+                className={`${btnCls} border-border border bg-transparent text-(--text-primary) hover:bg-(--bg-base)`}
               >
                 ← Back
               </button>
-              <button
-                onClick={handleFinish}
-                disabled={loading}
-                className={btnCls}
-              >
+              <button onClick={handleFinish} disabled={loading} className={btnCls}>
                 {loading ? 'Creating account…' : 'Create Account'}
               </button>
             </div>
@@ -404,18 +387,10 @@ export default function SetupPage() {
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-(--text-muted) mb-1">
-        {label}
-      </label>
+      <label className="mb-1 block text-xs font-medium text-(--text-muted)">{label}</label>
       {children}
     </div>
   );
@@ -433,15 +408,15 @@ function PayRow({
   bold?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center justify-between">
       <span
         className={`text-sm ${bold ? 'font-semibold text-(--text-primary)' : 'text-(--text-muted)'}`}
       >
         {label}
-        {note && <span className="text-xs text-amber-400 ml-1">({note})</span>}
+        {note && <span className="ml-1 text-xs text-amber-400">({note})</span>}
       </span>
       <span
-        className={`text-sm font-mono ${bold ? 'font-bold text-blue-400' : 'text-(--text-primary)'}`}
+        className={`font-mono text-sm ${bold ? 'font-bold text-blue-400' : 'text-(--text-primary)'}`}
       >
         {value}
       </span>

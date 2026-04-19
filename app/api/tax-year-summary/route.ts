@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
+
 import { INCOME_FIELDS, SPECIAL_PAY_FIELDS } from '@/lib/config';
 import { withAuth } from '@/lib/route-helpers';
 import type { TaxYearSummary } from '@/lib/types';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const year =
-    parseInt(new URL(req.url).searchParams.get('year') ?? '') ||
-    new Date().getFullYear();
+    parseInt(new URL(req.url).searchParams.get('year') ?? '') || new Date().getFullYear();
 
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -125,7 +125,10 @@ export const GET = withAuth(async (req, { userId, db }) => {
       const skip = Math.ceil(diff / PERIOD_MS);
       let cur = anchorMs + skip * PERIOD_MS;
       let count = 0;
-      while (cur <= cutoffMs) { count++; cur += PERIOD_MS; }
+      while (cur <= cutoffMs) {
+        count++;
+        cur += PERIOD_MS;
+      }
       iraFromExpenses += exp.amount * count;
     } else {
       iraFromExpenses += exp.amount * monthsElapsed;

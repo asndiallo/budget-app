@@ -1,8 +1,8 @@
-import { auth, requireAdmin } from '@/lib/auth';
-import { getBAH, getBAS, getBasePay, isOfficer } from '@/lib/pay-tables';
-
 import { NextResponse } from 'next/server';
+
+import { auth, requireAdmin } from '@/lib/auth';
 import type { PayGrade } from '@/lib/pay-tables';
+import { getBAH, getBAS, getBasePay, isOfficer } from '@/lib/pay-tables';
 import { withAuth } from '@/lib/route-helpers';
 
 export const PATCH = withAuth(async (req, { user, db }) => {
