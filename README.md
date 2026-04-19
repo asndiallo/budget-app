@@ -6,25 +6,51 @@ A self-hosted personal finance app built for U.S. military service members. It u
 
 ## Contents
 
-- [Quick start](#quick-start)
-- [First-time setup](#first-time-setup)
-- [Feature guide](#feature-guide)
-  - [Dashboard](#dashboard)
-  - [Pay tab](#pay-tab)
-  - [Spending tab](#spending-tab)
-  - [Wealth tab](#wealth-tab)
-  - [Plan tab](#plan-tab)
-- [Importing your LES](#importing-your-les)
-- [Importing credit card transactions](#importing-credit-card-transactions)
-- [Deployment & income profiles](#deployment--income-profiles)
-- [Allotments](#allotments)
-- [Tax year summary](#tax-year-summary)
-- [Keyboard shortcuts](#keyboard-shortcuts)
-- [Your data & backups](#your-data--backups)
-- [Running on a home server](#running-on-a-home-server)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Tech stack](#tech-stack)
+- [Military Budget Tracker](#military-budget-tracker)
+  - [Contents](#contents)
+  - [Quick start](#quick-start)
+  - [First-time setup](#first-time-setup)
+    - [1. Log in](#1-log-in)
+    - [2. Set your military profile](#2-set-your-military-profile)
+    - [3. Enter your pay](#3-enter-your-pay)
+    - [4. Add fixed expenses](#4-add-fixed-expenses)
+    - [5. Import transactions](#5-import-transactions)
+  - [Feature guide](#feature-guide)
+    - [Dashboard](#dashboard)
+    - [Pay tab](#pay-tab)
+      - [Pay \& deductions](#pay--deductions)
+      - [Tax summary](#tax-summary)
+      - [Leave \& receivables](#leave--receivables)
+    - [Spending tab](#spending-tab)
+      - [Transactions](#transactions)
+      - [Fixed bills](#fixed-bills)
+      - [Budget](#budget)
+      - [Calendar](#calendar)
+    - [Wealth tab](#wealth-tab)
+      - [Net worth](#net-worth)
+      - [Goals](#goals)
+      - [Analytics](#analytics)
+    - [Plan tab](#plan-tab)
+      - [Annual overview](#annual-overview)
+      - [Projections](#projections)
+      - [PCS](#pcs)
+  - [Importing your LES](#importing-your-les)
+  - [Importing credit card transactions](#importing-credit-card-transactions)
+  - [Deployment \& income profiles](#deployment--income-profiles)
+  - [Allotments](#allotments)
+  - [Tax year summary](#tax-year-summary)
+    - [Contribution limits (IRS 2026)](#contribution-limits-irs-2026)
+  - [Keyboard shortcuts](#keyboard-shortcuts)
+  - [Your data \& backups](#your-data--backups)
+  - [Running on a home server](#running-on-a-home-server)
+  - [Configuration](#configuration)
+    - [Adding a new income field](#adding-a-new-income-field)
+    - [Updating contribution limits](#updating-contribution-limits)
+  - [Development](#development)
+    - [Tests](#tests)
+    - [Linting rules of note](#linting-rules-of-note)
+    - [Project structure](#project-structure)
+  - [Tech stack](#tech-stack)
 
 ---
 
@@ -39,7 +65,7 @@ bun install
 bun run dev
 ```
 
-Open **http://localhost:3000** — the app is ready.
+Open **<http://localhost:3000>** — the app is ready.
 
 > Don't have Bun? `curl -fsSL https://bun.sh/install | bash`, then restart your terminal.
 
@@ -489,7 +515,7 @@ Pay table assertions are pinned to exact 2026 DoD values — if rates change in 
 
 ### Project structure
 
-```
+```txt
 app/
   api/          # Next.js route handlers (one folder per resource)
   components/   # React components
