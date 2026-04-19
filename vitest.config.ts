@@ -13,7 +13,7 @@ export default defineConfig({
     include: ['lib/__tests__/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['lib/pay-tables.ts', 'lib/les-parser.ts', 'lib/utils.ts', 'lib/csv-utils.ts', 'lib/income.ts', 'lib/config.ts', 'lib/brs-calc.ts'],
+      include: ['lib/pay-tables.ts', 'lib/les-parser.ts', 'lib/utils.ts', 'lib/csv-utils.ts', 'lib/income.ts', 'lib/config.ts', 'lib/brs-calc.ts', 'lib/bill-match.ts'],
       reporter: ['text', 'lcov'],
     },
   },
