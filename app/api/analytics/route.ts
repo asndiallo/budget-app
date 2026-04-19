@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
 
-import { DEDUCTION_FIELDS } from '@/lib/config';
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeSavingsRatePct } from '@/lib/financials';
+import { computeMonthlyFinancials } from '@/lib/income';
+import { getInvestmentExpenses } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
-import { currentMonth } from '@/lib/utils';
-
-function prevMonths(to: string, count: number): string[] {
-  const [y, m] = to.split('-').map(Number);
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(y, m - 1 - (count - 1 - i), 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
-}
-
-function shortLabel(month: string): string {
-  const [y, m] = month.split('-');
-  return new Date(+y, +m - 1).toLocaleDateString('en-US', {
-    month: 'short',
-    year: '2-digit',
-  });
-}
+import { currentMonth, formatMonthShort, investmentForMonth, prevMonths } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -34,11 +20,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
        WHERE user_id = ? AND month IN (${months.map(() => '?').join(',')})
        GROUP BY month, category`,
     )
-    .all(userId, ...months) as {
-    month: string;
-    category: string;
-    total: number;
-  }[];
+    .all(userId, ...months) as { month: string; category: string; total: number }[];
 
   const spendingMap = new Map<string, Record<string, number>>();
   for (const row of spendingRows) {
@@ -46,48 +28,31 @@ export const GET = withAuth(async (req, { userId, db }) => {
     spendingMap.get(row.month)![row.category] = row.total;
   }
 
-  const fixedMonthly = (
-    db
-      .prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND (is_investment IS NULL OR is_investment=0)",
-      )
-      .get(userId) as { s: number }
-  ).s;
-  const investmentFixed = (
-    db
-      .prepare(
-        "SELECT COALESCE(SUM(CASE WHEN period='annual' THEN amount/12.0 ELSE amount END),0) as s FROM fixed_expenses WHERE user_id=? AND active=1 AND is_investment=1",
-      )
-      .get(userId) as { s: number }
-  ).s;
-  const debtPayments = (
-    db
-      .prepare(
-        'SELECT COALESCE(SUM(monthly_payment),0) as s FROM debts WHERE user_id=? AND balance > 0',
-      )
-      .get(userId) as { s: number }
-  ).s;
-  const committed = fixedMonthly + debtPayments;
+  // Investment fixed expenses — needed for per-month invested calculation
+  const investmentExpenses = getInvestmentExpenses(db, userId);
 
   const result = months.map((m) => {
     const { totalIncome, tsp } = computeMonthlyFinancials(db, m, userId);
-    const config = incomeForMonth(db, m, userId);
-    const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
     const categories = spendingMap.get(m) ?? {};
-    const spending = Object.values(categories).reduce((s, v) => s + v, 0);
-    const net = totalIncome - deductions - committed - spending;
+
+    // Separate investment transactions from living-expense spending
+    const investmentTxs = categories[INVESTMENT_CATEGORY] ?? 0;
+    const spending = Object.entries(categories)
+      .filter(([cat]) => cat !== INVESTMENT_CATEGORY)
+      .reduce((s, [, v]) => s + v, 0);
+
+    const invested = tsp + investmentForMonth(investmentExpenses, m) + investmentTxs;
+    const net = totalIncome - invested - spending;
     const savingsRate =
-      totalIncome > 0
-        ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
-        : null;
+      totalIncome > 0 ? computeSavingsRatePct(totalIncome, invested, spending) : null;
 
     return {
       month: m,
-      label: shortLabel(m),
+      label: formatMonthShort(m),
       totalIncome,
       tsp,
       spending,
-      net: totalIncome - tsp - investmentFixed - spending,
+      net,
       savingsRate,
       categories,
     };

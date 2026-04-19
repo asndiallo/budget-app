@@ -1,60 +1,31 @@
 import { NextResponse } from 'next/server';
 
 import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeSavingsRate } from '@/lib/financials';
 import { computeMonthlyFinancials } from '@/lib/income';
+import {
+  getActiveDebtPaymentsTotal,
+  getInvestmentExpenses,
+  getJoinedAt,
+  getLiquidAssets,
+  getMonthCategoryTotal,
+  getMonthSpending,
+} from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { HealthScoreComponent } from '@/lib/types';
-import { investmentForMonth, isBeforeMonth } from '@/lib/utils';
-
-function lastCompleteMonths(n: number): string[] {
-  const months: string[] = [];
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - 1);
-  for (let i = 0; i < n; i++) {
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-    d.setMonth(d.getMonth() - 1);
-  }
-  return months;
-}
+import { investmentForMonth, isBeforeMonth, lastCompleteMonths } from '@/lib/utils';
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
 export const GET = withAuth(async (_req, { userId, db }) => {
-  const profile = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as
-    | { joined_at: string | null }
-    | undefined;
-  const joinedAt = profile?.joined_at ?? null;
-
-  const debtPayments = (
-    db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as {
-      monthly_payment: number;
-    }[]
-  ).reduce((s, d) => s + d.monthly_payment, 0);
-
+  const joinedAt = getJoinedAt(db, userId);
+  const debtPayments = getActiveDebtPaymentsTotal(db, userId);
   const lastMonth = lastCompleteMonths(1)[0];
-
-  // Investment fixed expenses — needed for the same invested calculation used by overview/ytd
-  const investmentExpenses = db
-    .prepare(
-      `SELECT amount, period, recurrence, recurrence_anchor, end_date
-       FROM fixed_expenses WHERE user_id = ? AND active = 1 AND is_investment = 1`,
-    )
-    .all(userId) as {
-    amount: number;
-    period: string;
-    recurrence: string | null;
-    recurrence_anchor: string | null;
-    end_date: string | null;
-  }[];
+  const investmentExpenses = getInvestmentExpenses(db, userId);
 
   // ── Savings Rate ──────────────────────────────────────────────────────────
-  // Uses the same formula as overview/ytd:
-  //   invested = tsp + investmentFixedExpenses + investmentTxs
-  //   net      = income − invested − spending  (spending excludes Investment category)
-  //   rate     = (invested + max(0, net)) / income
   let savingsScore = 0;
   let savingsDetail = 'No income data yet';
   {
@@ -65,25 +36,11 @@ export const GET = withAuth(async (_req, { userId, db }) => {
       const { totalIncome: income, tsp } = computeMonthlyFinancials(db, month, userId);
       if (income === 0) continue;
 
-      const investmentTxs = (
-        db
-          .prepare(
-            'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category=?',
-          )
-          .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
-      ).s;
-
-      const spending = (
-        db
-          .prepare(
-            'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category!=?',
-          )
-          .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
-      ).s;
-
+      const investmentTxs = getMonthCategoryTotal(db, userId, month, INVESTMENT_CATEGORY);
+      const spending = getMonthSpending(db, userId, month, INVESTMENT_CATEGORY);
       const invested = tsp + investmentForMonth(investmentExpenses, month) + investmentTxs;
-      const net = income - invested - spending;
-      rates.push((invested + Math.max(0, net)) / income);
+
+      rates.push(computeSavingsRate(income, invested, spending));
     }
     if (rates.length > 0) {
       const avgRate = rates.reduce((s, r) => s + r, 0) / rates.length;
@@ -96,32 +53,13 @@ export const GET = withAuth(async (_req, { userId, db }) => {
   let efScore = 0;
   let efDetail = 'No liquid assets recorded';
   {
-    const liquidAssets = (
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(balance),0) AS s FROM assets WHERE user_id=? AND category IN ('Checking','Savings')",
-        )
-        .get(userId) as { s: number }
-    ).s;
-    const liquidGoals = (
-      db
-        .prepare('SELECT COALESCE(SUM(saved),0) AS s FROM goals WHERE user_id=? AND active = 1')
-        .get(userId) as { s: number }
-    ).s;
-    const liquid = liquidAssets + liquidGoals;
+    const liquid = getLiquidAssets(db, userId);
     if (liquid > 0) {
       const months = lastCompleteMonths(6);
       const spends: number[] = [];
       for (const month of months) {
         if (joinedAt && isBeforeMonth(month, joinedAt)) continue;
-        // Exclude Investment transactions — they aren't living expenses
-        const s = (
-          db
-            .prepare(
-              'SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE user_id=? AND month=? AND category!=?',
-            )
-            .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
-        ).s;
+        const s = getMonthSpending(db, userId, month, INVESTMENT_CATEGORY);
         if (s > 0) spends.push(s);
       }
       const avgExpenses =

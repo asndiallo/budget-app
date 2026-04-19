@@ -48,9 +48,82 @@ export function generateYearMonths(year = new Date().getFullYear()): string[] {
   return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 }
 
+// ── Month-range helpers ────────────────────────────────────────────────────────
+
+/**
+ * Returns `count` months in chronological order, ending at (and including) `to`.
+ * e.g. prevMonths('2026-04', 3) → ['2026-02', '2026-03', '2026-04']
+ */
+export function prevMonths(to: string, count: number): string[] {
+  const [y, m] = to.split('-').map(Number);
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(y, m - 1 - (count - 1 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+}
+
+/**
+ * Returns the last `n` complete months (excluding the current month) in
+ * reverse-chronological order (newest first).
+ * e.g. on 2026-04-19, lastCompleteMonths(3) → ['2026-03', '2026-02', '2026-01']
+ */
+export function lastCompleteMonths(n: number): string[] {
+  const months: string[] = [];
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  for (let i = 0; i < n; i++) {
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    d.setMonth(d.getMonth() - 1);
+  }
+  return months;
+}
+
+/** Formats "YYYY-MM" as "Jan '26" (short year, for chart labels). */
+export function formatMonthShort(month: string): string {
+  return format(parseISO(`${month}-01`), "MMM ''yy");
+}
+
+// ── Biweekly period counting ───────────────────────────────────────────────────
+
 const BIWEEKLY_MS = 14 * 86_400_000;
 
-interface InvestmentExpense {
+/**
+ * Counts how many biweekly pay periods land within a calendar year up to `cutoff`.
+ * Used by contribution-limits and tax-year-summary routes to convert per-occurrence
+ * amounts into year-to-date totals.
+ *
+ * @param year      The calendar year being counted
+ * @param anchor    YYYY-MM-DD — any past date in the biweekly cycle
+ * @param endDate   YYYY-MM-DD — last date the expense is active (null = no end)
+ * @param cutoff    The upper bound (usually today for the current year, Dec 31 for past years)
+ */
+export function countBiweeklyPeriods(
+  year: number,
+  anchor: string,
+  endDate: string | null,
+  cutoff: Date,
+): number {
+  const anchorMs = new Date(anchor + 'T12:00:00').getTime();
+  const yearStartMs = new Date(`${year}-01-01T12:00:00`).getTime();
+  const cutoffMs = Math.min(
+    cutoff.getTime(),
+    endDate ? new Date(endDate + 'T23:59:59').getTime() : Infinity,
+  );
+  const diff = yearStartMs - anchorMs;
+  const skip = Math.ceil(diff / BIWEEKLY_MS);
+  let cur = anchorMs + skip * BIWEEKLY_MS;
+  let count = 0;
+  while (cur <= cutoffMs) {
+    count++;
+    cur += BIWEEKLY_MS;
+  }
+  return count;
+}
+
+// ── Investment expense helpers ─────────────────────────────────────────────────
+
+export interface InvestmentExpense {
   amount: number;
   period: string;
   recurrence?: string | null;

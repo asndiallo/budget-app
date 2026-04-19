@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server';
 
-import { computeMonthlyFinancials } from '@/lib/income';
 import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeMonthlyFinancials } from '@/lib/income';
+import { getActiveDebtPaymentsTotal, getInvestmentExpenses, getJoinedAt } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { CategoryInsight, SpendingInsights } from '@/lib/types';
-import { currentMonth, investmentForMonth, isBeforeMonth } from '@/lib/utils';
-
-function prevMonths(to: string, count: number): string[] {
-  const [y, m] = to.split('-').map(Number);
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(y, m - 1 - (count - 1 - i), 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
-}
-
-function lastCompleteMonth(month: string): string {
-  const [y, m] = month.split('-').map(Number);
-  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-}
+import { currentMonth, investmentForMonth, isBeforeMonth, prevMonths } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
   const month = searchParams.get('month') || currentMonth();
 
-  const baseline = lastCompleteMonth(month);
-  const userRow = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as {
-    joined_at: string | null;
-  };
-  const joinedAt = userRow?.joined_at || null;
+  // Last complete month relative to the requested month
+  const [y, mNum] = month.split('-').map(Number);
+  const baseline = mNum === 1 ? `${y - 1}-12` : `${y}-${String(mNum - 1).padStart(2, '0')}`;
+
+  const joinedAt = getJoinedAt(db, userId);
+  const investmentExpenses = getInvestmentExpenses(db, userId);
 
   // Build a 6-month window, but exclude pre-service months (before joined_at)
   const months6All = prevMonths(baseline, 6);
@@ -41,11 +30,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
        WHERE user_id = ? AND month IN (${months6.map(() => '?').join(',')})
        GROUP BY month, category`,
     )
-    .all(userId, ...months6) as {
-    month: string;
-    category: string;
-    total: number;
-  }[];
+    .all(userId, ...months6) as { month: string; category: string; total: number }[];
 
   const byMonth = new Map<string, Record<string, number>>();
   for (const row of rows) {
@@ -65,14 +50,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
       )
       .get(userId) as { s: number }
   ).s;
-  const debtPayments = (
-    db
-      .prepare(
-        `SELECT COALESCE(SUM(monthly_payment),0) AS s FROM debts WHERE user_id=? AND balance > 0`,
-      )
-      .get(userId) as { s: number }
-  ).s;
-  const avgMonthlyCommitted = Math.round(committedFixed + debtPayments);
+  const avgMonthlyCommitted = Math.round(committedFixed + getActiveDebtPaymentsTotal(db, userId));
 
   const empty: SpendingInsights = {
     avgMonthlyExpenses: 0,
@@ -84,23 +62,10 @@ export const GET = withAuth(async (req, { userId, db }) => {
   };
   if (withData6.length === 0) return NextResponse.json(empty);
 
-  const investmentExpenses = db
-    .prepare(
-      `SELECT amount, period, recurrence, recurrence_anchor, end_date
-       FROM fixed_expenses WHERE user_id = ? AND active = 1 AND is_investment = 1`,
-    )
-    .all(userId) as {
-    amount: number;
-    period: string;
-    recurrence: string | null;
-    recurrence_anchor: string | null;
-    end_date: string | null;
-  }[];
-
   const monthlyData = withData6.map((m) => {
     const { totalIncome, tsp } = computeMonthlyFinancials(db, m, userId);
-    // Exclude investment-category transactions from spending
     const catSpend = byMonth.get(m)!;
+    // Exclude investment-category transactions from spending
     const spending = Object.entries(catSpend)
       .filter(([cat]) => cat !== INVESTMENT_CATEGORY)
       .reduce((s, [, v]) => s + v, 0);
@@ -111,7 +76,8 @@ export const GET = withAuth(async (req, { userId, db }) => {
 
   const avgMonthlyExpenses = monthlyData.reduce((s, d) => s + d.spending, 0) / withData6.length;
   const avgMonthlyNet = monthlyData.reduce((s, d) => s + d.net, 0) / withData6.length;
-  // Exclude Investment category from category insights (it's tracked separately)
+
+  // Exclude Investment category from category insights (tracked separately)
   const allCategories = [...new Set(rows.map((r) => r.category))].filter(
     (c) => c !== INVESTMENT_CATEGORY,
   );

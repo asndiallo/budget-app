@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import { autoMatchBills } from '@/lib/bill-match';
-import { DEFAULT_CATEGORY, INVESTMENT_CATEGORY, INVESTMENT_KEYWORDS } from '@/lib/config';
+import { categorizeTransaction, detectAccountId } from '@/lib/categorization';
+import { getAccountsForDetection } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import { currentMonth } from '@/lib/utils';
-
-function autoTagCategory(description: string, explicit: string | undefined): string {
-  if (explicit && explicit !== DEFAULT_CATEGORY) return explicit;
-  const lower = description.toLowerCase();
-  if (INVESTMENT_KEYWORDS.some((kw) => lower.includes(kw))) return INVESTMENT_CATEGORY;
-  return explicit || DEFAULT_CATEGORY;
-}
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const { searchParams } = new URL(req.url);
@@ -36,26 +30,11 @@ export const GET = withAuth(async (req, { userId, db }) => {
   return NextResponse.json(rows);
 });
 
-function autoDetectAccount(
-  db: import('better-sqlite3').Database,
-  userId: string,
-  description: string,
-): number | null {
-  const accounts = db
-    .prepare(
-      "SELECT id, institution FROM financial_accounts WHERE user_id = ? AND active = 1 AND institution != ''",
-    )
-    .all(userId) as { id: number; institution: string }[];
-  const lower = description.toLowerCase();
-  const matches = accounts.filter((a) => lower.includes(a.institution.toLowerCase()));
-  return matches.length === 1 ? matches[0].id : null;
-}
-
 export const POST = withAuth(async (req, { userId, db }) => {
   const { description, amount, category, month, source } = await req.json();
   const m = month || currentMonth();
-  const resolvedCategory = autoTagCategory(description, category);
-  const accountId = autoDetectAccount(db, userId, description);
+  const resolvedCategory = categorizeTransaction(description, { explicitCategory: category });
+  const accountId = detectAccountId(description, getAccountsForDetection(db, userId));
   const result = db
     .prepare(
       'INSERT INTO transactions (user_id, description, amount, category, month, source, account_id) VALUES (?, ?, ?, ?, ?, ?, ?)',

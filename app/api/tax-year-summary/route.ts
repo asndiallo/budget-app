@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import { INCOME_FIELDS, SPECIAL_PAY_FIELDS } from '@/lib/config';
+import { buildYearlyConfigLookup } from '@/lib/income';
 import { withAuth } from '@/lib/route-helpers';
 import type { TaxYearSummary } from '@/lib/types';
+import { countBiweeklyPeriods } from '@/lib/utils';
 
 export const GET = withAuth(async (req, { userId, db }) => {
   const year =
@@ -12,28 +14,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const currentYear = today.getFullYear();
   const monthsElapsed = year < currentYear ? 12 : today.getMonth() + 1;
 
-  // Fetch all income_config rows for the year, ordered by month
-  const configRows = db
-    .prepare(
-      `SELECT month, key, value
-       FROM income_config
-       WHERE user_id = ? AND month LIKE ?
-       ORDER BY month`,
-    )
-    .all(userId, `${year}-%`) as { month: string; key: string; value: number }[];
-
-  const configByMonth: Record<string, Record<string, number>> = {};
-  for (const { month, key, value } of configRows) {
-    (configByMonth[month] ??= {})[key] = value;
-  }
-  const configMonths = Object.keys(configByMonth).sort();
-
-  // Carry-forward within the year only
-  function fieldsFor(targetMonth: string): Record<string, number> {
-    const applicable = configMonths.filter((m) => m <= targetMonth);
-    if (applicable.length === 0) return {};
-    return configByMonth[applicable[applicable.length - 1]];
-  }
+  const fieldsFor = buildYearlyConfigLookup(db, userId, year);
 
   // Income field keys
   const incomeKeys = INCOME_FIELDS.map((f) => f.key);
@@ -95,7 +76,6 @@ export const GET = withAuth(async (req, { userId, db }) => {
   }
 
   // Roth IRA from investment fixed expenses — same logic as contribution-limits route
-  const PERIOD_MS = 14 * 86_400 * 1_000;
   const iraExpenses = db
     .prepare(
       `SELECT amount, recurrence, recurrence_anchor, end_date
@@ -115,21 +95,8 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const cutoff = year < currentYear ? new Date(`${year}-12-31`) : today;
   for (const exp of iraExpenses) {
     if (exp.recurrence === 'biweekly' && exp.recurrence_anchor) {
-      const anchorMs = new Date(exp.recurrence_anchor + 'T12:00:00').getTime();
-      const yearStartMs = new Date(`${year}-01-01T12:00:00`).getTime();
-      const cutoffMs = Math.min(
-        cutoff.getTime(),
-        exp.end_date ? new Date(exp.end_date + 'T23:59:59').getTime() : Infinity,
-      );
-      const diff = yearStartMs - anchorMs;
-      const skip = Math.ceil(diff / PERIOD_MS);
-      let cur = anchorMs + skip * PERIOD_MS;
-      let count = 0;
-      while (cur <= cutoffMs) {
-        count++;
-        cur += PERIOD_MS;
-      }
-      iraFromExpenses += exp.amount * count;
+      iraFromExpenses +=
+        exp.amount * countBiweeklyPeriods(year, exp.recurrence_anchor, exp.end_date, cutoff);
     } else {
       iraFromExpenses += exp.amount * monthsElapsed;
     }
@@ -155,6 +122,9 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const totalTaxesWithheld = federalTaxWithheld + ficaSocialSecurity + ficaMedicare;
   const grossTotal = grossMilitaryPay + allowances + specialPays;
   const totalPostTaxSavings = Math.round(rothTspContributions + rothIraContributions);
+
+  // incomeKeys used only for type-checking — ensure unused-variable linter is satisfied
+  void incomeKeys;
 
   return NextResponse.json<TaxYearSummary>({
     year,

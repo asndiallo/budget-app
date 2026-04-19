@@ -2,7 +2,6 @@
 
 import { ASSET_CATEGORIES, LABEL_CLS } from '@/lib/config';
 import type { Asset, Debt, Goal } from '@/lib/types';
-
 import { formatCurrency } from '@/lib/utils';
 
 export default function NetWorthCard({

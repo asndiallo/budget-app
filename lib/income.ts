@@ -35,3 +35,39 @@ export function computeMonthlyFinancials(
   const tsp = Math.round((config.base_pay ?? 0) * tspRate);
   return { totalIncome, tsp };
 }
+
+/**
+ * Builds a year-scoped carry-forward lookup for income_config rows.
+ *
+ * Returns a `fieldsFor(month)` function that resolves the nearest prior
+ * config snapshot within the given year — cross-year carry-forward is
+ * intentionally excluded (a missing Jan → treat as $0, not "use last Dec").
+ *
+ * Used by contribution-limits and tax-year-summary routes.
+ */
+export function buildYearlyConfigLookup(
+  db: Db,
+  userId: string,
+  year: number,
+): (month: string) => Record<string, number> {
+  const configRows = db
+    .prepare(
+      `SELECT month, key, value
+       FROM income_config
+       WHERE user_id = ? AND month LIKE ?
+       ORDER BY month`,
+    )
+    .all(userId, `${year}-%`) as { month: string; key: string; value: number }[];
+
+  const configByMonth: Record<string, Record<string, number>> = {};
+  for (const { month, key, value } of configRows) {
+    (configByMonth[month] ??= {})[key] = value;
+  }
+  const configMonths = Object.keys(configByMonth).sort();
+
+  return function fieldsFor(targetMonth: string): Record<string, number> {
+    const applicable = configMonths.filter((m) => m <= targetMonth);
+    if (applicable.length === 0) return {};
+    return configByMonth[applicable[applicable.length - 1]];
+  };
+}

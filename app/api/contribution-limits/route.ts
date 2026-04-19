@@ -2,32 +2,10 @@ import { NextResponse } from 'next/server';
 
 import { dodMatchRate } from '@/lib/brs-calc';
 import { CONTRIBUTION_LIMITS, INVESTMENT_CATEGORY } from '@/lib/config';
+import { buildYearlyConfigLookup } from '@/lib/income';
+import { getJoinedAt } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
-
-const PERIOD_MS = 14 * 86_400 * 1_000;
-
-function countBiweeklyPeriods(
-  year: number,
-  anchor: string,
-  endDate: string | null,
-  cutoff: Date,
-): number {
-  const anchorMs = new Date(anchor + 'T12:00:00').getTime();
-  const yearStartMs = new Date(`${year}-01-01T12:00:00`).getTime();
-  const cutoffMs = Math.min(
-    cutoff.getTime(),
-    endDate ? new Date(endDate + 'T23:59:59').getTime() : Infinity,
-  );
-  const diff = yearStartMs - anchorMs;
-  const skip = Math.ceil(diff / PERIOD_MS);
-  let cur = anchorMs + skip * PERIOD_MS;
-  let count = 0;
-  while (cur <= cutoffMs) {
-    count++;
-    cur += PERIOD_MS;
-  }
-  return count;
-}
+import { countBiweeklyPeriods } from '@/lib/utils';
 
 /** Whether the member has crossed the 2-year BRS vesting threshold by a given month. */
 function isVested(monthStr: string, joinedAt: string | null): boolean {
@@ -55,36 +33,8 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const currentYear = today.getFullYear();
   const monthsElapsed = year < currentYear ? 12 : today.getMonth() + 1;
 
-  // Fetch joined_at for agency match vesting calculation
-  const profile = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as
-    | { joined_at: string | null }
-    | undefined;
-  const joinedAt = profile?.joined_at ?? null;
-
-  // ── Income config: carry-forward within the year only ──────────────────────
-  // Cross-year carry-forward is intentionally excluded: a missing month at the
-  // start of the year means $0 contributed that month (e.g. started TSP in Feb).
-  const configRows = db
-    .prepare(
-      `SELECT month, key, value
-       FROM income_config
-       WHERE user_id = ? AND month LIKE ?
-       ORDER BY month`,
-    )
-    .all(userId, `${year}-%`) as { month: string; key: string; value: number }[];
-
-  const configByMonth: Record<string, Record<string, number>> = {};
-  for (const { month, key, value } of configRows) {
-    (configByMonth[month] ??= {})[key] = value;
-  }
-  const configMonths = Object.keys(configByMonth).sort();
-
-  // Returns the income config for the most recent month ≤ target, within the year.
-  function fieldsFor(targetMonth: string): Record<string, number> {
-    const applicable = configMonths.filter((m) => m <= targetMonth);
-    if (applicable.length === 0) return {}; // No data yet this year → treat as $0
-    return configByMonth[applicable[applicable.length - 1]];
-  }
+  const joinedAt = getJoinedAt(db, userId);
+  const fieldsFor = buildYearlyConfigLookup(db, userId, year);
 
   let tspYtd = 0;
   let agencyYtd = 0;
@@ -140,7 +90,6 @@ export const GET = withAuth(async (req, { userId, db }) => {
   }
 
   // ── Roth/Traditional IRA from transactions linked to a roth_ira/trad_ira account ──
-  // This is the most precise source: actual money sent to the account.
   // Preferred over config/expense estimates when present.
   const { iraFromTxs: _iraFromTxs } = db
     .prepare(

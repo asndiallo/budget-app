@@ -1,60 +1,42 @@
 import { NextResponse } from 'next/server';
 
-import { DEDUCTION_FIELDS } from '@/lib/config';
-import { computeMonthlyFinancials, incomeForMonth } from '@/lib/income';
+import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeMonthlyFinancials } from '@/lib/income';
+import { getInvestmentExpenses, getJoinedAt } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
-
-function recentCompleteMonths(n: number): string[] {
-  const months: string[] = [];
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - 1);
-  for (let i = 0; i < n; i++) {
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-    d.setMonth(d.getMonth() - 1);
-  }
-  return months;
-}
+import { investmentForMonth, isBeforeMonth, lastCompleteMonths } from '@/lib/utils';
 
 export const GET = withAuth(async (_req, { userId, db }) => {
-  const fixedExpenses = (
-    db
-      .prepare('SELECT amount, period FROM fixed_expenses WHERE user_id=? AND active = 1')
-      .all(userId) as { amount: number; period: string }[]
-  ).reduce((s, f) => s + (f.period === 'annual' ? f.amount / 12 : f.amount), 0);
-
-  const debtPayments = (
-    db.prepare('SELECT monthly_payment FROM debts WHERE user_id=? AND balance > 0').all(userId) as {
-      monthly_payment: number;
-    }[]
-  ).reduce((s, d) => s + d.monthly_payment, 0);
-
-  const committed = fixedExpenses + debtPayments;
+  const joinedAt = getJoinedAt(db, userId);
+  const investmentExpenses = getInvestmentExpenses(db, userId);
 
   let streak = 0;
-  for (const month of recentCompleteMonths(12)) {
+  for (const month of lastCompleteMonths(12)) {
+    if (joinedAt && isBeforeMonth(month, joinedAt)) break;
+
     const { totalIncome, tsp } = computeMonthlyFinancials(db, month, userId);
     if (totalIncome === 0) break;
 
-    const config = incomeForMonth(db, month, userId);
-    const deductions = tsp + DEDUCTION_FIELDS.reduce((s, f) => s + (config[f.key] ?? 0), 0);
-    const extraIncome = (
+    const investmentTxs = (
       db
         .prepare(
-          'SELECT COALESCE(SUM(amount), 0) as s FROM income_entries WHERE user_id=? AND month = ?',
+          'SELECT COALESCE(SUM(amount), 0) as s FROM transactions WHERE user_id=? AND month=? AND category=?',
         )
-        .get(userId, month) as { s: number }
+        .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
     ).s;
+
     const spending = (
       db
         .prepare(
-          'SELECT COALESCE(SUM(amount), 0) as s FROM transactions WHERE user_id=? AND month = ?',
+          'SELECT COALESCE(SUM(amount), 0) as s FROM transactions WHERE user_id=? AND month=? AND category!=?',
         )
-        .get(userId, month) as { s: number }
+        .get(userId, month, INVESTMENT_CATEGORY) as { s: number }
     ).s;
 
-    const net = totalIncome + extraIncome - deductions - committed - spending;
-    if (net > 0) streak++;
+    const invested = tsp + investmentForMonth(investmentExpenses, month) + investmentTxs;
+    const net = totalIncome - invested - spending;
+
+    if (net >= 0) streak++;
     else break;
   }
 

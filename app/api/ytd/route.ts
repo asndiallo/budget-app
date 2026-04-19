@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 
-import { computeMonthlyFinancials } from '@/lib/income';
 import { INVESTMENT_CATEGORY } from '@/lib/config';
+import { computeMonthlyFinancials } from '@/lib/income';
+import {
+  getCategoryTotalByMonth,
+  getInvestmentExpenses,
+  getJoinedAt,
+  getSpendingByMonth,
+} from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { YtdSummary } from '@/lib/types';
 import { currentMonth, investmentForMonth, isBeforeMonth } from '@/lib/utils';
@@ -14,48 +20,10 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const [, m] = month.split('-').map(Number);
   const months = Array.from({ length: m }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 
-  const placeholders = months.map(() => '?').join(',');
-
-  const spendingRows = db
-    .prepare(
-      `SELECT month, SUM(amount) AS total
-       FROM transactions
-       WHERE user_id = ? AND month IN (${placeholders}) AND category != ?
-       GROUP BY month`,
-    )
-    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
-
-  const investmentTxRows = db
-    .prepare(
-      `SELECT month, SUM(amount) AS total
-       FROM transactions
-       WHERE user_id = ? AND month IN (${placeholders}) AND category = ?
-       GROUP BY month`,
-    )
-    .all(userId, ...months, INVESTMENT_CATEGORY) as { month: string; total: number }[];
-
-  const investmentTxByMonth = Object.fromEntries(investmentTxRows.map((r) => [r.month, r.total]));
-
-  const spendingByMonth = Object.fromEntries(spendingRows.map((r) => [r.month, r.total]));
-
-  const userRow = db.prepare('SELECT joined_at FROM users WHERE id = ?').get(userId) as {
-    joined_at: string | null;
-  };
-  const joinedAt = userRow?.joined_at || null;
-
-  const investmentExpenses = db
-    .prepare(
-      `SELECT amount, period, recurrence, recurrence_anchor, end_date
-       FROM fixed_expenses
-       WHERE user_id = ? AND active = 1 AND is_investment = 1`,
-    )
-    .all(userId) as {
-    amount: number;
-    period: string;
-    recurrence: string | null;
-    recurrence_anchor: string | null;
-    end_date: string | null;
-  }[];
+  const joinedAt = getJoinedAt(db, userId);
+  const investmentExpenses = getInvestmentExpenses(db, userId);
+  const spendingByMonth = getSpendingByMonth(db, userId, months, INVESTMENT_CATEGORY);
+  const investmentTxByMonth = getCategoryTotalByMonth(db, userId, months, INVESTMENT_CATEGORY);
 
   let totalIncome = 0;
   let totalInvested = 0;

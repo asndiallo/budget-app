@@ -175,10 +175,12 @@ Everything about money going out.
 - Manual entry (description, amount, category, date, source account, notes)
 - CSV import with review grid — see [Importing credit card transactions](#importing-credit-card-transactions)
 - **Search** (`/` shortcut) and filter by category
-- Select mode — bulk recategorize or delete multiple transactions
+- Select mode — bulk recategorize, bulk delete, or bulk link to a financial account
 - Import history — view and undo past CSV import batches
 - CSV export of filtered transactions for Excel / Sheets
 - **Auto-match**: after import, transactions are automatically matched to fixed bills when description and amount line up — bill marked paid without manual click
+- **Transaction detail drawer**: click `⋯` on any transaction to view and edit category, financial account link, and notes
+- **Financial accounts**: track which specific account a transaction belongs to (Fidelity Roth IRA, USAA checking, etc.). Accounts are defined under Manage Accounts with a type and institution keyword. Transactions are auto-linked on import when the description contains the institution keyword; ambiguous matches are left unlinked. Use **Backfill** to retroactively link existing transactions.
 
 #### Fixed bills
 
@@ -345,6 +347,11 @@ The **effective federal rate** and **total tax burden** cards show your withhold
 
 DoD automatic contributions (1%) and matching (up to 4%) are shown separately and do not count against the elective deferral limit.
 
+**IRA tracking priority** (highest wins):
+1. Actual transactions linked to a `roth_ira` or `trad_ira` financial account — most accurate
+2. Fixed expenses labeled with "roth" or "ira" keywords — fallback when accounts aren't linked
+3. `roth_ira` field in income config — last resort estimate
+
 ---
 
 ## Keyboard shortcuts
@@ -488,18 +495,22 @@ bun run test:coverage # coverage report (lcov + text)
 
 ### Tests
 
-324 tests across 8 test files in `lib/__tests__/`:
+410 tests across 12 test files in `lib/__tests__/`:
 
-| File                 | What it covers                                                                                                                                                                                                        |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pay-tables.test.ts` | `getBasePay`, `getBAS`, `getBAH`, `getRankTitle` — pinned to exact 2026 DoD values for all grades and installations                                                                                                   |
-| `les-parser.test.ts` | Field extraction, date parsing, TSP rate derivation, partial LES, CRLF handling, warning generation                                                                                                                   |
-| `utils.test.ts`      | Month navigation, date comparisons, currency formatting, projected spend                                                                                                                                              |
-| `csv-utils.test.ts`  | `parseDate` (all formats + edge cases), `mapCategory` (all mappings, case-insensitive matching)                                                                                                                       |
-| `income.test.ts`     | TSP math (rates, rounding, fallback), total income aggregation, edge cases                                                                                                                                            |
-| `brs-calc.test.ts`   | BRS pension and TSP projections, DoD match ladder, High-3 vs BRS comparison                                                                                                                                           |
-| `config.test.ts`     | Structural integrity — no duplicate keys, all color maps complete, contribution limits year-over-year, profile presets, field option groups                                                                           |
-| `bill-match.test.ts` | Keyword extraction, description matching, amount tolerance ($2 absolute / 10% relative), `autoMatchBills` with in-memory SQLite — match/no-match, biweekly skip, idempotency, multi-month, multi-bill, user isolation |
+| File                      | What it covers                                                                                                                                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pay-tables.test.ts`      | `getBasePay`, `getBAS`, `getBAH`, `getRankTitle` — pinned to exact 2026 DoD values for all grades and installations                                                                                                   |
+| `les-parser.test.ts`      | Field extraction, date parsing, TSP rate derivation, partial LES, CRLF handling, warning generation                                                                                                                   |
+| `utils.test.ts`           | Month navigation, date comparisons, currency formatting, projected spend                                                                                                                                              |
+| `csv-utils.test.ts`       | `parseDate` (all formats + edge cases), `mapCategory` (all mappings, case-insensitive matching)                                                                                                                       |
+| `income.test.ts`          | TSP math (rates, rounding, fallback), total income aggregation, edge cases                                                                                                                                            |
+| `brs-calc.test.ts`        | BRS pension and TSP projections, DoD match ladder, High-3 vs BRS comparison                                                                                                                                           |
+| `config.test.ts`          | Structural integrity — no duplicate keys, all color maps complete, contribution limits year-over-year, profile presets, field option groups                                                                           |
+| `bill-match.test.ts`      | Keyword extraction, description matching, amount tolerance ($2 absolute / 10% relative), `autoMatchBills` with in-memory SQLite — match/no-match, biweekly skip, idempotency, multi-month, multi-bill, user isolation |
+| `financials.test.ts`      | Canonical savings rate formula — all input combinations including zero income, overspend, TSP-only, and typical military paycheck scenarios                                                                            |
+| `categorization.test.ts`  | `categorizeTransaction` priority chain (rules → explicit → investment keywords → CSV map → default); `detectAccountId` unambiguous-match and conflict behavior                                                        |
+| `queries.test.ts`         | All shared DB query helpers — return shapes, zero-result handling, and correct SQL branching via lightweight DB mocks                                                                                                  |
+| `debt-match.test.ts`      | Debt payment detection and balance application                                                                                                                                                                        |
 
 Pay table assertions are pinned to exact 2026 DoD values — if rates change in `lib/pay-tables.ts`, the tests fail immediately.
 
@@ -517,22 +528,26 @@ Pay table assertions are pinned to exact 2026 DoD values — if rates change in 
 
 ```txt
 app/
-  api/          # Next.js route handlers (one folder per resource)
-  components/   # React components
-  page.tsx      # Main app shell — tab routing and top-level state
-  layout.tsx    # Root layout with theme and auth middleware
+  api/               # Next.js route handlers (one folder per resource)
+  components/        # React components
+  page.tsx           # Main app shell — tab routing and top-level state
+  layout.tsx         # Root layout with theme and auth middleware
 lib/
-  config.ts     # All hardcoded values
-  db.ts         # SQLite setup, schema init, migrations
-  types.ts      # Shared TypeScript interfaces
-  api.ts        # Typed client-side API wrappers
-  pay-tables.ts # 2026 DoD pay table data
-  les-parser.ts # LES text parser
-  bill-match.ts # Transaction → fixed bill auto-matching
-  brs-calc.ts   # BRS / legacy retirement calculator
-  income.ts     # Monthly financial computations
-  utils.ts      # Date, currency, and formatting helpers
-  __tests__/    # Vitest test files
+  config.ts          # All hardcoded values — single source of truth
+  db.ts              # SQLite setup, schema init, migrations
+  types.ts           # Shared TypeScript interfaces
+  api.ts             # Typed client-side API wrappers (server-agnostic)
+  queries.ts         # Shared DB query helpers — one function per query pattern
+  financials.ts      # Canonical savings rate formula (computeSavingsRate)
+  categorization.ts  # Transaction categorization + account detection
+  income.ts          # Monthly income computation, yearly config lookup
+  utils.ts           # Date/month helpers, biweekly period math, formatting
+  pay-tables.ts      # 2026 DoD pay table data
+  les-parser.ts      # LES text parser
+  bill-match.ts      # Transaction → fixed bill auto-matching
+  csv-utils.ts       # CSV date parsing and category mapping
+  brs-calc.ts        # BRS / legacy retirement calculator
+  __tests__/         # Vitest test files (mirrors lib/ structure)
 ```
 
 ---

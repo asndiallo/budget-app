@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
 import { autoMatchBills } from '@/lib/bill-match';
-import { mapCategory, parseDate } from '@/lib/csv-utils';
+import { categorizeTransaction, detectAccountId } from '@/lib/categorization';
+import { parseDate } from '@/lib/csv-utils';
+import { getAccountsForDetection, getUserCategorizationRules } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { CsvRow } from '@/lib/types';
 
@@ -16,30 +18,8 @@ export const POST = withAuth(async (req, { userId, db }) => {
     source: string;
   };
 
-  const userRules = db
-    .prepare('SELECT keyword, category FROM categorization_rules WHERE user_id = ?')
-    .all(userId) as { keyword: string; category: string }[];
-
-  function applyCategory(description: string, csvCategory: string): string {
-    const lower = description.toLowerCase();
-    for (const rule of userRules) {
-      if (lower.includes(rule.keyword)) return rule.category;
-    }
-    return mapCategory(csvCategory);
-  }
-
-  // Load user's financial accounts for institution-based auto-detection
-  const userAccounts = db
-    .prepare(
-      "SELECT id, institution FROM financial_accounts WHERE user_id = ? AND active = 1 AND institution != ''",
-    )
-    .all(userId) as { id: number; institution: string }[];
-
-  function detectAccount(description: string): number | null {
-    const lower = description.toLowerCase();
-    const matches = userAccounts.filter((a) => lower.includes(a.institution.toLowerCase()));
-    return matches.length === 1 ? matches[0].id : null;
-  }
+  const userRules = getUserCategorizationRules(db, userId);
+  const userAccounts = getAccountsForDetection(db, userId);
 
   const importId = crypto.randomUUID();
   const insert = db.prepare(
@@ -59,12 +39,12 @@ export const POST = withAuth(async (req, { userId, db }) => {
         userId,
         row.description,
         Math.abs(row.amount),
-        applyCategory(row.description, row.category),
+        categorizeTransaction(row.description, { csvCategory: row.category, rules: userRules }),
         month,
         source || 'Unknown',
         date,
         importId,
-        detectAccount(row.description),
+        detectAccountId(row.description, userAccounts),
       );
       if (result.changes > 0) n++;
     }
