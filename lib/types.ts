@@ -83,6 +83,12 @@ export interface Transaction {
   date?: string | null;
   notes?: string | null;
   account_id?: number | null;
+  /**
+   * IRS tax year override. Null = derive from month (YYYY portion).
+   * Set explicitly when a contribution was made in one calendar year
+   * but applies to a prior tax year (e.g. Jan 2026 → tax_year 2025).
+   */
+  tax_year?: number | null;
 }
 
 // ── Financial accounts ────────────────────────────────────────────────────────
@@ -241,7 +247,7 @@ export interface TaxYearSummary {
   /** federalTaxWithheld / estimatedTaxableIncome (0 when taxableIncome ≤ 0) */
   effectiveFederalRate: number;
   // ── Post-tax savings ──────────────────────────────────────────────────────
-  /** Roth TSP contributions (same as rothTspContributions — shown here for the post-tax savings section). */
+  /** Roth IRA contributions for the tax year (from linked IRA transactions, falling back to fixed expenses, then income_config). */
   rothIraContributions: number;
   totalPostTaxSavings: number;
 }

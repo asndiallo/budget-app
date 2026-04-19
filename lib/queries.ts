@@ -180,6 +180,39 @@ export function getAccountsForDetection(
     .all(userId) as { id: number; institution: string }[];
 }
 
+// ── IRA contributions ─────────────────────────────────────────────────────────
+
+/**
+ * Total IRA contributions attributed to a given tax year, drawn from transactions
+ * linked to roth_ira or trad_ira financial accounts.
+ *
+ * Uses `COALESCE(tax_year, year-from-month)` so a January 2026 transaction
+ * with `tax_year = 2025` is counted under 2025, not 2026.
+ *
+ * @param investmentCategory  The INVESTMENT_CATEGORY constant — passed in to avoid
+ *                            a circular import between queries.ts and config.ts.
+ */
+export function getIraContributionsByTaxYear(
+  db: Db,
+  userId: string,
+  year: number,
+  investmentCategory: string,
+): number {
+  return (
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(t.amount), 0) AS total
+         FROM transactions t
+         JOIN financial_accounts fa ON fa.id = t.account_id AND fa.user_id = t.user_id
+         WHERE t.user_id = ?
+           AND t.category = ?
+           AND COALESCE(t.tax_year, CAST(substr(t.month, 1, 4) AS INTEGER)) = ?
+           AND fa.type IN ('roth_ira', 'trad_ira')`,
+      )
+      .get(userId, investmentCategory, year) as { total: number }
+  ).total;
+}
+
 // ── Categorization rules ──────────────────────────────────────────────────────
 
 /** User-defined keyword → category rules, applied during categorization. */

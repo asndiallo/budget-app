@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { dodMatchRate } from '@/lib/brs-calc';
 import { CONTRIBUTION_LIMITS, INVESTMENT_CATEGORY } from '@/lib/config';
 import { buildYearlyConfigLookup } from '@/lib/income';
-import { getJoinedAt } from '@/lib/queries';
+import { getIraContributionsByTaxYear, getJoinedAt } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import { countBiweeklyPeriods } from '@/lib/utils';
 
@@ -90,20 +90,13 @@ export const GET = withAuth(async (req, { userId, db }) => {
   }
 
   // ── Roth/Traditional IRA from transactions linked to a roth_ira/trad_ira account ──
-  // Preferred over config/expense estimates when present.
-  const { iraFromTxs: _iraFromTxs } = db
-    .prepare(
-      `SELECT COALESCE(SUM(t.amount), 0) AS iraFromTxs
-       FROM transactions t
-       JOIN financial_accounts fa ON fa.id = t.account_id AND fa.user_id = t.user_id
-       WHERE t.user_id = ? AND t.category = ? AND t.month LIKE ?
-         AND fa.type IN ('roth_ira', 'trad_ira')`,
-    )
-    .get(userId, INVESTMENT_CATEGORY, `${year}-%`) as { iraFromTxs: number };
+  // Preferred over config/expense estimates. Uses tax_year override so prior-year
+  // contributions (e.g. Jan 2026 → tax_year 2025) are attributed correctly.
+  const iraFromTxs = getIraContributionsByTaxYear(db, userId, year, INVESTMENT_CATEGORY);
 
   // Prefer actual transaction data; fall back to configured estimates
-  const iraYtd = _iraFromTxs > 0 ? _iraFromTxs : Math.max(iraFromConfig, iraFromExpenses);
-  const hasData = hasConfigData || iraExpenses.length > 0 || _iraFromTxs > 0;
+  const iraYtd = iraFromTxs > 0 ? iraFromTxs : Math.max(iraFromConfig, iraFromExpenses);
+  const hasData = hasConfigData || iraExpenses.length > 0 || iraFromTxs > 0;
 
   return NextResponse.json({
     year,

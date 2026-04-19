@@ -243,6 +243,11 @@ function migrateSchema(db: Database.Database) {
   if (!txCols.some((c) => c.name === 'account_id')) {
     db.exec('ALTER TABLE transactions ADD COLUMN account_id INTEGER');
   }
+  // tax_year: explicit IRS tax year override (null = derive from month).
+  // Allows a Jan 2026 IRA contribution to count toward 2025 limits.
+  if (!txCols.some((c) => c.name === 'tax_year')) {
+    db.exec('ALTER TABLE transactions ADD COLUMN tax_year INTEGER');
+  }
 
   const cbCols = db.prepare('PRAGMA table_info(category_budgets)').all() as {
     name: string;

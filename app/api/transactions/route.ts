@@ -86,10 +86,14 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
     notes ?? null,
   ];
 
-  // account_id: allow explicit null to clear the link
+  // account_id / tax_year: allow explicit null to clear the value
   if ('account_id' in body) {
     sets.push('account_id = ?');
     vals.push(body.account_id ?? null);
+  }
+  if ('tax_year' in body) {
+    sets.push('tax_year = ?');
+    vals.push(body.tax_year ?? null);
   }
 
   db.prepare(`UPDATE transactions SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(

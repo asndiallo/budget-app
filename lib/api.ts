@@ -103,6 +103,7 @@ export const api = {
       id: number,
       data: Partial<Pick<Transaction, 'description' | 'amount' | 'category' | 'notes'>> & {
         account_id?: number | null;
+        tax_year?: number | null;
       },
     ) => send('PATCH', '/api/transactions', { id, ...data }).then(asJson<{ ok: boolean }>),
     remove: (id: number) =>

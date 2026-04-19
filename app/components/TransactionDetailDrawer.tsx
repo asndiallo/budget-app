@@ -3,13 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
-import {
-  ACCOUNT_TYPE_LABELS,
-  BTN_BLUE_CLS,
-  CAT_COLORS,
-  CATEGORIES,
-  INVESTMENT_CATEGORY,
-} from '@/lib/config';
+import { ACCOUNT_TYPE_LABELS, BTN_BLUE_CLS, CATEGORIES, INVESTMENT_CATEGORY } from '@/lib/config';
 import type { FinancialAccount, Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -29,6 +23,7 @@ export default function TransactionDetailDrawer({
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [accountId, setAccountId] = useState<number | null>(null);
+  const [taxYear, setTaxYear] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,6 +31,7 @@ export default function TransactionDetailDrawer({
       setCategory(transaction.category);
       setNotes(transaction.notes ?? '');
       setAccountId(transaction.account_id ?? null);
+      setTaxYear(transaction.tax_year ?? null);
     }
   }, [transaction]);
 
@@ -43,6 +39,8 @@ export default function TransactionDetailDrawer({
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const isInvestment = category === INVESTMENT_CATEGORY;
+  const isIraAccount = selectedAccount?.type === 'roth_ira' || selectedAccount?.type === 'trad_ira';
+  const txYear = parseInt(transaction?.month?.slice(0, 4) ?? '0');
 
   async function save() {
     if (!transaction) return;
@@ -51,6 +49,7 @@ export default function TransactionDetailDrawer({
       category,
       notes: notes.trim() || null,
       account_id: accountId,
+      tax_year: taxYear,
     });
     setSaving(false);
     onSaved();
@@ -158,6 +157,31 @@ export default function TransactionDetailDrawer({
               </select>
             )}
           </div>
+
+          {/* Tax year — only for Investment transactions linked to an IRA account */}
+          {isInvestment && isIraAccount && txYear > 0 && (
+            <div>
+              <label className="text-text-4 mb-1.5 block text-[11px] font-semibold tracking-widest uppercase">
+                Tax year
+              </label>
+              <select
+                value={taxYear ?? txYear}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  setTaxYear(v === txYear ? null : v);
+                }}
+                className="bg-surface border-border text-text w-full cursor-pointer rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value={txYear}>{txYear} (transaction year)</option>
+                <option value={txYear - 1}>{txYear - 1} (prior year)</option>
+              </select>
+              {taxYear !== null && taxYear !== txYear && (
+                <p className="text-text-4 mt-1.5 text-[11px]">
+                  This contribution will count toward your {taxYear} IRS limits.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div>

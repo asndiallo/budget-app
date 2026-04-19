@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 
-import { INCOME_FIELDS, SPECIAL_PAY_FIELDS } from '@/lib/config';
+import { INCOME_FIELDS, INVESTMENT_CATEGORY, SPECIAL_PAY_FIELDS } from '@/lib/config';
 import { buildYearlyConfigLookup } from '@/lib/income';
+import { getIraContributionsByTaxYear } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { TaxYearSummary } from '@/lib/types';
 import { countBiweeklyPeriods } from '@/lib/utils';
@@ -101,8 +102,14 @@ export const GET = withAuth(async (req, { userId, db }) => {
       iraFromExpenses += exp.amount * monthsElapsed;
     }
   }
-  // Use the higher of income_config vs fixed expenses to avoid double-counting
-  rothIraContributions = Math.max(rothIraContributions, iraFromExpenses);
+  // ── Roth/Traditional IRA from linked transactions (most accurate source) ───────
+  // Uses tax_year override so prior-year contributions (e.g. Jan 2026 → tax_year 2025)
+  // are attributed to the correct year without duplicating the transaction.
+  const iraFromTxs = getIraContributionsByTaxYear(db, userId, year, INVESTMENT_CATEGORY);
+
+  // Priority: actual linked transactions > max(income_config, fixed expenses)
+  const finalRothIra =
+    iraFromTxs > 0 ? iraFromTxs : Math.max(rothIraContributions, iraFromExpenses);
 
   // Pre-tax deductions: SGLI + AFRH + meal only (Roth TSP is post-tax, not included)
   const totalPreTaxDeductions = sgli + afrh + mealDeductions;
@@ -121,7 +128,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
 
   const totalTaxesWithheld = federalTaxWithheld + ficaSocialSecurity + ficaMedicare;
   const grossTotal = grossMilitaryPay + allowances + specialPays;
-  const totalPostTaxSavings = Math.round(rothTspContributions + rothIraContributions);
+  const totalPostTaxSavings = Math.round(rothTspContributions + finalRothIra);
 
   // incomeKeys used only for type-checking — ensure unused-variable linter is satisfied
   void incomeKeys;
@@ -146,7 +153,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
     totalTaxesWithheld: Math.round(totalTaxesWithheld),
     estimatedTaxableIncome: Math.round(estimatedTaxableIncome),
     effectiveFederalRate,
-    rothIraContributions: Math.round(rothIraContributions),
+    rothIraContributions: Math.round(finalRothIra),
     totalPostTaxSavings,
   });
 });
