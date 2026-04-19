@@ -8,6 +8,7 @@ import {
   TSP_CONFIG,
 } from '@/lib/config';
 import type {
+  Allotment,
   Asset,
   Debt,
   FixedExpense,
@@ -32,17 +33,19 @@ import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BrsPanel from './components/BrsPanel';
 import BudgetBar from './components/BudgetBar';
-import BudgetSuggestionsPanel from './components/BudgetSuggestionsPanel';
+import BudgetActualPanel from './components/BudgetActualPanel';
 import CashFlowCalendar from './components/CashFlowCalendar';
 import DebtsPanel from './components/DebtsPanel';
 import FixedExpensesPanel from './components/FixedExpensesPanel';
 import GiBillPanel from './components/GiBillPanel';
 import GoalsPanel from './components/GoalsPanel';
 import HealthScoreCard from './components/HealthScoreCard';
+import ContributionLimitsPanel from './components/ContributionLimitsPanel';
 import IncomePanel from './components/IncomePanel';
 import LeavePanel from './components/LeavePanel';
 import MetricCard from './components/MetricCard';
 import NetWorthCard from './components/NetWorthCard';
+import NetWorthTrend from './components/NetWorthTrend';
 import OverviewPanel from './components/OverviewPanel';
 import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
@@ -54,6 +57,7 @@ import SubNav from './components/SubNav';
 import TransactionsPanel from './components/TransactionsPanel';
 import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
+import TaxYearSummaryPanel from './components/TaxYearSummaryPanel';
 import { api } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
 
@@ -97,6 +101,7 @@ function calcSummary(
   joinedAt?: string,
   /** "YYYY-MM" month being computed */
   month?: string,
+  allotmentList?: Allotment[],
 ): Summary {
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
@@ -138,7 +143,17 @@ function calcSummary(
       (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
       0,
     );
-  const net = totalIncome - deductions - committed - spending;
+  // Active allotments: fixed deductions from gross pay (like TSP, not spending)
+  const allotments =
+    month && allotmentList
+      ? allotmentList
+          .filter(
+            (a) =>
+              a.start_date <= month && (!a.end_date || a.end_date >= month),
+          )
+          .reduce((s, a) => s + a.amount, 0)
+      : 0;
+  const net = totalIncome - deductions - allotments - committed - spending;
   const savingsRate =
     totalIncome > 0
       ? Math.round(
@@ -151,6 +166,7 @@ function calcSummary(
     investmentFixed,
     committed,
     spending,
+    allotments,
     net,
     savingsRate,
   };
@@ -194,11 +210,12 @@ export default function Home() {
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections'>(
+  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections' | 'tax'>(
     'pay',
   );
   const [assetsSub, setAssetsSub] = useState<'assets' | 'debts'>('assets');
   const [goalsSub, setGoalsSub] = useState<'goals' | 'budget'>('goals');
+  const [nwVersion, setNwVersion] = useState(0);
   const restoreRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -312,11 +329,12 @@ export default function Home() {
       txs: Transaction[],
       debts: Debt[],
       entries: IncomeEntry[],
+      allotmentList: Allotment[],
       pIncome: IncomeConfig,
       pTxs: Transaction[],
       pEntries: IncomeEntry[];
     try {
-      [income, fixed, txs, debts, entries, pIncome, pTxs, pEntries] =
+      [income, fixed, txs, debts, entries, allotmentList, pIncome, pTxs, pEntries] =
         await Promise.all([
           api.income.get(month).then((d) => {
             setCurrentIncome(d);
@@ -326,6 +344,7 @@ export default function Home() {
           api.transactions.list(month),
           api.debts.list(),
           api.incomeEntries.list(month),
+          api.allotments.list(),
           api.income.get(pm),
           api.transactions.list(pm),
           api.incomeEntries.list(pm),
@@ -335,10 +354,10 @@ export default function Home() {
     }
     const joinedAt = user?.joined_at || undefined;
     setSummary(
-      calcSummary(income, fixed, txs, debts, entries, joinedAt, month),
+      calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList),
     );
     setPrevSummary(
-      calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm),
+      calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList),
     );
     api.streak.get().then((r) => setStreak(r.streak));
     api.assets.list().then(setAssets);
@@ -607,6 +626,7 @@ export default function Home() {
                     { key: 'pay', label: 'Pay' },
                     { key: 'bills', label: 'Fixed bills' },
                     { key: 'projections', label: 'Projections' },
+                    { key: 'tax', label: 'Tax' },
                   ]}
                   active={incomeSub}
                   onChange={(k) => setIncomeSub(k as typeof incomeSub)}
@@ -614,6 +634,7 @@ export default function Home() {
                 {incomeSub === 'pay' && (
                   <div className="space-y-8">
                     <IncomePanel month={month} onUpdate={fetchSummary} />
+                    <ContributionLimitsPanel year={parseInt(month.slice(0, 4))} />
                     <ReceivablesPanel month={month} onUpdate={fetchSummary} />
                     <LeavePanel
                       basePay={currentIncome?.base_pay ?? 0}
@@ -634,6 +655,9 @@ export default function Home() {
                     <SdpPanel />
                     <GiBillPanel yearsOfService={user?.years_of_service ?? 0} />
                   </div>
+                )}
+                {incomeSub === 'tax' && (
+                  <TaxYearSummaryPanel year={parseInt(month.slice(0, 4))} />
                 )}
               </div>
             )}
@@ -656,7 +680,8 @@ export default function Home() {
                 />
                 {goalsSub === 'goals' && <GoalsPanel />}
                 {goalsSub === 'budget' && (
-                  <BudgetSuggestionsPanel
+                  <BudgetActualPanel
+                    month={month}
                     monthlyIncome={summary?.totalIncome}
                   />
                 )}
@@ -674,7 +699,8 @@ export default function Home() {
             )}
 
             {tab === 'assets' && (
-              <div>
+              <div className="space-y-4">
+                <NetWorthTrend onUpdate={nwVersion} />
                 <SubNav
                   options={[
                     { key: 'assets', label: 'Assets' },
@@ -684,10 +710,10 @@ export default function Home() {
                   onChange={(k) => setAssetsSub(k as typeof assetsSub)}
                 />
                 {assetsSub === 'assets' && (
-                  <AssetsPanel onUpdate={fetchSummary} />
+                  <AssetsPanel onUpdate={() => { fetchSummary(); setNwVersion((v) => v + 1); }} />
                 )}
                 {assetsSub === 'debts' && (
-                  <DebtsPanel onUpdate={fetchSummary} />
+                  <DebtsPanel onUpdate={() => { fetchSummary(); setNwVersion((v) => v + 1); }} />
                 )}
               </div>
             )}

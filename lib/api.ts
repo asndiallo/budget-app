@@ -2,7 +2,9 @@
 // Only call these functions from 'use client' components.
 
 import type {
+  Allotment,
   Asset,
+  TaxYearSummary,
   AssetCategory,
   BillPayment,
   CategoryBudget,
@@ -15,8 +17,11 @@ import type {
   HealthScore,
   IncomeConfig,
   IncomeEntry,
+  IncomeProfile,
   PaymentSource,
   Receivable,
+  ContributionLimits,
+  NetWorthSnapshot,
   SpendingInsights,
   Transaction,
   UserProfile,
@@ -125,7 +130,7 @@ export const api = {
       ),
     importCsv: (rows: CsvRow[], month: string, source: string) =>
       send('POST', '/api/csv-import', { rows, month, source }).then(
-        asJson<{ ok: boolean; imported: number; months: string[] }>,
+        asJson<{ ok: boolean; imported: number; months: string[]; billsMatched: number }>,
       ),
   },
 
@@ -377,5 +382,40 @@ export const api = {
       ),
     remove: (id: number) =>
       send('DELETE', '/api/receivables', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  netWorthHistory: {
+    list: () =>
+      fetch('/api/net-worth-history').then(asJson<NetWorthSnapshot[]>),
+  },
+
+  contributionLimits: {
+    get: (year: number) =>
+      fetch(`/api/contribution-limits?year=${year}`).then(asJson<ContributionLimits>),
+  },
+
+  taxYearSummary: {
+    get: (year: number) =>
+      fetch(`/api/tax-year-summary?year=${year}`).then(asJson<TaxYearSummary>),
+  },
+
+  allotments: {
+    list: () => fetch('/api/allotments').then(asJson<Allotment[]>),
+    create: (data: Omit<Allotment, 'id' | 'created_at'>) =>
+      send('POST', '/api/allotments', data).then(asJson<{ id: number }>),
+    update: (id: number, data: Partial<Omit<Allotment, 'id' | 'created_at'>>) =>
+      send('PATCH', '/api/allotments', { id, ...data }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) =>
+      send('DELETE', '/api/allotments', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  incomeProfiles: {
+    list: () => fetch('/api/income-profiles').then(asJson<IncomeProfile[]>),
+    create: (data: Omit<IncomeProfile, 'id' | 'created_at'>) =>
+      send('POST', '/api/income-profiles', data).then(asJson<{ id: number }>),
+    update: (id: number, data: Partial<Omit<IncomeProfile, 'id' | 'created_at'>>) =>
+      send('PATCH', '/api/income-profiles', { id, ...data }).then(asJson<{ ok: boolean }>),
+    remove: (id: number) =>
+      send('DELETE', '/api/income-profiles', { id }).then(asJson<{ ok: boolean }>),
   },
 };
