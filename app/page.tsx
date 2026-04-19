@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
@@ -21,7 +21,6 @@ import type {
   IncomeConfig,
   IncomeEntry,
   Summary,
-  Transaction,
   UserProfile,
 } from '@/lib/types';
 import { currentMonth, formatCurrency, nextMonth, prevMonth } from '@/lib/utils';
@@ -57,15 +56,16 @@ import TransactionsPanel from './components/TransactionsPanel';
 import UserNav from './components/UserNav';
 import YtdPanel from './components/YtdPanel';
 
-type Tab =
-  | 'income'
-  | 'transactions'
-  | 'goals'
-  | 'analytics'
-  | 'assets'
-  | 'calendar'
-  | 'overview'
-  | 'pcs';
+// ── Tab / sub-tab types ───────────────────────────────────────────────────────
+
+type Tab = 'dashboard' | 'pay' | 'spending' | 'wealth' | 'plan';
+type PaySub = 'pay' | 'tax' | 'leave';
+type SpendingSub = 'transactions' | 'bills' | 'budget' | 'calendar';
+type WealthSub = 'net-worth' | 'goals' | 'analytics';
+type AssetsSub = 'assets' | 'debts';
+type PlanSub = 'overview' | 'projections' | 'pcs';
+
+// ── Static config ─────────────────────────────────────────────────────────────
 
 const MONTH_NAMES = [
   'Jan',
@@ -87,22 +87,29 @@ function getYearRange() {
   return Array.from({ length: 4 }, (_, i) => y - 2 + i);
 }
 
+const TABS: { key: Tab; label: string; icon: string }[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: '◉' },
+  { key: 'pay', label: 'Pay', icon: '◎' },
+  { key: 'spending', label: 'Spending', icon: '⇄' },
+  { key: 'wealth', label: 'Wealth', icon: '◈' },
+  { key: 'plan', label: 'Plan', icon: '⊳' },
+];
+
+// ── Summary calc ──────────────────────────────────────────────────────────────
+
 function calcSummary(
   income: IncomeConfig,
   fixed: FixedExpense[],
   txs: { amount: number }[],
   debts: Debt[],
   incomeEntries: IncomeEntry[],
-  /** "YYYY-MM" service start — military income is $0 for months before this */
   joinedAt?: string,
-  /** "YYYY-MM" month being computed */
   month?: string,
   allotmentList?: Allotment[],
 ): Summary {
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
   const tsp = Math.round(base * tspRate);
-  // Suppress military income for months before the service start date.
   const beforeService = joinedAt && month ? month < joinedAt : false;
   const militaryIncome = beforeService
     ? 0
@@ -122,7 +129,6 @@ function calcSummary(
     .reduce((s, d) => s + d.monthly_payment, 0);
   const committed = fixedExpenses + debtPayments;
   const spending = txs.reduce((s, t) => s + t.amount, 0);
-  // When deployed to a combat zone, federal income tax is excluded for enlisted.
   const combatZone = !!income.combat_zone;
   const deductions =
     tsp +
@@ -130,7 +136,6 @@ function calcSummary(
       (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
       0,
     );
-  // Active allotments: fixed deductions from gross pay (like TSP, not spending)
   const allotments =
     month && allotmentList
       ? allotmentList
@@ -142,44 +147,72 @@ function calcSummary(
     totalIncome > 0
       ? Math.round(((tsp + investmentFixed + Math.max(0, net)) / totalIncome) * 100)
       : 0;
-  return {
-    totalIncome,
-    tsp,
-    investmentFixed,
-    committed,
-    spending,
-    allotments,
-    net,
-    savingsRate,
-  };
+  return { totalIncome, tsp, investmentFixed, committed, spending, allotments, net, savingsRate };
 }
 
-const TAB_ICONS: Record<Tab, string> = {
-  income: '◎',
-  transactions: '⇄',
-  goals: '◈',
-  analytics: '⊞',
-  assets: '◇',
-  calendar: '▦',
-  overview: '◉',
-  pcs: '⊳',
-};
+// ── Month picker (shared inline component) ────────────────────────────────────
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'income', label: 'Income' },
-  { key: 'transactions', label: APP_CONFIG.transactionsTabLabel },
-  { key: 'goals', label: 'Goals' },
-  { key: 'analytics', label: 'Analytics' },
-  { key: 'assets', label: 'Net Worth' },
-  { key: 'calendar', label: 'Calendar' },
-  { key: 'overview', label: 'Overview' },
-  { key: 'pcs', label: 'PCS' },
-];
+function MonthPicker({ month, onChange }: { month: string; onChange: (m: string) => void }) {
+  const yearRange = getYearRange();
+  return (
+    <div className="flex items-center gap-0.5">
+      {month !== currentMonth() && (
+        <button
+          onClick={() => onChange(currentMonth())}
+          className="mr-1 text-[10px] font-medium text-[#4a8cff] transition-colors hover:text-[#4a8cff]/70"
+          title="Jump to current month"
+        >
+          Today
+        </button>
+      )}
+      <button
+        onClick={() => onChange(prevMonth(month))}
+        className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
+      >
+        ‹
+      </button>
+      <div className="bg-surface-raised border-border flex items-center rounded-lg border px-1">
+        <select
+          value={month.slice(5)}
+          onChange={(e) => onChange(`${month.slice(0, 4)}-${e.target.value}`)}
+          className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
+        >
+          {MONTH_NAMES.map((name, i) => {
+            const val = String(i + 1).padStart(2, '0');
+            return (
+              <option key={val} value={val}>
+                {name}
+              </option>
+            );
+          })}
+        </select>
+        <select
+          value={month.slice(0, 4)}
+          onChange={(e) => onChange(`${e.target.value}-${month.slice(5)}`)}
+          className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
+        >
+          {yearRange.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        onClick={() => onChange(nextMonth(month))}
+        className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>('income');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [month, setMonth] = useState('');
-  const [yearRange, setYearRange] = useState<number[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [prevSummary, setPrevSummary] = useState<Summary | null>(null);
   const [currentIncome, setCurrentIncome] = useState<IncomeConfig | null>(null);
@@ -192,29 +225,27 @@ export default function Home() {
   const [drillCategory, setDrillCategory] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [incomeSub, setIncomeSub] = useState<'pay' | 'bills' | 'projections' | 'tax'>('pay');
-  const [assetsSub, setAssetsSub] = useState<'assets' | 'debts'>('assets');
-  const [goalsSub, setGoalsSub] = useState<'goals' | 'budget'>('goals');
   const [nwVersion, setNwVersion] = useState(0);
-  const restoreRef = useRef<HTMLInputElement>(null);
+
+  // Sub-tab state
+  const [paySub, setPaySub] = useState<PaySub>('pay');
+  const [spendingSub, setSpendingSub] = useState<SpendingSub>('transactions');
+  const [wealthSub, setWealthSub] = useState<WealthSub>('net-worth');
+  const [assetsSub, setAssetsSub] = useState<AssetsSub>('assets');
+  const [planSub, setPlanSub] = useState<PlanSub>('overview');
 
   useEffect(() => {
     setMonth(currentMonth());
-    setYearRange(getYearRange());
     const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
     setTheme(saved ?? 'system');
-    authClient
-      .getSession()
-      .then(({ data }) => {
-        if (data?.user?.id) setUser(data.user as unknown as UserProfile);
-      })
-      .catch(() => {});
+    void authClient.getSession().then(({ data }) => {
+      if (data?.user?.id) setUser(data.user as unknown as UserProfile);
+    });
   }, []);
 
   // Keyboard navigation
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      // Always allow Escape to close shortcuts overlay
       if (e.key === 'Escape') {
         setShowShortcuts(false);
         return;
@@ -227,10 +258,10 @@ export default function Home() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
 
-      // / — focus search input in transactions panel
       if (e.key === '/' && !isInput) {
         e.preventDefault();
-        setTab('transactions');
+        setTab('spending');
+        setSpendingSub('transactions');
         setTimeout(() => {
           (document.querySelector('[data-search-input]') as HTMLInputElement)?.focus();
         }, 50);
@@ -239,17 +270,58 @@ export default function Home() {
 
       if (isInput) return;
 
-      // ← → to move between months
       if (e.key === 'ArrowLeft') setMonth((m) => (m ? prevMonth(m) : m));
       if (e.key === 'ArrowRight') setMonth((m) => (m ? nextMonth(m) : m));
 
-      // 1–7 to switch tabs
+      // 1–5 switch tabs
       const tabIndex = parseInt(e.key) - 1;
       if (tabIndex >= 0 && tabIndex < TABS.length) setTab(TABS[tabIndex].key);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+
+  const fetchSummary = useCallback(async () => {
+    if (!month) return;
+    const pm = prevMonth(month);
+    try {
+      const [income, fixed, txs, debts, entries, allotmentList, pIncome, pTxs, pEntries] =
+        await Promise.all([
+          api.income.get(month).then((d) => {
+            setCurrentIncome(d);
+            return d;
+          }),
+          api.fixedExpenses.list(),
+          api.transactions.list(month),
+          api.debts.list(),
+          api.incomeEntries.list(month),
+          api.allotments.list(),
+          api.income.get(pm),
+          api.transactions.list(pm),
+          api.incomeEntries.list(pm),
+        ]);
+      const joinedAt = user?.joined_at || undefined;
+      setSummary(calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList));
+      setPrevSummary(
+        calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList),
+      );
+      void api.streak.get().then((r) => setStreak(r.streak));
+      void api.assets.list().then(setAssets);
+      void api.debts.list().then(setDebts);
+      void api.goals.list().then(setGoals);
+      void api.healthScore.get().then(setHealthScore);
+    } catch {
+      /* network error — silently ignore */
+    }
+  }, [month, user]);
+
+  useEffect(() => {
+    void fetchSummary();
+  }, [fetchSummary]);
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
 
   async function handleExport() {
     const res = await fetch(api.backup.exportUrl);
@@ -267,20 +339,20 @@ export default function Home() {
   async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const data = JSON.parse(await file.text());
+    const data = JSON.parse(await file.text()) as unknown;
     const res = await api.backup.restore(data);
     if (res.ok) {
       alert(`Restored ${res.restored ?? 0} records.`);
-      fetchSummary();
+      void fetchSummary();
     } else {
       alert(`Restore failed: ${res.error}`);
     }
-    if (restoreRef.current) restoreRef.current.value = '';
   }
 
   function handleCategoryDrill(category: string) {
     setDrillCategory(category);
-    setTab('transactions');
+    setTab('spending');
+    setSpendingSub('transactions');
   }
 
   function cycleTheme() {
@@ -295,50 +367,7 @@ export default function Home() {
     });
   }
 
-  const fetchSummary = useCallback(async () => {
-    if (!month) return;
-    const pm = prevMonth(month);
-    let income: IncomeConfig,
-      fixed: FixedExpense[],
-      txs: Transaction[],
-      debts: Debt[],
-      entries: IncomeEntry[],
-      allotmentList: Allotment[],
-      pIncome: IncomeConfig,
-      pTxs: Transaction[],
-      pEntries: IncomeEntry[];
-    try {
-      [income, fixed, txs, debts, entries, allotmentList, pIncome, pTxs, pEntries] =
-        await Promise.all([
-          api.income.get(month).then((d) => {
-            setCurrentIncome(d);
-            return d;
-          }),
-          api.fixedExpenses.list(),
-          api.transactions.list(month),
-          api.debts.list(),
-          api.incomeEntries.list(month),
-          api.allotments.list(),
-          api.income.get(pm),
-          api.transactions.list(pm),
-          api.incomeEntries.list(pm),
-        ]);
-    } catch {
-      return;
-    }
-    const joinedAt = user?.joined_at || undefined;
-    setSummary(calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList));
-    setPrevSummary(calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList));
-    api.streak.get().then((r) => setStreak(r.streak));
-    api.assets.list().then(setAssets);
-    api.debts.list().then(setDebts);
-    api.goals.list().then(setGoals);
-    api.healthScore.get().then(setHealthScore);
-  }, [month, user]);
-
-  useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="bg-bg min-h-screen">
@@ -349,9 +378,7 @@ export default function Home() {
           <div className="flex shrink-0 items-center gap-2.5">
             <div
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
-              style={{
-                background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)',
-              }}
+              style={{ background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)' }}
             >
               B
             </div>
@@ -368,218 +395,180 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-1">
-            {user && (
-              <UserNav
-                user={user}
-                onProfileUpdate={() =>
-                  authClient
-                    .getSession()
-                    .then(({ data }) => {
-                      if (data?.user?.id) setUser(data.user as unknown as UserProfile);
-                    })
-                    .catch(() => {})
-                }
-              />
-            )}
-            <div className="bg-border mx-0.5 h-4 w-px" />
-            <button
-              onClick={handleExport}
-              title="Export backup (JSON)"
-              className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 items-center justify-center rounded-lg px-2.5 text-xs transition-all"
-            >
-              Export
-            </button>
-            <label
-              title="Restore from backup"
-              className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 cursor-pointer items-center justify-center rounded-lg px-2.5 text-xs transition-all"
-            >
-              Restore
-              <input
-                ref={restoreRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleRestore}
-              />
-            </label>
-            <div className="bg-border mx-0.5 h-4 w-px" />
+          {/* Right controls */}
+          <div className="flex items-center gap-2">
             <button
               onClick={cycleTheme}
-              title={`Theme: ${theme} — click to cycle (system → light → dark)`}
+              title={`Theme: ${theme} — click to cycle`}
               className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all"
             >
               {theme === 'light' ? '☀' : theme === 'dark' ? '🌙' : '◐'}
             </button>
-
-            {month && (
-              <div className="ml-1 flex items-center gap-0.5">
-                {month !== currentMonth() && (
-                  <button
-                    onClick={() => setMonth(currentMonth())}
-                    className="mr-1 text-[10px] font-medium text-[#4a8cff] transition-colors hover:text-[#4a8cff]/70"
-                    title="Jump to current month"
-                  >
-                    Today
-                  </button>
-                )}
-                <button
-                  onClick={() => setMonth(prevMonth(month))}
-                  className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
-                >
-                  ‹
-                </button>
-                <div className="bg-surface-raised border-border flex items-center rounded-lg border px-1">
-                  <select
-                    value={month.slice(5)}
-                    onChange={(e) => setMonth(`${month.slice(0, 4)}-${e.target.value}`)}
-                    className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
-                  >
-                    {MONTH_NAMES.map((name, i) => {
-                      const val = String(i + 1).padStart(2, '0');
-                      return (
-                        <option key={val} value={val}>
-                          {name}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={month.slice(0, 4)}
-                    onChange={(e) => setMonth(`${e.target.value}-${month.slice(5)}`)}
-                    className="text-text cursor-pointer bg-transparent px-1 py-0.5 text-sm focus:outline-none"
-                  >
-                    {yearRange.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() => setMonth(nextMonth(month))}
-                  className="text-text-3 hover:text-text-2 hover:bg-surface-raised flex h-7 w-7 items-center justify-center rounded-lg text-base leading-none transition-all"
-                >
-                  ›
-                </button>
-              </div>
+            {user && (
+              <UserNav
+                user={user}
+                onExport={handleExport}
+                onRestore={handleRestore}
+                onProfileUpdate={() =>
+                  void authClient.getSession().then(({ data }) => {
+                    if (data?.user?.id) setUser(data.user as unknown as UserProfile);
+                  })
+                }
+              />
             )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-6 py-6">
-        {/* ── Summary metrics ── */}
-        {summary && (
-          <div className="animate-fade-in-up space-y-3">
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-              <MetricCard
-                label="Total income"
-                value={formatCurrency(summary.totalIncome)}
-                delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
-              />
-              <MetricCard
-                label="Invested"
-                value={formatCurrency(summary.tsp + summary.investmentFixed)}
-                accent="blue"
-                delta={delta(
-                  summary.tsp + summary.investmentFixed,
-                  prevSummary ? prevSummary.tsp + prevSummary.investmentFixed : undefined,
-                  true,
-                )}
-              />
-              <MetricCard
-                label="Committed"
-                value={formatCurrency(summary.committed)}
-                accent="amber"
-                delta={delta(summary.committed, prevSummary?.committed, null)}
-              />
-              <MetricCard
-                label={APP_CONFIG.transactionsTabLabel}
-                value={formatCurrency(summary.spending)}
-                sub={projectedSpending(month, summary.spending)}
-                accent="red"
-                delta={delta(summary.spending, prevSummary?.spending, false)}
-              />
-              <MetricCard
-                label="Net remaining"
-                value={(summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)}
-                accent={summary.net >= 0 ? 'green' : 'red'}
-                delta={delta(summary.net, prevSummary?.net, true)}
-              />
-              <MetricCard
-                label="Savings rate"
-                value={`${summary.savingsRate}%`}
-                accent={
-                  summary.savingsRate >= 20 ? 'green' : summary.savingsRate >= 10 ? 'amber' : 'red'
-                }
-                delta={delta(summary.savingsRate, prevSummary?.savingsRate, true, true)}
-              />
-            </div>
-
-            {/* Budget allocation bar */}
-            {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
-
-            {/* Net worth + Health score */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <NetWorthCard assets={assets} debts={debts} goals={goals} />
-              {healthScore && <HealthScoreCard score={healthScore} />}
-            </div>
-
-            {/* Spending streak */}
-            {streak >= 2 && <StreakBanner streak={streak} />}
-          </div>
-        )}
-
-        {/* ── Tab panel ── */}
+        {/* ── Primary tab nav ── */}
         <div className="bg-surface border-border overflow-hidden rounded-2xl border">
-          {/* Tab navigation */}
-          <div className="border-border flex border-b">
-            {TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={`relative flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-all ${
-                  tab === key
-                    ? 'text-text'
-                    : 'text-text-3 hover:text-text-2 hover:bg-surface-raised/50'
-                }`}
-              >
-                <span className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}>
-                  {TAB_ICONS[key]}
-                </span>
-                {label}
-                {tab === key && (
-                  <span
-                    className="absolute right-1/4 bottom-0 left-1/4 h-0.5 rounded-t-full"
-                    style={{
-                      background: 'linear-gradient(90deg, #4a8cff, #00d98a)',
-                    }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
+          <nav className="border-border border-b">
+            <div className="flex">
+              {TABS.map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`relative flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-all ${
+                    tab === key
+                      ? 'text-text'
+                      : 'text-text-3 hover:text-text-2 hover:bg-surface-raised/50'
+                  }`}
+                >
+                  <span className={`text-xs ${tab === key ? 'opacity-70' : 'opacity-40'}`}>
+                    {icon}
+                  </span>
+                  {label}
+                  {tab === key && (
+                    <span
+                      className="absolute right-1/4 bottom-0 left-1/4 h-0.5 rounded-t-full"
+                      style={{ background: 'linear-gradient(90deg, #4a8cff, #00d98a)' }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </nav>
 
-          {/* Panel content */}
+          {/* ── Panel content ── */}
           <div className="p-5">
-            {tab === 'income' && (
+            {/* ─ Dashboard ─ */}
+            {tab === 'dashboard' && (
+              <div className="space-y-4">
+                {/* Month picker (contextual for the metrics) */}
+                {month && (
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-text-3 text-xs font-medium tracking-widest uppercase">
+                      {new Date(month + '-02').toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </h2>
+                    <MonthPicker month={month} onChange={setMonth} />
+                  </div>
+                )}
+
+                {summary && (
+                  <>
+                    {/* Metric cards */}
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+                      <MetricCard
+                        label="Total income"
+                        value={formatCurrency(summary.totalIncome)}
+                        delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
+                      />
+                      <MetricCard
+                        label="Invested"
+                        value={formatCurrency(summary.tsp + summary.investmentFixed)}
+                        accent="blue"
+                        delta={delta(
+                          summary.tsp + summary.investmentFixed,
+                          prevSummary ? prevSummary.tsp + prevSummary.investmentFixed : undefined,
+                          true,
+                        )}
+                      />
+                      <MetricCard
+                        label="Committed"
+                        value={formatCurrency(summary.committed)}
+                        accent="amber"
+                        delta={delta(summary.committed, prevSummary?.committed, null)}
+                      />
+                      <MetricCard
+                        label={APP_CONFIG.transactionsTabLabel}
+                        value={formatCurrency(summary.spending)}
+                        sub={projectedSpending(month, summary.spending)}
+                        accent="red"
+                        delta={delta(summary.spending, prevSummary?.spending, false)}
+                      />
+                      <MetricCard
+                        label="Net remaining"
+                        value={(summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)}
+                        accent={summary.net >= 0 ? 'green' : 'red'}
+                        delta={delta(summary.net, prevSummary?.net, true)}
+                      />
+                      <MetricCard
+                        label="Savings rate"
+                        value={`${summary.savingsRate}%`}
+                        accent={
+                          summary.savingsRate >= 20
+                            ? 'green'
+                            : summary.savingsRate >= 10
+                              ? 'amber'
+                              : 'red'
+                        }
+                        delta={delta(summary.savingsRate, prevSummary?.savingsRate, true, true)}
+                      />
+                    </div>
+
+                    {/* Budget allocation bar */}
+                    {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
+
+                    {/* Net worth + Health score */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <NetWorthCard assets={assets} debts={debts} goals={goals} />
+                      {healthScore && <HealthScoreCard score={healthScore} />}
+                    </div>
+
+                    {/* Streak */}
+                    {streak >= 2 && <StreakBanner streak={streak} />}
+
+                    {/* Budget vs actual — quick view */}
+                    <div>
+                      <p className="text-text-3 mb-3 text-xs font-medium tracking-widest uppercase">
+                        Budget vs actual
+                      </p>
+                      <BudgetActualPanel month={month} monthlyIncome={summary.totalIncome} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ─ Pay ─ */}
+            {tab === 'pay' && (
               <div>
-                <SubNav
-                  options={[
-                    { key: 'pay', label: 'Pay' },
-                    { key: 'bills', label: 'Fixed bills' },
-                    { key: 'projections', label: 'Projections' },
-                    { key: 'tax', label: 'Tax' },
-                  ]}
-                  active={incomeSub}
-                  onChange={(k) => setIncomeSub(k as typeof incomeSub)}
-                />
-                {incomeSub === 'pay' && (
+                <div className="mb-4 flex items-center justify-between">
+                  <SubNav
+                    options={[
+                      { key: 'pay', label: 'Pay & deductions' },
+                      { key: 'tax', label: 'Tax summary' },
+                      { key: 'leave', label: 'Leave & receivables' },
+                    ]}
+                    active={paySub}
+                    onChange={(k) => setPaySub(k as PaySub)}
+                  />
+                  {month && <MonthPicker month={month} onChange={setMonth} />}
+                </div>
+
+                {paySub === 'pay' && (
                   <div className="space-y-8">
                     <IncomePanel month={month} onUpdate={fetchSummary} />
                     <ContributionLimitsPanel year={parseInt(month.slice(0, 4))} />
+                  </div>
+                )}
+                {paySub === 'tax' && <TaxYearSummaryPanel year={parseInt(month.slice(0, 4))} />}
+                {paySub === 'leave' && (
+                  <div className="space-y-8">
                     <ReceivablesPanel month={month} onUpdate={fetchSummary} />
                     <LeavePanel
                       basePay={currentIncome?.base_pay ?? 0}
@@ -587,13 +576,127 @@ export default function Home() {
                     />
                   </div>
                 )}
-                {incomeSub === 'bills' && (
+              </div>
+            )}
+
+            {/* ─ Spending ─ */}
+            {tab === 'spending' && (
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <SubNav
+                    options={[
+                      { key: 'transactions', label: 'Transactions' },
+                      { key: 'bills', label: 'Fixed bills' },
+                      { key: 'budget', label: 'Budget' },
+                      { key: 'calendar', label: 'Calendar' },
+                    ]}
+                    active={spendingSub}
+                    onChange={(k) => setSpendingSub(k as SpendingSub)}
+                  />
+                  {month && <MonthPicker month={month} onChange={setMonth} />}
+                </div>
+
+                {spendingSub === 'transactions' && (
+                  <TransactionsPanel
+                    month={month}
+                    onUpdate={fetchSummary}
+                    initialCategory={drillCategory}
+                  />
+                )}
+                {spendingSub === 'bills' && (
                   <div className="space-y-8">
                     <FixedExpensesPanel month={month} onUpdate={fetchSummary} />
                     <RecurringDetectionPanel onUpdate={fetchSummary} />
+                    <AutoCategorizationPanel />
                   </div>
                 )}
-                {incomeSub === 'projections' && (
+                {spendingSub === 'budget' && (
+                  <BudgetActualPanel month={month} monthlyIncome={summary?.totalIncome} />
+                )}
+                {spendingSub === 'calendar' && (
+                  <CashFlowCalendar
+                    month={month}
+                    netMonthlyIncome={
+                      summary ? summary.net + summary.committed + summary.spending : undefined
+                    }
+                  />
+                )}
+              </div>
+            )}
+
+            {/* ─ Wealth ─ */}
+            {tab === 'wealth' && (
+              <div>
+                <SubNav
+                  options={[
+                    { key: 'net-worth', label: 'Net worth' },
+                    { key: 'goals', label: 'Goals' },
+                    { key: 'analytics', label: 'Analytics' },
+                  ]}
+                  active={wealthSub}
+                  onChange={(k) => setWealthSub(k as WealthSub)}
+                />
+
+                {wealthSub === 'net-worth' && (
+                  <div className="space-y-4">
+                    <NetWorthTrend onUpdate={nwVersion} />
+                    <SubNav
+                      options={[
+                        { key: 'assets', label: 'Assets' },
+                        { key: 'debts', label: 'Debts' },
+                      ]}
+                      active={assetsSub}
+                      onChange={(k) => setAssetsSub(k as AssetsSub)}
+                    />
+                    {assetsSub === 'assets' && (
+                      <AssetsPanel
+                        onUpdate={() => {
+                          void fetchSummary();
+                          setNwVersion((v) => v + 1);
+                        }}
+                      />
+                    )}
+                    {assetsSub === 'debts' && (
+                      <DebtsPanel
+                        onUpdate={() => {
+                          void fetchSummary();
+                          setNwVersion((v) => v + 1);
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {wealthSub === 'goals' && <GoalsPanel />}
+
+                {wealthSub === 'analytics' && (
+                  <div className="space-y-8">
+                    <YtdPanel month={month} />
+                    <AnalyticsPanel month={month} onCategoryClick={handleCategoryDrill} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─ Plan ─ */}
+            {tab === 'plan' && (
+              <div>
+                <SubNav
+                  options={[
+                    { key: 'overview', label: 'Annual overview' },
+                    { key: 'projections', label: 'Projections' },
+                    { key: 'pcs', label: 'PCS' },
+                  ]}
+                  active={planSub}
+                  onChange={(k) => setPlanSub(k as PlanSub)}
+                />
+
+                {planSub === 'overview' && (
+                  <OverviewPanel
+                    initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
+                  />
+                )}
+                {planSub === 'projections' && (
                   <div className="space-y-8">
                     <PromoProjectionPanel user={user} />
                     <BrsPanel user={user} month={month} />
@@ -601,96 +704,21 @@ export default function Home() {
                     <GiBillPanel yearsOfService={user?.years_of_service ?? 0} />
                   </div>
                 )}
-                {incomeSub === 'tax' && <TaxYearSummaryPanel year={parseInt(month.slice(0, 4))} />}
+                {planSub === 'pcs' && <PcsPanel user={user} />}
               </div>
             )}
-            {tab === 'transactions' && (
-              <TransactionsPanel
-                month={month}
-                onUpdate={fetchSummary}
-                initialCategory={drillCategory}
-              />
-            )}
-            {tab === 'goals' && (
-              <div>
-                <SubNav
-                  options={[
-                    { key: 'goals', label: 'Goals' },
-                    { key: 'budget', label: 'Budget' },
-                  ]}
-                  active={goalsSub}
-                  onChange={(k) => setGoalsSub(k as typeof goalsSub)}
-                />
-                {goalsSub === 'goals' && <GoalsPanel />}
-                {goalsSub === 'budget' && (
-                  <BudgetActualPanel month={month} monthlyIncome={summary?.totalIncome} />
-                )}
-              </div>
-            )}
-            {tab === 'analytics' && (
-              <div className="space-y-8">
-                <YtdPanel month={month} />
-                <AnalyticsPanel month={month} onCategoryClick={handleCategoryDrill} />
-                <AutoCategorizationPanel />
-              </div>
-            )}
-
-            {tab === 'assets' && (
-              <div className="space-y-4">
-                <NetWorthTrend onUpdate={nwVersion} />
-                <SubNav
-                  options={[
-                    { key: 'assets', label: 'Assets' },
-                    { key: 'debts', label: 'Debts' },
-                  ]}
-                  active={assetsSub}
-                  onChange={(k) => setAssetsSub(k as typeof assetsSub)}
-                />
-                {assetsSub === 'assets' && (
-                  <AssetsPanel
-                    onUpdate={() => {
-                      fetchSummary();
-                      setNwVersion((v) => v + 1);
-                    }}
-                  />
-                )}
-                {assetsSub === 'debts' && (
-                  <DebtsPanel
-                    onUpdate={() => {
-                      fetchSummary();
-                      setNwVersion((v) => v + 1);
-                    }}
-                  />
-                )}
-              </div>
-            )}
-
-            {tab === 'calendar' && (
-              <CashFlowCalendar
-                month={month}
-                netMonthlyIncome={
-                  summary ? summary.net + summary.committed + summary.spending : undefined
-                }
-              />
-            )}
-
-            {tab === 'overview' && (
-              <OverviewPanel
-                initialYear={month ? parseInt(month.slice(0, 4)) : new Date().getFullYear()}
-              />
-            )}
-
-            {tab === 'pcs' && <PcsPanel user={user} />}
           </div>
         </div>
       </main>
 
-      {/* Keyboard shortcuts overlay */}
+      {/* ── Keyboard shortcuts overlay ── */}
       {showShortcuts && (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setShowShortcuts(false)}
         >
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             className="bg-bg border-border w-80 rounded-2xl border p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -706,8 +734,8 @@ export default function Home() {
             </div>
             <div className="space-y-1 text-xs">
               {[
-                ['←  /  →', 'Previous / next month'],
-                ['1 – 8', 'Switch tab (Income → PCS)'],
+                ['← / →', 'Previous / next month'],
+                ['1 – 5', 'Switch tab'],
                 ['/', 'Focus transaction search'],
                 ['?', 'Toggle this help'],
                 ['Esc', 'Close overlay'],
@@ -724,8 +752,7 @@ export default function Home() {
               ))}
             </div>
             <div className="text-text-4 mt-4 text-center text-[10px]">
-              Tabs: 1 Income · 2 Spending · 3 Goals · 4 Analytics · 5 Net Worth · 6 Calendar · 7
-              Overview · 8 PCS
+              1 Dashboard · 2 Pay · 3 Spending · 4 Wealth · 5 Plan
             </div>
           </div>
         </div>
@@ -734,7 +761,8 @@ export default function Home() {
   );
 }
 
-/* ── Month-over-month delta ───────────────────────────────────────── */
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function delta(
   curr: number,
   prev: number | undefined,
@@ -752,7 +780,6 @@ function delta(
   return { text, good };
 }
 
-/* ── Projected spending helper ────────────────────────────────────── */
 function projectedSpending(month: string, spending: number): string | null {
   const today = new Date();
   const cm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;

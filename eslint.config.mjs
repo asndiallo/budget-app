@@ -94,6 +94,9 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'warn',
       // Sync SQLite ops inside async Next.js route handlers is the normal pattern here
       '@typescript-eslint/require-await': 'off',
+      // Initializing state from browser APIs (localStorage, Date) in useEffect is
+      // the correct SSR-safe pattern in Next.js client components — this rule is too aggressive
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 

@@ -2,7 +2,7 @@
 
 import { differenceInMonths, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { authClient } from '@/lib/auth-client';
 import {
@@ -20,14 +20,17 @@ import DutyStationSelect from './DutyStationSelect';
 interface Props {
   user: UserProfile;
   onProfileUpdate: () => void;
+  onExport: () => void;
+  onRestore: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 type Panel = 'none' | 'profile';
 
-export default function UserNav({ user, onProfileUpdate }: Props) {
+export default function UserNav({ user, onProfileUpdate, onExport, onRestore }: Props) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>('none');
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Edit state
   const [displayName, setDisplayName] = useState(user.name);
@@ -74,12 +77,11 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
     }
   }
 
-  /** Years of service derived from join date, rounded to nearest 0.5 */
   function computedYos(): number {
     if (!joinedAt) return 0;
     try {
       const months = differenceInMonths(new Date(), parseISO(joinedAt));
-      return Math.round((months / 12) * 2) / 2; // nearest 0.5
+      return Math.round((months / 12) * 2) / 2;
     } catch {
       return 0;
     }
@@ -256,6 +258,38 @@ export default function UserNav({ user, onProfileUpdate }: Props) {
               </button>
             </div>
           </form>
+
+          {/* Data actions */}
+          <div className="border-border-dim mt-4 border-t pt-3">
+            <p className="text-text-4 mb-2 text-[10px] tracking-widest uppercase">Data</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setPanel('none');
+                  onExport();
+                }}
+                className="border-border text-text-3 hover:text-text-2 hover:bg-surface-raised flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors"
+              >
+                Export backup
+              </button>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="border-border text-text-3 hover:text-text-2 hover:bg-surface-raised flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors"
+              >
+                Restore
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  setPanel('none');
+                  onRestore(e);
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
