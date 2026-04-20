@@ -51,11 +51,13 @@ import MetricCard from './components/MetricCard';
 import NetWorthCard from './components/NetWorthCard';
 import NetWorthTrend from './components/NetWorthTrend';
 import OverviewPanel from './components/OverviewPanel';
+import PayCareerArcPanel from './components/PayCareerArcPanel';
 import PcsPanel from './components/PcsPanel';
 import PromoProjectionPanel from './components/PromoProjectionPanel';
 import ReceivablesPanel from './components/ReceivablesPanel';
 import RecurringDetectionPanel from './components/RecurringDetectionPanel';
 import SdpPanel from './components/SdpPanel';
+import SpendingAnomalyBanner from './components/SpendingAnomalyBanner';
 import StreakBanner from './components/StreakBanner';
 import SubNav from './components/SubNav';
 import TaxYearSummaryPanel from './components/TaxYearSummaryPanel';
@@ -495,6 +497,23 @@ export default function Home() {
                   </div>
                 )}
 
+                {/* Combat zone indicator */}
+                {currentIncome?.combat_zone ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5">
+                    <span className="text-sm">⚔</span>
+                    <div>
+                      <span className="text-xs font-semibold text-emerald-400">
+                        Combat zone tax exclusion active
+                      </span>
+                      {(currentIncome.taxes ?? 0) > 0 && (
+                        <span className="ml-2 text-[11px] text-emerald-500/70">
+                          ~{formatCurrency(currentIncome.taxes ?? 0)}/mo exempted
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
                 {summary && (
                   <>
                     {/* Metric cards */}
@@ -549,6 +568,9 @@ export default function Home() {
 
                     {/* Budget allocation bar */}
                     {summary.totalIncome > 0 && <BudgetBar summary={summary} />}
+
+                    {/* Spending anomaly alerts */}
+                    {month && <SpendingAnomalyBanner month={month} />}
 
                     {/* Net worth + Health score */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -725,6 +747,7 @@ export default function Home() {
                 )}
                 {planSub === 'projections' && (
                   <div className="space-y-8">
+                    <PayCareerArcPanel user={user} tspRate={currentIncome?.tsp_rate ?? 0.05} />
                     <PromoProjectionPanel user={user} />
                     <BrsPanel user={user} month={month} />
                     <SdpPanel />

@@ -398,3 +398,21 @@ export interface YearOverview {
   monthly: MonthlyPoint[];
   categories: { category: string; total: number }[];
 }
+
+// ── Spending anomalies ────────────────────────────────────────────────────────
+
+export interface SpendingAlert {
+  category: string;
+  currentMonthSpend: number;
+  projectedMonthSpend: number;
+  trailingAvg: number;
+  pctOverAvg: number;
+  severity: 'warning' | 'alert';
+}
+
+export interface AnomalyResult {
+  month: string;
+  dayOfMonth: number;
+  totalDays: number;
+  alerts: SpendingAlert[];
+}

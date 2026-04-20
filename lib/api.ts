@@ -4,6 +4,7 @@
 import type {
   AccountType,
   Allotment,
+  AnomalyResult,
   Asset,
   AssetCategory,
   BillPayment,
@@ -383,5 +384,9 @@ export const api = {
       send('PATCH', '/api/income-profiles', { id, ...data }).then(asJson<{ ok: boolean }>),
     remove: (id: number) =>
       send('DELETE', '/api/income-profiles', { id }).then(asJson<{ ok: boolean }>),
+  },
+
+  anomalies: {
+    get: (month: string) => fetch(`/api/anomalies?month=${month}`).then(asJson<AnomalyResult>),
   },
 };
