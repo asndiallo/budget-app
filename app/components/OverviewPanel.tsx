@@ -110,38 +110,47 @@ export default function OverviewPanel({ initialYear }: { initialYear: number }) 
                     value: formatCurrency(data.annual.income),
                     color: 'text-text',
                     accent: null,
+                    sub:
+                      data.annual.allowances > 0
+                        ? `incl. ${formatCurrency(data.annual.allowances)} BAH/BAS`
+                        : undefined,
                   },
                   {
                     label: 'Invested',
                     value: formatCurrency(data.annual.invested),
                     color: 'text-[#4a8cff]',
                     accent: '#4a8cff',
+                    sub: undefined,
                   },
                   {
                     label: 'Spent',
                     value: formatCurrency(data.annual.spending),
                     color: 'text-[#ff4560]',
                     accent: '#ff4560',
+                    sub: undefined,
                   },
                   {
                     label: 'Net Saved',
                     value: (data.annual.net < 0 ? '−' : '') + formatCurrency(data.annual.net),
                     color: data.annual.net >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]',
                     accent: data.annual.net >= 0 ? '#00d98a' : '#ff4560',
+                    sub: undefined,
                   },
                   {
                     label: 'Savings Rate',
                     value: `${data.annual.savingsRate}%`,
                     color: 'text-[#f5a623]',
                     accent: '#f5a623',
+                    sub: undefined,
                   },
                 ] as {
                   label: string;
                   value: string;
                   color: string;
                   accent: string | null;
+                  sub?: string;
                 }[]
-              ).map(({ label, value, color, accent }) => (
+              ).map(({ label, value, color, accent, sub }) => (
                 <div
                   key={label}
                   className="bg-bg border-border relative overflow-hidden rounded-xl border p-3.5"
@@ -156,6 +165,7 @@ export default function OverviewPanel({ initialYear }: { initialYear: number }) 
                   )}
                   <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
                   <p className={`font-mono text-base font-semibold ${color}`}>{value}</p>
+                  {sub && <p className="text-text-4 mt-0.5 font-mono text-[9px]">{sub}</p>}
                 </div>
               ))}
             </div>

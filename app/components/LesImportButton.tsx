@@ -11,7 +11,7 @@ interface Props {
   onImport: () => void;
 }
 
-type Step = 'idle' | 'input' | 'preview' | 'done';
+type Step = 'idle' | 'input' | 'parsing' | 'preview' | 'done';
 
 export default function LesImportButton({ month, onImport }: Props) {
   const [step, setStep] = useState<Step>('idle');
@@ -19,6 +19,8 @@ export default function LesImportButton({ month, onImport }: Props) {
   const [text, setText] = useState('');
   const [result, setResult] = useState<LesParseResult | null>(null);
   const [targetMonth, setTargetMonth] = useState(month);
+  const [dragging, setDragging] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
@@ -26,6 +28,7 @@ export default function LesImportButton({ month, onImport }: Props) {
     setText('');
     setResult(null);
     setTargetMonth(month);
+    setParseError(null);
   }
 
   function handleText(raw: string) {
@@ -40,12 +43,47 @@ export default function LesImportButton({ month, onImport }: Props) {
     }
   }
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function processFile(file: File) {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      setStep('parsing');
+      setParseError(null);
+      try {
+        const { text: extracted } = await api.les.extractText(file);
+        handleText(extracted);
+      } catch {
+        setParseError('Could not extract text from PDF — try copy-pasting the text instead.');
+        setStep('input');
+      }
+    } else {
+      const raw = await file.text();
+      handleText(raw);
+    }
+  }
+
+  async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const raw = await file.text();
-    handleText(raw);
+    await processFile(file);
     if (fileRef.current) fileRef.current.value = '';
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await processFile(file);
   }
 
   async function applyImport() {
@@ -53,6 +91,11 @@ export default function LesImportButton({ month, onImport }: Props) {
     setApplying(true);
     try {
       await api.income.update(targetMonth, result.fields);
+
+      if (result.leaveBalance !== null && result.lesPeriodDate !== null) {
+        await api.leave.setLesAnchor(result.leaveBalance, result.lesPeriodDate);
+      }
+
       setStep('done');
       onImport();
     } finally {
@@ -93,12 +136,23 @@ export default function LesImportButton({ month, onImport }: Props) {
         </button>
       </div>
 
-      {/* Input area — shown until we have a parsed result */}
+      {/* Parsing spinner */}
+      {step === 'parsing' && (
+        <p className="text-text-3 py-4 text-center text-xs">Extracting PDF text…</p>
+      )}
+
+      {/* Input area */}
       {(step === 'input' || (step === 'preview' && !result?.preview.length)) && (
         <div className="space-y-3">
+          {parseError && (
+            <p className="text-[11px] text-amber-400">
+              <span className="shrink-0">⚠ </span>
+              {parseError}
+            </p>
+          )}
           <p className="text-text-4 text-[11px] leading-relaxed">
-            Paste your LES text below, or upload the <code className="text-text-3">.txt</code> file
-            from{' '}
+            Drop or upload a <code className="text-text-3">.pdf</code> or{' '}
+            <code className="text-text-3">.txt</code> LES from{' '}
             <a
               href="https://mypay.dfas.mil"
               target="_blank"
@@ -107,33 +161,33 @@ export default function LesImportButton({ month, onImport }: Props) {
             >
               myPay
             </a>
-            . For a PDF: open it, press{' '}
-            <kbd className="bg-surface text-text-2 rounded px-1 py-0.5 font-mono text-[10px]">
-              ⌘A
-            </kbd>{' '}
-            then{' '}
-            <kbd className="bg-surface text-text-2 rounded px-1 py-0.5 font-mono text-[10px]">
-              ⌘C
-            </kbd>
-            , then paste here.
+            , or paste the text below.
           </p>
-          <textarea
-            autoFocus
-            value={text}
-            onChange={(e) => handleText(e.target.value)}
-            placeholder="Paste LES text here…"
-            rows={6}
-            className="bg-surface border-border text-text placeholder-text-4 w-full resize-y rounded-lg border px-3 py-2 font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none"
-          />
+          <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`relative rounded-lg transition-colors ${dragging ? 'ring-2 ring-[#4a8cff]/60' : ''}`}
+          >
+            <textarea
+              autoFocus
+              value={text}
+              onChange={(e) => handleText(e.target.value)}
+              placeholder={dragging ? 'Drop LES file here…' : 'Paste LES text here…'}
+              rows={6}
+              className={`bg-surface border-border text-text placeholder-text-4 w-full resize-y rounded-lg border px-3 py-2 font-mono text-xs transition-colors focus:border-blue-500 focus:outline-none ${dragging ? 'border-[#4a8cff]/60 bg-[#4a8cff]/5' : ''}`}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <label className="cursor-pointer text-[11px] text-[#4a8cff] hover:underline">
-              Upload .txt file
+              Upload .pdf or .txt
               <input
                 ref={fileRef}
                 type="file"
-                accept=".txt,.text"
+                accept=".pdf,.txt,.text"
                 className="hidden"
-                onChange={handleFile}
+                onChange={handleFileInput}
               />
             </label>
           </div>
@@ -143,9 +197,9 @@ export default function LesImportButton({ month, onImport }: Props) {
       {/* Preview */}
       {step === 'preview' && result && result.preview.length > 0 && (
         <div className="space-y-3">
-          {/* Detected fields */}
+          {/* Income fields */}
           <div>
-            <p className={`${LABEL_CLS} mb-2`}>Extracted fields ({result.preview.length})</p>
+            <p className={`${LABEL_CLS} mb-2`}>Income & deductions ({result.preview.length})</p>
             <div className="border-border overflow-hidden rounded-lg border">
               {result.preview.map(({ key, label, value }, i) => (
                 <div
@@ -164,6 +218,23 @@ export default function LesImportButton({ month, onImport }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Leave balance */}
+          {result.leaveBalance !== null && result.lesPeriodDate !== null && (
+            <div>
+              <p className={`${LABEL_CLS} mb-2`}>Leave balance</p>
+              <div className="border-border overflow-hidden rounded-lg border">
+                <div className="flex items-center justify-between px-3 py-2 text-xs">
+                  <span className="text-text-3">End-of-period balance</span>
+                  <span className="text-text font-mono">{result.leaveBalance} days</span>
+                </div>
+                <div className="border-border-dim flex items-center justify-between border-t px-3 py-2 text-xs">
+                  <span className="text-text-3">Anchor date</span>
+                  <span className="text-text font-mono">{result.lesPeriodDate}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Warnings */}
           {result.warnings.length > 0 && (

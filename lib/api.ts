@@ -58,6 +58,17 @@ export const api = {
       fetch('/api/income/suggest').then(asJson<{ base_pay: number; bas: number; bah: number }>),
   },
 
+  les: {
+    /** Upload a PDF or TXT LES file and receive the extracted plain text. */
+    extractText: (file: File): Promise<{ text: string }> => {
+      const form = new FormData();
+      form.append('file', file);
+      return fetch('/api/les-extract', { method: 'POST', body: form }).then(
+        asJson<{ text: string }>,
+      );
+    },
+  },
+
   fixedExpenses: {
     list: () => fetch('/api/fixed-expenses').then(asJson<FixedExpense[]>),
     add: (data: {

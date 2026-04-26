@@ -153,4 +153,44 @@ describe('computeMonthlyFinancials', () => {
       expect(tsp).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe('allowances calculation', () => {
+    it('sums bas + bah into allowances', () => {
+      const db = makeDb([
+        { key: 'base_pay', value: 2836.8 },
+        { key: 'bas', value: 460 },
+        { key: 'bah', value: 1839 },
+      ]);
+      const { allowances } = computeMonthlyFinancials(db, '2026-03', 'u1');
+      expect(allowances).toBe(460 + 1839); // 2299
+    });
+
+    it('returns 0 allowances when bas and bah are absent', () => {
+      const db = makeDb([{ key: 'base_pay', value: 2836.8 }]);
+      const { allowances } = computeMonthlyFinancials(db, '2026-03', 'u1');
+      expect(allowances).toBe(0);
+    });
+
+    it('allowances does not include base_pay or special pays', () => {
+      const db = makeDb([
+        { key: 'base_pay', value: 3000 },
+        { key: 'bas', value: 460 },
+        { key: 'flight_pay', value: 250 },
+      ]);
+      const { allowances } = computeMonthlyFinancials(db, '2026-03', 'u1');
+      expect(allowances).toBe(460);
+    });
+
+    it('E-3 with BAH — allowances equals bas + bah while totalIncome includes both', () => {
+      const db = makeDb([
+        { key: 'base_pay', value: 2836.8 },
+        { key: 'bas', value: 460 },
+        { key: 'bah', value: 1500 },
+        { key: 'tsp_rate', value: 0.2 },
+      ]);
+      const { totalIncome, allowances } = computeMonthlyFinancials(db, '2026-03', 'u1');
+      expect(allowances).toBe(1960);
+      expect(totalIncome).toBeGreaterThan(allowances); // base_pay is also in totalIncome
+    });
+  });
 });

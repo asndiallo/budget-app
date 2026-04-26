@@ -20,12 +20,12 @@ export function incomeForMonth(db: Db, month: string, userId: string): Record<st
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
-/** Returns total income and TSP for a given month. */
+/** Returns total income, TSP, and non-taxable allowances (BAS + BAH) for a given month. */
 export function computeMonthlyFinancials(
   db: Db,
   month: string,
   userId: string,
-): { totalIncome: number; tsp: number } {
+): { totalIncome: number; tsp: number; allowances: number } {
   const config = incomeForMonth(db, month, userId);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
   const totalIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
@@ -33,7 +33,8 @@ export function computeMonthlyFinancials(
     0,
   );
   const tsp = Math.round((config.base_pay ?? 0) * tspRate);
-  return { totalIncome, tsp };
+  const allowances = (config.bas ?? 0) + (config.bah ?? 0);
+  return { totalIncome, tsp, allowances };
 }
 
 /**

@@ -35,8 +35,12 @@ export const GET = withAuth(async (req, { userId, db }) => {
     const projected = isFutureMonth(mo);
     const preService = joinedAt ? isBeforeMonth(mo, joinedAt) : false;
 
-    const { totalIncome: income, tsp } = preService
-      ? { totalIncome: 0, tsp: 0 }
+    const {
+      totalIncome: income,
+      tsp,
+      allowances,
+    } = preService
+      ? { totalIncome: 0, tsp: 0, allowances: 0 }
       : computeMonthlyFinancials(db, mo, userId);
 
     const spending = spendingByMonth[mo] ?? 0;
@@ -58,6 +62,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
       hasData,
       projected,
       preService,
+      allowances: Math.round(allowances),
     };
   });
 
@@ -86,6 +91,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const annualIncome = actualMonths.reduce((s, m) => s + m.income, 0);
   const annualInvested = actualMonths.reduce((s, m) => s + (m.hasData ? m.invested : 0), 0);
   const annualSpending = actualMonths.reduce((s, m) => s + m.spending, 0);
+  const annualAllowances = actualMonths.reduce((s, m) => s + m.allowances, 0);
   const annualNet = annualIncome - annualInvested - annualSpending;
   const annualSavingsRate =
     annualIncome > 0
@@ -101,6 +107,7 @@ export const GET = withAuth(async (req, { userId, db }) => {
       net: annualNet,
       savingsRate: annualSavingsRate,
       monthsWithData,
+      allowances: annualAllowances,
     },
     quarters,
     monthly,

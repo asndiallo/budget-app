@@ -36,6 +36,90 @@ AFRH                   0.50
 TSP                   159.90
 `.trim();
 
+// ── Period-end date (lesPeriodDate) ──────────────────────────────────────────
+
+describe('parseLes — lesPeriodDate', () => {
+  it('returns full YYYY-MM-DD from PAY DATE MM/DD/YYYY', () => {
+    const { lesPeriodDate } = parseLes(les(['PAY DATE: 03/31/2026', 'BASE PAY 3,198.00']));
+    expect(lesPeriodDate).toBe('2026-03-31');
+  });
+
+  it('returns full YYYY-MM-DD for ISO pay date', () => {
+    const { lesPeriodDate } = parseLes(les(['PAY DATE: 2026-03-31', 'BASE PAY 3,198.00']));
+    expect(lesPeriodDate).toBe('2026-03-31');
+  });
+
+  it('month and lesPeriodDate share the same year-month', () => {
+    const { month, lesPeriodDate } = parseLes(les(['PAY DATE: 03/31/2026', 'BASE PAY 3,198.00']));
+    expect(lesPeriodDate?.slice(0, 7)).toBe(month);
+  });
+
+  it('is null when no date found', () => {
+    const { lesPeriodDate } = parseLes(les(['BASE PAY 3,198.00']));
+    expect(lesPeriodDate).toBeNull();
+  });
+});
+
+// ── Leave balance ─────────────────────────────────────────────────────────────
+
+describe('parseLes — leaveBalance', () => {
+  it('extracts EOM BAL from a single-line format', () => {
+    const { leaveBalance } = parseLes(les(['PAY DATE: 03/31/2026', 'EOM BAL 35.0']));
+    expect(leaveBalance).toBe(35.0);
+  });
+
+  it('extracts LEAVE BALANCE from a labelled single line', () => {
+    const { leaveBalance } = parseLes(les(['PAY DATE: 03/31/2026', 'LEAVE BALANCE 42.5']));
+    expect(leaveBalance).toBe(42.5);
+  });
+
+  it('extracts LEAVE BAL abbreviation', () => {
+    const { leaveBalance } = parseLes(les(['PAY DATE: 03/31/2026', 'LEAVE BAL 28.0']));
+    expect(leaveBalance).toBe(28.0);
+  });
+
+  it('extracts EOM BAL from a two-line table header + data row', () => {
+    const text = les([
+      'PAY DATE: 03/31/2026',
+      'BF BAL  ERND  USED  CR LDFTED  EOM BAL  USE/LOSE',
+      '32.5    2.5   0.0   0.0        35.0     19OCT26',
+    ]);
+    const { leaveBalance } = parseLes(text);
+    expect(leaveBalance).toBe(35.0);
+  });
+
+  it('strips spaced USE/LOSE date ("19 OCT 26") before picking last number', () => {
+    const text = les([
+      'BF BAL  ERND  USED  EOM BAL  USE/LOSE',
+      '32.5    2.5   0.0   35.0     19 OCT 26',
+    ]);
+    const { leaveBalance } = parseLes(text);
+    expect(leaveBalance).toBe(35.0);
+  });
+
+  it('returns null when no leave data is present', () => {
+    const { leaveBalance } = parseLes(les(['PAY DATE: 03/31/2026', 'BASE PAY 3,198.00']));
+    expect(leaveBalance).toBeNull();
+  });
+
+  it('handles integer leave balance (no decimal)', () => {
+    const { leaveBalance } = parseLes(les(['PAY DATE: 03/31/2026', 'EOM BAL 42']));
+    expect(leaveBalance).toBe(42);
+  });
+
+  it('does not confuse dollar amounts with leave balance', () => {
+    // Dollar amounts have two decimal places — leave balance has 0–1
+    const text = les([
+      'PAY DATE: 03/31/2026',
+      'BASE PAY 3,198.00',
+      'FEDERAL TAXES 158.72',
+      'EOM BAL 35.0',
+    ]);
+    const { leaveBalance } = parseLes(text);
+    expect(leaveBalance).toBe(35.0);
+  });
+});
+
 // ── Month extraction ─────────────────────────────────────────────────────────
 
 describe('parseLes — month extraction', () => {
@@ -227,6 +311,109 @@ describe('parseLes — field extraction', () => {
       const { fields } = parseLes(les(['SUBSISTENCE DEDUCTION 382.20']));
       expect(fields.meal_deduction).toBe(382.2);
     });
+  });
+});
+
+// ── Special & incentive pays ─────────────────────────────────────────────────
+
+describe('parseLes — special and incentive pays', () => {
+  describe('flight pay', () => {
+    it('extracts AVIATION CAREER INCENTIVE PAY (ACIP)', () => {
+      const { fields } = parseLes(les(['AVIATION CAREER INCENTIVE PAY 250.00']));
+      expect(fields.flight_pay).toBe(250.0);
+    });
+
+    it('extracts ACIP abbreviation', () => {
+      const { fields } = parseLes(les(['ACIP 250.00']));
+      expect(fields.flight_pay).toBe(250.0);
+    });
+
+    it('extracts FLIGHT PAY', () => {
+      const { fields } = parseLes(les(['FLIGHT PAY 150.00']));
+      expect(fields.flight_pay).toBe(150.0);
+    });
+  });
+
+  describe('hazardous duty pay', () => {
+    it('extracts HAZARDOUS DUTY', () => {
+      const { fields } = parseLes(les(['HAZARDOUS DUTY PAY 150.00']));
+      expect(fields.hazardous_duty_pay).toBe(150.0);
+    });
+
+    it('extracts HDZP abbreviation', () => {
+      const { fields } = parseLes(les(['HDZP 150.00']));
+      expect(fields.hazardous_duty_pay).toBe(150.0);
+    });
+  });
+
+  describe('jump pay', () => {
+    it('extracts JUMP PAY', () => {
+      const { fields } = parseLes(les(['JUMP PAY 150.00']));
+      expect(fields.jump_pay).toBe(150.0);
+    });
+
+    it('extracts PARACHUTE DUTY', () => {
+      const { fields } = parseLes(les(['PARACHUTE DUTY 150.00']));
+      expect(fields.jump_pay).toBe(150.0);
+    });
+  });
+
+  describe('hostile fire / IDP', () => {
+    it('extracts HOSTILE FIRE', () => {
+      const { fields } = parseLes(les(['HOSTILE FIRE/IDP 225.00']));
+      expect(fields.hostile_fire_idp).toBe(225.0);
+    });
+
+    it('extracts IMMINENT DANGER', () => {
+      const { fields } = parseLes(les(['IMMINENT DANGER PAY 225.00']));
+      expect(fields.hostile_fire_idp).toBe(225.0);
+    });
+
+    it('extracts plain IDP', () => {
+      const { fields } = parseLes(les(['IDP 225.00']));
+      expect(fields.hostile_fire_idp).toBe(225.0);
+    });
+  });
+
+  describe('SDAP', () => {
+    it('extracts SDAP abbreviation', () => {
+      const { fields } = parseLes(les(['SDAP 300.00']));
+      expect(fields.sdap).toBe(300.0);
+    });
+
+    it('extracts SPECIAL DUTY ASSIGNMENT', () => {
+      const { fields } = parseLes(les(['SPECIAL DUTY ASSIGNMENT PAY 300.00']));
+      expect(fields.sdap).toBe(300.0);
+    });
+  });
+
+  describe('reenlistment bonus (SRB)', () => {
+    it('extracts SRB abbreviation', () => {
+      const { fields } = parseLes(les(['SRB 500.00']));
+      expect(fields.sep).toBe(500.0);
+    });
+
+    it('extracts SELECTIVE REENLISTMENT', () => {
+      const { fields } = parseLes(les(['SELECTIVE REENLISTMENT BONUS 500.00']));
+      expect(fields.sep).toBe(500.0);
+    });
+  });
+
+  it('special pays appear in preview field order after base entitlements', () => {
+    const text = les([
+      'PAY DATE: 03/31/2026',
+      'BASE PAY 3,198.00',
+      'BAS 470.88',
+      'HOSTILE FIRE/IDP 225.00',
+      'SDAP 300.00',
+      'FEDERAL TAXES 158.72',
+      'FICA-SOC SECURITY 198.28',
+      'FICA-MEDICARE 46.34',
+    ]);
+    const { preview } = parseLes(text);
+    const keys = preview.map((p) => p.key);
+    expect(keys.indexOf('base_pay')).toBeLessThan(keys.indexOf('hostile_fire_idp'));
+    expect(keys.indexOf('hostile_fire_idp')).toBeLessThan(keys.indexOf('taxes'));
   });
 });
 

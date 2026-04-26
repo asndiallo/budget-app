@@ -5,7 +5,15 @@ import { CONTRIBUTION_LIMITS, INVESTMENT_CATEGORY } from '@/lib/config';
 import { buildYearlyConfigLookup } from '@/lib/income';
 import { getIraContributionsByTaxYear, getJoinedAt } from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
+import type { PaceStatus } from '@/lib/types';
 import { countBiweeklyPeriods } from '@/lib/utils';
+
+function pacingStatus(ytd: number, projected: number, limit: number): PaceStatus {
+  if (ytd >= limit) return 'maxed';
+  if (projected > limit * 1.02) return 'ahead';
+  if (projected >= limit * 0.95) return 'on_track';
+  return 'behind';
+}
 
 /** Whether the member has crossed the 2-year BRS vesting threshold by a given month. */
 function isVested(monthStr: string, joinedAt: string | null): boolean {
@@ -98,16 +106,38 @@ export const GET = withAuth(async (req, { userId, db }) => {
   const iraYtd = iraFromTxs > 0 ? iraFromTxs : Math.max(iraFromConfig, iraFromExpenses);
   const hasData = hasConfigData || iraExpenses.length > 0 || iraFromTxs > 0;
 
+  const tspRounded = Math.round(tspYtd);
+  const iraRounded = Math.round(iraYtd);
+  const remainingMonths = Math.max(0, 12 - monthsElapsed);
+
+  const tspMonthlyAvg = monthsElapsed > 0 ? Math.round(tspRounded / monthsElapsed) : 0;
+  const tspProjectedYearEnd = Math.round(tspMonthlyAvg * 12);
+  const tspMonthlyNeeded =
+    remainingMonths > 0 ? Math.max(0, Math.round((limits.tsp - tspRounded) / remainingMonths)) : 0;
+
+  const iraMonthlyAvg = monthsElapsed > 0 ? Math.round(iraRounded / monthsElapsed) : 0;
+  const iraProjectedYearEnd = Math.round(iraMonthlyAvg * 12);
+  const iraMonthlyNeeded =
+    remainingMonths > 0 ? Math.max(0, Math.round((limits.ira - iraRounded) / remainingMonths)) : 0;
+
   return NextResponse.json({
     year,
     limitsYear,
-    tspYtd: Math.round(tspYtd),
+    tspYtd: tspRounded,
     tspLimit: limits.tsp,
     tspCatchupLimit: limits.tspCatchup,
     agencyYtd: Math.round(agencyYtd),
-    iraYtd: Math.round(iraYtd),
+    iraYtd: iraRounded,
     iraLimit: limits.ira,
     iraCatchupLimit: limits.iraCatchup,
     monthsWithData: hasData ? monthsElapsed : 0,
+    tspMonthlyAvg,
+    tspProjectedYearEnd,
+    tspMonthlyNeeded,
+    tspPaceStatus: pacingStatus(tspRounded, tspProjectedYearEnd, limits.tsp),
+    iraMonthlyAvg,
+    iraProjectedYearEnd,
+    iraMonthlyNeeded,
+    iraPaceStatus: pacingStatus(iraRounded, iraProjectedYearEnd, limits.ira),
   });
 });

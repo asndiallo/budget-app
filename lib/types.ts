@@ -269,6 +269,8 @@ export interface Asset {
   updated_at: string;
 }
 
+export type PaceStatus = 'maxed' | 'ahead' | 'on_track' | 'behind';
+
 export interface ContributionLimits {
   year: number;
   limitsYear: number;
@@ -281,6 +283,15 @@ export interface ContributionLimits {
   iraLimit: number;
   iraCatchupLimit: number;
   monthsWithData: number;
+  // Contribution pacing
+  tspMonthlyAvg: number;
+  tspProjectedYearEnd: number;
+  tspMonthlyNeeded: number;
+  tspPaceStatus: PaceStatus;
+  iraMonthlyAvg: number;
+  iraProjectedYearEnd: number;
+  iraMonthlyNeeded: number;
+  iraPaceStatus: PaceStatus;
 }
 
 // ── Allotments ────────────────────────────────────────────────────────────────
@@ -371,6 +382,8 @@ export interface MonthlyPoint {
   projected: boolean;
   /** True for months before the user's service start date */
   preService: boolean;
+  /** Non-taxable allowances (BAS + BAH) included in income */
+  allowances: number;
 }
 
 export interface QuarterSummary {
@@ -393,6 +406,8 @@ export interface YearOverview {
     net: number;
     savingsRate: number;
     monthsWithData: number;
+    /** Non-taxable allowances (BAS + BAH) included in income */
+    allowances: number;
   };
   quarters: QuarterSummary[];
   monthly: MonthlyPoint[];
