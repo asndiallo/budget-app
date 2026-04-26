@@ -3,7 +3,13 @@
 import { LABEL_CLS } from '@/lib/config';
 import type { HealthScore } from '@/lib/types';
 
-export default function HealthScoreCard({ score }: { score: HealthScore }) {
+export default function HealthScoreCard({
+  score,
+  onClick,
+}: {
+  score: HealthScore;
+  onClick?: () => void;
+}) {
   const grade =
     score.total >= 85
       ? { label: 'Excellent', color: '#00d98a' }
@@ -14,7 +20,18 @@ export default function HealthScoreCard({ score }: { score: HealthScore }) {
           : { label: 'Needs work', color: '#ff4560' };
 
   return (
-    <div className="bg-surface border-border relative overflow-hidden rounded-xl border p-4">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={
+        onClick
+          ? `Financial health score: ${score.total}/100 (${grade.label}) — click to view`
+          : undefined
+      }
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+      className={`bg-surface border-border relative overflow-hidden rounded-xl border p-4 ${onClick ? 'interactive-card' : ''}`}
+    >
       <div
         className="absolute top-0 right-0 left-0 h-0.5"
         style={{
@@ -22,7 +39,10 @@ export default function HealthScoreCard({ score }: { score: HealthScore }) {
         }}
       />
       <div className="mb-3 flex items-start justify-between">
-        <p className={LABEL_CLS}>Financial Health</p>
+        <div className="flex items-center gap-2">
+          <p className={LABEL_CLS}>Financial Health</p>
+          {onClick && <span className="text-text-4 text-[9px] tracking-wide">→ view</span>}
+        </div>
         <span
           className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
           style={{ color: grade.color, background: `${grade.color}18` }}

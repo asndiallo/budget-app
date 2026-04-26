@@ -7,6 +7,8 @@ import { LABEL_CLS } from '@/lib/config';
 import type { ContributionLimits, PaceStatus } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
+import Tooltip from './Tooltip';
+
 const PACE_COLOR: Record<PaceStatus, string> = {
   maxed: '#ff4560',
   ahead: '#f5aa2a',
@@ -61,12 +63,14 @@ function LimitBar({
   limit,
   color,
   note,
+  tooltip,
 }: {
   label: string;
   ytd: number;
   limit: number;
   color: string;
   note?: string;
+  tooltip?: string;
 }) {
   const pct = Math.min(100, Math.round((ytd / limit) * 100));
   const remaining = Math.max(0, limit - ytd);
@@ -78,7 +82,15 @@ function LimitBar({
     <div>
       <div className="mb-1.5 flex items-baseline justify-between">
         <div>
-          <span className="text-text text-sm font-medium">{label}</span>
+          {tooltip ? (
+            <Tooltip content={tooltip}>
+              <span className="text-text border-text-4 cursor-help border-b border-dashed pb-px text-sm font-medium">
+                {label}
+              </span>
+            </Tooltip>
+          ) : (
+            <span className="text-text text-sm font-medium">{label}</span>
+          )}
           {note && <span className="text-text-4 ml-2 text-[10px]">{note}</span>}
         </div>
         <div className="flex items-baseline gap-1.5 font-mono text-xs">
@@ -149,6 +161,7 @@ export default function ContributionLimitsPanel({ year }: { year: number }) {
             limit={data.tspLimit}
             color="#4a8cff"
             note={`elective deferral limit · ${formatCurrency(data.tspCatchupLimit)} w/ catch-up`}
+            tooltip="Your Roth TSP elective deferrals year-to-date. DoD match is tracked separately and does not count toward this limit."
           />
           <PaceInfo
             monthlyAvg={data.tspMonthlyAvg}
@@ -173,6 +186,7 @@ export default function ContributionLimitsPanel({ year }: { year: number }) {
             limit={data.iraLimit}
             color="#b085f5"
             note={`limit ${formatCurrency(data.iraCatchupLimit)} w/ catch-up (age 50+)`}
+            tooltip="Combined contributions to all your Roth IRAs for the tax year. Counted from fixed investment expenses marked as IRA contributions."
           />
           <PaceInfo
             monthlyAvg={data.iraMonthlyAvg}

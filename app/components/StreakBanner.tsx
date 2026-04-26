@@ -1,6 +1,12 @@
 'use client';
 
-export default function StreakBanner({ streak }: { streak: number }) {
+export default function StreakBanner({
+  streak,
+  onClick,
+}: {
+  streak: number;
+  onClick?: () => void;
+}) {
   const label =
     streak >= 12
       ? 'A full year in the green'
@@ -32,7 +38,12 @@ export default function StreakBanner({ streak }: { streak: number }) {
 
   return (
     <div
-      className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-medium"
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? `${label} — click to view savings history` : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+      className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-medium ${onClick ? 'interactive-card' : ''}`}
       style={{
         backgroundColor: config.bg,
         border: `1px solid ${config.border}`,

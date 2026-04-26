@@ -2,6 +2,8 @@
 
 import { LABEL_CLS } from '@/lib/config';
 
+import Tooltip from './Tooltip';
+
 // Accent palette — single source of truth for MetricCard colours.
 const ACCENT: Record<string, { text: string; line: string; bg: string }> = {
   green: {
@@ -33,21 +35,39 @@ export default function MetricCard({
   sub,
   accent = 'default',
   delta: d,
+  tooltip,
+  onClick,
 }: {
   label: string;
   value: string;
   sub?: string | null;
   accent?: string;
   delta?: { text: string; good: boolean | null } | null;
+  tooltip?: string;
+  onClick?: () => void;
 }) {
   const { text: textClass, line: color, bg: bgHint } = ACCENT[accent] ?? ACCENT.default;
 
   const deltaClass =
     d?.good === true ? 'text-[#00d98a]' : d?.good === false ? 'text-[#ff4560]' : 'text-text-4';
 
+  const isInteractive = !!onClick;
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick?.();
+    }
+  }
+
   return (
     <div
-      className="bg-surface border-border relative flex flex-col overflow-hidden rounded-xl border p-4"
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={isInteractive ? `${label}: ${value}` : undefined}
+      onClick={isInteractive ? onClick : undefined}
+      onKeyDown={handleKeyDown}
+      className={`bg-surface border-border relative flex flex-col overflow-hidden rounded-xl border p-4 ${isInteractive ? 'interactive-card' : ''}`}
       style={{
         backgroundColor:
           bgHint !== 'transparent'
@@ -63,10 +83,23 @@ export default function MetricCard({
           }}
         />
       )}
-      <p className={`${LABEL_CLS} mb-1.5`}>{label}</p>
+      <p className={`${LABEL_CLS} mb-1.5`}>
+        {tooltip ? (
+          <Tooltip content={tooltip}>
+            <span className="cursor-help border-b border-dashed border-current pb-px">{label}</span>
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </p>
       <p className={`font-mono text-[22px] leading-none font-semibold ${textClass}`}>{value}</p>
       {sub && <p className="text-text-4 mt-1.5 font-mono text-[10px]">{sub}</p>}
       {d && <p className={`mt-1.5 font-mono text-[10px] ${deltaClass}`}>{d.text} vs last mo</p>}
+      {isInteractive && (
+        <span className="text-text-4 absolute right-3 bottom-3 text-[9px] tracking-wide">
+          → view
+        </span>
+      )}
     </div>
   );
 }

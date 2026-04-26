@@ -8,6 +8,14 @@
 
 /* ── Design tokens ────────────────────────────────────────────────── */
 
+/* ── Accent palette — shared across light and dark ─────────────────── */
+:root {
+  --accent-blue: #4a8cff;
+  --accent-green: #00d98a;
+  --accent-red: #ff4560;
+  --accent-amber: #f5aa2a;
+}
+
 /* Light tokens — default (system light + explicit .light) */
 :root,
 .light {
@@ -84,6 +92,10 @@
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
   --color-text-4: var(--text-4);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-green: var(--accent-green);
+  --color-accent-red: var(--accent-red);
+  --color-accent-amber: var(--accent-amber);
 }
 
 html {
@@ -142,6 +154,19 @@ option {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.18s ease both;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% center;
@@ -174,4 +199,36 @@ option {
 .card-lift:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Section divider — between logical groups inside a panel */
+.section-divider {
+  border-top: 1px solid var(--border-dim);
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+/* Accessible focus ring — shown only on keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Clickable card — interactive card state */
+.interactive-card {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+.interactive-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-blue);
+}
+.interactive-card:active {
+  transform: translateY(0);
+  box-shadow: none;
 }

@@ -8,10 +8,12 @@ export default function NetWorthCard({
   assets,
   debts,
   goals,
+  onClick,
 }: {
   assets: Asset[];
   debts: Debt[];
   goals: Goal[];
+  onClick?: () => void;
 }) {
   const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
   const totalGoalsSaved = goals.reduce((s, g) => s + g.saved, 0);
@@ -22,7 +24,13 @@ export default function NetWorthCard({
 
   if (noData) {
     return (
-      <div className="bg-surface border-border flex items-center gap-3 rounded-xl border p-4">
+      <div
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+        className={`bg-surface border-border flex items-center gap-3 rounded-xl border p-4 ${onClick ? 'interactive-card' : ''}`}
+      >
         <div>
           <p className={`${LABEL_CLS} mb-1`}>Net Worth</p>
           <p className="text-text-4 text-sm">
@@ -35,14 +43,28 @@ export default function NetWorthCard({
   }
 
   return (
-    <div className="bg-surface border-border relative overflow-hidden rounded-xl border p-4">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={
+        onClick
+          ? `Net worth: ${netWorth >= 0 ? '' : '–'}${formatCurrency(Math.abs(netWorth))} — click to view`
+          : undefined
+      }
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+      className={`bg-surface border-border relative overflow-hidden rounded-xl border p-4 ${onClick ? 'interactive-card' : ''}`}
+    >
       <div
         className="absolute top-0 right-0 left-0 h-0.5"
         style={{
           background: 'linear-gradient(90deg, #00d98acc, #00d98a33 60%, transparent)',
         }}
       />
-      <p className={`${LABEL_CLS} mb-2`}>Net Worth</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className={LABEL_CLS}>Net Worth</p>
+        {onClick && <span className="text-text-4 text-[9px] tracking-wide">→ view</span>}
+      </div>
       <p
         className={`font-mono text-xl leading-none font-semibold ${
           netWorth >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]'

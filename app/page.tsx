@@ -396,6 +396,23 @@ export default function Home() {
     });
   }
 
+  const tabKeys = TABS.map((t) => t.key);
+  function handleTabKeyDown(e: React.KeyboardEvent, idx: number) {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setTab(tabKeys[(idx + 1) % tabKeys.length]);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setTab(tabKeys[(idx - 1 + tabKeys.length) % tabKeys.length]);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setTab(tabKeys[0]);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setTab(tabKeys[tabKeys.length - 1]);
+    }
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -406,13 +423,13 @@ export default function Home() {
           {/* Brand */}
           <div className="flex shrink-0 items-center gap-2.5">
             <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white shadow-sm"
               style={{ background: 'linear-gradient(135deg, #4a8cff 0%, #00d98a 100%)' }}
             >
-              B
+              F
             </div>
             <div>
-              <h1 className="text-text text-[13px] leading-none font-semibold tracking-tight">
+              <h1 className="text-text text-sm leading-none font-bold tracking-tight">
                 {APP_CONFIG.title}
               </h1>
               <p className="text-text-4 mt-0.5 text-[10px] leading-none tracking-wide">
@@ -453,11 +470,17 @@ export default function Home() {
         {/* ── Primary tab nav ── */}
         <div className="bg-surface border-border overflow-hidden rounded-2xl border">
           <nav className="border-border border-b">
-            <div className="flex">
-              {TABS.map(({ key, label, icon }) => (
+            <div role="tablist" aria-label="Main navigation" className="flex">
+              {TABS.map(({ key, label, icon }, idx) => (
                 <button
                   key={key}
+                  role="tab"
+                  aria-selected={tab === key}
+                  aria-controls={`panel-${key}`}
+                  id={`tab-${key}`}
+                  tabIndex={tab === key ? 0 : -1}
                   onClick={() => setTab(key)}
+                  onKeyDown={(e) => handleTabKeyDown(e, idx)}
                   className={`relative flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-all ${
                     tab === key
                       ? 'text-text'
@@ -483,11 +506,11 @@ export default function Home() {
           <div className="p-5">
             {/* ─ Dashboard ─ */}
             {tab === 'dashboard' && (
-              <div className="space-y-4">
-                {/* Month picker (contextual for the metrics) */}
+              <div key="dashboard" className="animate-fade-in space-y-5">
+                {/* Month picker */}
                 {month && (
                   <div className="flex items-center justify-between">
-                    <h2 className="text-text-3 text-xs font-medium tracking-widest uppercase">
+                    <h2 className="text-text font-semibold">
                       {new Date(month + '-02').toLocaleDateString('en-US', {
                         month: 'long',
                         year: 'numeric',
@@ -522,6 +545,11 @@ export default function Home() {
                         label="Total income"
                         value={formatCurrency(summary.totalIncome)}
                         delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
+                        tooltip="All base pay, allowances, and additional income for the month"
+                        onClick={() => {
+                          setTab('pay');
+                          setPaySub('pay');
+                        }}
                       />
                       <MetricCard
                         label="Invested"
@@ -532,12 +560,22 @@ export default function Home() {
                           prevSummary ? prevSummary.tsp + prevSummary.investmentFixed : undefined,
                           true,
                         )}
+                        tooltip="TSP contributions + fixed investment expenses + Investment-category transactions"
+                        onClick={() => {
+                          setTab('pay');
+                          setPaySub('pay');
+                        }}
                       />
                       <MetricCard
                         label="Committed"
                         value={formatCurrency(summary.committed)}
                         accent="amber"
                         delta={delta(summary.committed, prevSummary?.committed, null)}
+                        tooltip="Fixed recurring bills + active debt payments"
+                        onClick={() => {
+                          setTab('spending');
+                          setSpendingSub('bills');
+                        }}
                       />
                       <MetricCard
                         label={APP_CONFIG.transactionsTabLabel}
@@ -545,12 +583,18 @@ export default function Home() {
                         sub={projectedSpending(month, summary.spending)}
                         accent="red"
                         delta={delta(summary.spending, prevSummary?.spending, false)}
+                        tooltip="Discretionary transaction spending (excludes Investment category)"
+                        onClick={() => {
+                          setTab('spending');
+                          setSpendingSub('transactions');
+                        }}
                       />
                       <MetricCard
                         label="Net remaining"
                         value={(summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)}
                         accent={summary.net >= 0 ? 'green' : 'red'}
                         delta={delta(summary.net, prevSummary?.net, true)}
+                        tooltip="Income − invested − committed − spending"
                       />
                       <MetricCard
                         label="Savings rate"
@@ -563,6 +607,11 @@ export default function Home() {
                               : 'red'
                         }
                         delta={delta(summary.savingsRate, prevSummary?.savingsRate, true, true)}
+                        tooltip="(Invested + max(0, Net)) ÷ Income — target ≥ 20%"
+                        onClick={() => {
+                          setTab('plan');
+                          setPlanSub('overview');
+                        }}
                       />
                     </div>
 
@@ -573,19 +622,51 @@ export default function Home() {
                     {month && <SpendingAnomalyBanner month={month} />}
 
                     {/* Net worth + Health score */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <NetWorthCard assets={assets} debts={debts} goals={goals} />
-                      {healthScore && <HealthScoreCard score={healthScore} />}
+                    <div className="section-divider grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <NetWorthCard
+                        assets={assets}
+                        debts={debts}
+                        goals={goals}
+                        onClick={() => setTab('wealth')}
+                      />
+                      {healthScore && (
+                        <HealthScoreCard
+                          score={healthScore}
+                          onClick={() => {
+                            setTab('wealth');
+                            setWealthSub('net-worth');
+                          }}
+                        />
+                      )}
                     </div>
 
                     {/* Streak */}
-                    {streak >= 2 && <StreakBanner streak={streak} />}
+                    {streak >= 2 && (
+                      <StreakBanner
+                        streak={streak}
+                        onClick={() => {
+                          setTab('plan');
+                          setPlanSub('overview');
+                        }}
+                      />
+                    )}
 
                     {/* Budget vs actual — quick view */}
-                    <div>
-                      <p className="text-text-3 mb-3 text-xs font-medium tracking-widest uppercase">
-                        Budget vs actual
-                      </p>
+                    <div className="section-divider">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-text-3 text-[11px] font-semibold tracking-wider uppercase">
+                          Budget vs actual
+                        </p>
+                        <button
+                          onClick={() => {
+                            setTab('spending');
+                            setSpendingSub('budget');
+                          }}
+                          className="text-text-4 hover:text-accent-blue text-[11px] transition-colors"
+                        >
+                          Manage budgets →
+                        </button>
+                      </div>
                       <BudgetActualPanel month={month} monthlyIncome={summary.totalIncome} />
                     </div>
                   </>
@@ -595,7 +676,7 @@ export default function Home() {
 
             {/* ─ Pay ─ */}
             {tab === 'pay' && (
-              <div>
+              <div key="pay" className="animate-fade-in">
                 <div className="mb-4 flex items-center justify-between">
                   <SubNav
                     options={[
@@ -630,7 +711,7 @@ export default function Home() {
 
             {/* ─ Spending ─ */}
             {tab === 'spending' && (
-              <div>
+              <div key="spending" className="animate-fade-in">
                 <div className="mb-4 flex items-center justify-between">
                   <SubNav
                     options={[
@@ -675,7 +756,7 @@ export default function Home() {
 
             {/* ─ Wealth ─ */}
             {tab === 'wealth' && (
-              <div>
+              <div key="wealth" className="animate-fade-in">
                 <SubNav
                   options={[
                     { key: 'net-worth', label: 'Net worth' },
@@ -729,7 +810,7 @@ export default function Home() {
 
             {/* ─ Plan ─ */}
             {tab === 'plan' && (
-              <div>
+              <div key="plan" className="animate-fade-in">
                 <SubNav
                   options={[
                     { key: 'overview', label: 'Annual overview' },
