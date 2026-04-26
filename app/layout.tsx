@@ -4,8 +4,8 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  title: 'Budget · Assane',
-  description: 'Personal military budget tracker',
+  title: 'Fieldbook',
+  description: 'Military personal finance command center',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

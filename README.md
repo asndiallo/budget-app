@@ -1,12 +1,12 @@
-# Military Budget Tracker
+# Fieldbook
 
-A self-hosted personal finance app built for U.S. military service members. It understands your LES — base pay, BAH, BAS, TSP, SGLI, allotments — and puts everything in one place, on your own machine, with no subscription and no cloud.
+A self-hosted personal finance command center built for U.S. military service members. It understands your LES — base pay, BAH, BAS, TSP, SGLI, allotments — and puts everything in one place, on your own machine, with no subscription and no cloud.
 
 ---
 
 ## Contents
 
-- [Military Budget Tracker](#military-budget-tracker)
+- [Fieldbook](#fieldbook)
   - [Contents](#contents)
   - [Quick start](#quick-start)
   - [First-time setup](#first-time-setup)
@@ -60,7 +60,7 @@ A self-hosted personal finance app built for U.S. military service members. It u
 
 ```bash
 git clone <repo-url>
-cd budget-app
+cd fieldbook
 bun install
 bun run dev
 ```
@@ -412,11 +412,11 @@ const nextConfig = {
 ```bash
 # Using PM2
 bun add -g pm2
-pm2 start "bun run start" --name budget-app
+pm2 start "bun run start" --name fieldbook
 pm2 save && pm2 startup
 ```
 
-Or as a `systemd` service — create `/etc/systemd/system/budget-app.service`:
+Or as a `systemd` service — create `/etc/systemd/system/fieldbook.service`:
 
 ```ini
 [Unit]
@@ -424,7 +424,7 @@ Description=Military Budget Tracker
 After=network.target
 
 [Service]
-WorkingDirectory=/path/to/budget-app
+WorkingDirectory=/path/to/fieldbook
 ExecStart=/home/<user>/.bun/bin/bun run start
 Restart=always
 User=<user>
@@ -433,7 +433,7 @@ User=<user>
 WantedBy=multi-user.target
 ```
 
-Then: `sudo systemctl enable --now budget-app`.
+Then: `sudo systemctl enable --now fieldbook`.
 
 ---
 

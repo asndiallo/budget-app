@@ -5,7 +5,7 @@
 // Keep these in sync with tailwind.config.js content array (./lib/**).
 
 /** Section / field label: small caps, muted colour. */
-export const LABEL_CLS = 'text-[10px] font-semibold uppercase tracking-widest text-text-3';
+export const LABEL_CLS = 'text-[11px] font-semibold uppercase tracking-wider text-text-3';
 
 /** Standard single-line text/select input. */
 export const INPUT_CLS =
@@ -18,7 +18,7 @@ export const BTN_BLUE_CLS =
 // ─── App meta ─────────────────────────────────────────────────────────────────
 
 export const APP_CONFIG = {
-  title: 'Budget tracker',
+  title: 'Fieldbook',
   subtitle: 'E-3 · 4N0 · JBSA Fort Sam Houston',
   transactionsTabLabel: 'Spending',
 } as const;
