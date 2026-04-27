@@ -25,7 +25,7 @@ export default function ReceivablesPanel({
   const reload = () => api.receivables.list().then(setReceivables);
 
   useEffect(() => {
-    reload();
+    void reload();
   }, []);
 
   async function addReceivable() {
@@ -39,7 +39,7 @@ export default function ReceivablesPanel({
     setNewName('');
     setNewDesc('');
     setNewAmt('');
-    reload();
+    void reload();
   }
 
   function openPayment(r: Receivable) {
@@ -54,7 +54,7 @@ export default function ReceivablesPanel({
     await api.receivables.recordPayment(r.id, amt, month);
     setPayingId(null);
     setPaymentAmt('');
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -63,12 +63,12 @@ export default function ReceivablesPanel({
     data: Partial<Pick<Receivable, 'name' | 'description' | 'amount'>>,
   ) {
     await api.receivables.update(id, data);
-    reload();
+    void reload();
   }
 
   async function remove(id: number) {
     await api.receivables.remove(id);
-    reload();
+    void reload();
   }
 
   const outstanding = receivables.filter((r) => !r.paid);

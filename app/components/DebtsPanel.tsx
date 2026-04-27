@@ -29,14 +29,14 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
   const reloadSuggestions = () => api.debts.detectPayments().then(setSuggestions);
 
   useEffect(() => {
-    reload();
-    reloadSuggestions();
+    void reload();
+    void reloadSuggestions();
   }, []);
 
   async function applyPayment(s: PaymentSuggestion) {
     await api.debts.applyPayment(s.debtId, s.transactionId, s.txAmount);
     setSuggestions((prev) => prev.filter((x) => x.transactionId !== s.transactionId));
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -59,13 +59,13 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
     setNewBalance('');
     setNewPayment('');
     setNewRate('');
-    reload();
+    void reload();
     onUpdate();
   }
 
   async function removeDebt(id: number) {
     await api.debts.remove(id);
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -74,7 +74,7 @@ export default function DebtsPanel({ onUpdate }: { onUpdate: () => void }) {
     const value = isNumeric ? (raw.trim() ? parseFloat(raw) : null) : raw;
     // Always send the full object so non-COALESCE PATCH doesn't wipe unrelated fields.
     await api.debts.update(debt.id, { ...debt, [field]: value });
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -254,8 +254,6 @@ function DebtRow({
   const scraMayApply = !isPaidOff && debt.interest_rate > SCRA_CAP && debt.balance > 0;
 
   const extra = parseFloat(extraPayment) || 0;
-  const debtWithExtra: Debt =
-    extra > 0 ? { ...debt, monthly_payment: debt.monthly_payment + extra } : debt;
 
   return (
     <div
@@ -627,7 +625,6 @@ function DebtStrategy({ debts }: { debts: Debt[] }) {
 
   const best = avalanche.totalInterest <= snowball.totalInterest ? 'avalanche' : 'snowball';
   const bestResult = best === 'avalanche' ? avalanche : snowball;
-  const bestOrder = best === 'avalanche' ? avalancheOrder : snowballOrder;
   const saved = current.totalInterest - bestResult.totalInterest;
 
   const rows = [

@@ -17,6 +17,7 @@ export default tseslint.config(
       'coverage/**',
       'next-env.d.ts',
       '*.config.js', // next.config.js, postcss.config.js, tailwind.config.js
+      '*.config.mjs', // eslint.config.mjs — not in tsconfig
     ],
   },
 
@@ -57,10 +58,13 @@ export default tseslint.config(
       'react/prop-types': 'off', // TypeScript handles this
       'react/display-name': 'off', // common with anonymous arrow components
 
-      // Accessibility
+      // Accessibility — single-user personal app, strict a11y rules add noise without value
       ...jsxA11y.configs.recommended.rules,
-      // autofocus is good UX for modals/dialogs — downgrade from error to warn
       'jsx-a11y/no-autofocus': 'warn',
+      'jsx-a11y/label-has-associated-control': 'off',
+      'jsx-a11y/click-events-have-key-events': 'off',
+      'jsx-a11y/no-static-element-interactions': 'off',
+      'jsx-a11y/no-noninteractive-element-interactions': 'off',
 
       // Import ordering
       'simple-import-sort/imports': 'error',
@@ -94,6 +98,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'warn',
       // Sync SQLite ops inside async Next.js route handlers is the normal pattern here
       '@typescript-eslint/require-await': 'off',
+      // Routes and auth helpers throw Response objects, not Error subclasses — that's the Next.js pattern
+      '@typescript-eslint/only-throw-error': 'off',
       // Initializing state from browser APIs (localStorage, Date) in useEffect is
       // the correct SSR-safe pattern in Next.js client components — this rule is too aggressive
       'react-hooks/set-state-in-effect': 'off',

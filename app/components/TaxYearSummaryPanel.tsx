@@ -52,7 +52,7 @@ export default function TaxYearSummaryPanel({ year }: { year: number }) {
   const [data, setData] = useState<TaxYearSummary | null>(null);
 
   useEffect(() => {
-    api.taxYearSummary.get(year).then(setData);
+    void api.taxYearSummary.get(year).then(setData);
   }, [year]);
 
   if (!data) return <p className="text-text-3 py-4 text-sm">Loading…</p>;

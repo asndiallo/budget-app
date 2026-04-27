@@ -44,16 +44,16 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
   const [bahSuggested, setBahSuggested] = useState<number | null>(null);
 
   function reloadProfiles() {
-    api.incomeProfiles.list().then(setProfiles);
+    void api.incomeProfiles.list().then(setProfiles);
   }
 
   function reloadAllotments() {
-    api.allotments.list().then(setAllotments);
+    void api.allotments.list().then(setAllotments);
   }
 
   useEffect(() => {
     if (!month) return;
-    api.income.get(month).then((data) => {
+    void api.income.get(month).then((data) => {
       setIncome(data);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateLocal(String(Math.round(rate * 100)));
@@ -67,7 +67,7 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
         })
         .catch(() => {});
     });
-    api.incomeEntries.list(month).then(setEntries);
+    void api.incomeEntries.list(month).then(setEntries);
   }, [month]);
 
   useEffect(() => {
@@ -86,13 +86,13 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
     setNewDesc('');
     setNewAmt('');
     setNewSource('');
-    api.incomeEntries.list(month).then(setEntries);
+    void api.incomeEntries.list(month).then(setEntries);
     onUpdate();
   }
 
   async function removeEntry(id: number) {
     await api.incomeEntries.remove(id);
-    api.incomeEntries.list(month).then(setEntries);
+    void api.incomeEntries.list(month).then(setEntries);
     onUpdate();
   }
 
@@ -364,7 +364,7 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
               f.key === 'bah' && bahSuggested !== null
                 ? {
                     label: `Rate changed → $${Math.round(bahSuggested).toLocaleString()}`,
-                    onAction: fetchSuggestion,
+                    onAction: () => { void fetchSuggestion(); },
                   }
                 : undefined
             }

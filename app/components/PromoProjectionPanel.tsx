@@ -9,9 +9,7 @@ import {
   getBAH,
   getBAS,
   getBasePay,
-  isOfficer,
   OFFICER_GRADES,
-  PAY_GRADES,
   RANK_TITLES,
   WARRANT_GRADES,
 } from '@/lib/pay-tables';
@@ -117,7 +115,6 @@ export default function PromoProjectionPanel({
 
   const atTopGrade = defaultNextGrade(currentGrade) === null;
   const bahKnown = current.bah > 0 || promoted.bah > 0;
-  const bahLabel = bahKnown ? undefined : 'BAH not available for this duty station';
 
   const baseDelta = promoted.basePay - current.basePay;
   const basDelta = promoted.bas - current.bas;

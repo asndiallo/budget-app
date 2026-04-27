@@ -292,7 +292,7 @@ export default function RegisterPage() {
                   placeholder="When did you enlist?"
                 />
                 <p className="text-text-4 mt-1 text-[10px]">
-                  Income won't be shown for months before this date.
+                  Income won&apos;t be shown for months before this date.
                 </p>
               </div>
 

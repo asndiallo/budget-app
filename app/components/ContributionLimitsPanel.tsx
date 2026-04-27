@@ -136,7 +136,7 @@ export default function ContributionLimitsPanel({ year }: { year: number }) {
   const [data, setData] = useState<ContributionLimits | null>(null);
 
   useEffect(() => {
-    api.contributionLimits.get(year).then(setData);
+    void api.contributionLimits.get(year).then(setData);
   }, [year]);
 
   if (!data || data.monthsWithData === 0) return null;

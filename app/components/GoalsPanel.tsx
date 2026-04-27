@@ -66,8 +66,8 @@ export default function GoalsPanel() {
   const reload = () => api.goals.list().then(setGoals);
 
   useEffect(() => {
-    reload();
-    api.insights.get().then(setInsights);
+    void reload();
+    void api.insights.get().then(setInsights);
   }, []);
 
   const startEdit = (g: Goal) => setEditing((prev) => ({ ...prev, [g.id]: toDraft(g) }));
@@ -102,28 +102,28 @@ export default function GoalsPanel() {
       color: d.color,
     });
     cancelEdit(g.id);
-    reload();
+    void reload();
   }
 
   async function applySmartTarget(g: Goal, suggested: number) {
     await api.goals.update(g.id, { target: suggested });
-    reload();
+    void reload();
   }
 
   async function addContribution(g: Goal, amount: number, note: string) {
     await api.goalContributions.add(g.id, amount, note || null);
-    reload();
+    void reload();
     if (historyGoalId === g.id) loadHistory(g.id);
   }
 
   async function removeContribution(c: GoalContribution) {
     await api.goalContributions.remove(c.id, c.goal_id, c.amount);
-    reload();
+    void reload();
     loadHistory(c.goal_id);
   }
 
   function loadHistory(goalId: number) {
-    api.goalContributions.list(goalId).then(setContributions);
+    void api.goalContributions.list(goalId).then(setContributions);
     setHistoryGoalId(goalId);
   }
 
@@ -138,7 +138,7 @@ export default function GoalsPanel() {
 
   async function deleteGoal(id: number) {
     await api.goals.remove(id);
-    reload();
+    void reload();
   }
 
   async function addGoal() {
@@ -146,7 +146,7 @@ export default function GoalsPanel() {
     await api.goals.add(newName.trim(), parseFloat(newTarget), newColor);
     setNewName('');
     setNewTarget('');
-    reload();
+    void reload();
   }
 
   const totalTarget = goals.reduce((s, g) => s + g.target, 0);
@@ -252,7 +252,7 @@ export default function GoalsPanel() {
                       value={draft.name}
                       onChange={(e) => patchDraft(g.id, { name: e.target.value })}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveEdit(g);
+                        if (e.key === 'Enter') void saveEdit(g);
                         if (e.key === 'Escape') cancelEdit(g.id);
                       }}
                       placeholder="Goal name"
@@ -281,7 +281,7 @@ export default function GoalsPanel() {
                         value={draft.target}
                         onChange={(e) => patchDraft(g.id, { target: e.target.value })}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEdit(g);
+                          if (e.key === 'Enter') void saveEdit(g);
                           if (e.key === 'Escape') cancelEdit(g.id);
                         }}
                         className={`w-full ${inputClass}`}
@@ -295,7 +295,7 @@ export default function GoalsPanel() {
                         value={draft.saved}
                         onChange={(e) => patchDraft(g.id, { saved: e.target.value })}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEdit(g);
+                          if (e.key === 'Enter') void saveEdit(g);
                           if (e.key === 'Escape') cancelEdit(g.id);
                         }}
                         className={`w-full ${inputClass}`}
@@ -571,7 +571,7 @@ export default function GoalsPanel() {
 }
 
 function ContributionRow({
-  goal,
+  goal: _goal,
   onAdd,
 }: {
   goal: Goal;

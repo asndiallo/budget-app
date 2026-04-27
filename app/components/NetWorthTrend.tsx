@@ -67,7 +67,7 @@ export default function NetWorthTrend({ onUpdate }: { onUpdate?: number }) {
 
   const reload = () => {
     setLoading(true);
-    api.netWorthHistory
+    void api.netWorthHistory
       .list()
       .then((snaps) => setData(buildChartData(snaps)))
       .finally(() => setLoading(false));

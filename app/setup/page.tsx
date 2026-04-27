@@ -126,8 +126,6 @@ export default function SetupPage() {
       maximumFractionDigits: 0,
     });
 
-  const ALL_GRADES = [...ENLISTED_GRADES, ...WARRANT_GRADES, ...OFFICER_GRADES];
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-(--bg-base) p-4">
       <div className="border-border w-full max-w-lg rounded-2xl border bg-(--bg-card) p-8 shadow-xl">

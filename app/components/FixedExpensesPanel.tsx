@@ -50,12 +50,12 @@ export default function FixedExpensesPanel({
       : undefined;
 
   useEffect(() => {
-    reload();
-    reloadGoals();
+    void reload();
+    void reloadGoals();
   }, []);
 
   useEffect(() => {
-    reloadPayments();
+    void reloadPayments();
   }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function togglePaid(f: FixedExpense) {
@@ -69,7 +69,7 @@ export default function FixedExpensesPanel({
         await api.goalContributions.add(f.goal_id, monthlyAmount(f), `Auto: ${f.label} (${month})`);
       }
     }
-    reloadPayments();
+    void reloadPayments();
   }
 
   async function saveRecurrence(f: FixedExpense) {
@@ -88,7 +88,7 @@ export default function FixedExpensesPanel({
       end_date: editEndDate || null,
     });
     setEditingRecId(null);
-    reload();
+    void reload();
   }
 
   async function addFixed() {
@@ -116,13 +116,13 @@ export default function FixedExpensesPanel({
     setNewRecurrence('monthly');
     setNewAnchor('');
     setNewEndDate('');
-    reload();
+    void reload();
     onUpdate();
   }
 
   async function removeFixed(id: number) {
     await api.fixedExpenses.remove(id);
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -141,7 +141,7 @@ export default function FixedExpensesPanel({
       recurrence_anchor: f.recurrence_anchor,
       end_date: f.end_date,
     });
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -159,7 +159,7 @@ export default function FixedExpensesPanel({
       recurrence_anchor: f.recurrence_anchor,
       end_date: f.end_date,
     });
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -179,7 +179,7 @@ export default function FixedExpensesPanel({
       recurrence_anchor: f.recurrence_anchor,
       end_date: f.end_date,
     });
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -197,7 +197,7 @@ export default function FixedExpensesPanel({
       recurrence_anchor: f.recurrence_anchor,
       end_date: f.end_date,
     });
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -215,7 +215,7 @@ export default function FixedExpensesPanel({
       recurrence_anchor: f.recurrence_anchor,
       end_date: f.end_date,
     });
-    reload();
+    void reload();
   }
 
   const total = fixed.reduce((s, f) => s + monthlyAmount(f), 0);

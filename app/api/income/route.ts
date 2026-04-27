@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 
+import type { getDb } from '@/lib/db';
 import { withAuth } from '@/lib/route-helpers';
 import { currentMonth } from '@/lib/utils';
 
 function getIncomeForMonth(
-  db: ReturnType<typeof import('@/lib/db').getDb>,
+  db: ReturnType<typeof getDb>,
   month: string,
   userId: string,
 ) {

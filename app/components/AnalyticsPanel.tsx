@@ -45,7 +45,7 @@ export default function AnalyticsPanel({
 
   useEffect(() => {
     if (!month) return;
-    fetch(`/api/analytics?month=${month}&count=12`)
+    void fetch(`/api/analytics?month=${month}&count=12`)
       .then((r) => r.json())
       .then(setData);
   }, [month]);
@@ -245,7 +245,7 @@ export default function AnalyticsPanel({
                 width={36}
                 domain={[0, 'auto']}
               />
-              <Tooltip formatter={(v) => [`${v}%`, 'Savings rate']} contentStyle={tooltipStyle} />
+              <Tooltip formatter={(v) => [`${String(v)}%`, 'Savings rate']} contentStyle={tooltipStyle} />
               <ReferenceLine
                 y={20}
                 stroke="#00d98a"

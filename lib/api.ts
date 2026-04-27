@@ -23,6 +23,7 @@ import type {
   IncomeConfig,
   IncomeEntry,
   IncomeProfile,
+  LeaveEvent,
   NetWorthSnapshot,
   PaymentSource,
   Receivable,
@@ -323,7 +324,7 @@ export const api = {
       fetch('/api/leave').then(
         (r) =>
           r.json() as Promise<{
-            events: import('./types').LeaveEvent[];
+            events: LeaveEvent[];
             joined_at: string;
             anchor: {
               balance_days: number;
@@ -334,7 +335,7 @@ export const api = {
       ),
     addEvent: (taken_at: string, days: number, note?: string | null) =>
       send('POST', '/api/leave', { taken_at, days, note }).then(
-        (r) => r.json() as Promise<import('./types').LeaveEvent>,
+        (r) => r.json() as Promise<LeaveEvent>,
       ),
     removeEvent: (id: number) =>
       send('DELETE', '/api/leave', { id }).then((r) => r.json() as Promise<{ ok: boolean }>),

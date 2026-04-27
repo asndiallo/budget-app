@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { TSP_CONFIG } from '../config';
+import type { getDb } from '../db';
 import { computeMonthlyFinancials, incomeForMonth } from '../income';
 
 // ── Mock DB helper ────────────────────────────────────────────────────────────
@@ -11,7 +12,7 @@ function makeDb(rows: { key: string; value: number }[]) {
     prepare: () => ({
       all: () => rows,
     }),
-  } as unknown as ReturnType<typeof import('../db').getDb>;
+  } as unknown as ReturnType<typeof getDb>;
 }
 
 // ── incomeForMonth ────────────────────────────────────────────────────────────

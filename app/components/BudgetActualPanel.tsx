@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { BTN_BLUE_CLS, CAT_COLORS, CHART_CAT_COLORS } from '@/lib/config';
-import type { CategoryBudget, SpendingInsights, Transaction } from '@/lib/types';
+import type { SpendingInsights, Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface CategoryRow {
@@ -80,7 +80,7 @@ export default function BudgetActualPanel({
 
   const reload = (m: string) => {
     setLoading(true);
-    Promise.all([api.transactions.list(m), api.categoryBudgets.list(), api.insights.get()])
+    void Promise.all([api.transactions.list(m), api.categoryBudgets.list(), api.insights.get()])
       .then(([txs, saved, insights]) => {
         const savedMap = Object.fromEntries(
           saved.map((r) => [r.category, { budget: r.budget, percentage: r.percentage }]),
@@ -262,7 +262,7 @@ export default function BudgetActualPanel({
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit(category);
+                      if (e.key === 'Enter') void saveEdit(category);
                       if (e.key === 'Escape') cancelEdit();
                     }}
                     className="bg-surface border-border text-text w-24 rounded-lg border px-2.5 py-1 font-mono text-sm transition-colors focus:border-blue-600 focus:outline-none"

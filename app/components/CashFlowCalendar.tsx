@@ -94,7 +94,7 @@ export default function CashFlowCalendar({
   useEffect(() => {
     if (!month) return;
     setSelectedDay(null);
-    Promise.all([api.transactions.list(month), api.fixedExpenses.list(), api.debts.list()]).then(
+    void Promise.all([api.transactions.list(month), api.fixedExpenses.list(), api.debts.list()]).then(
       ([txs, fe, ds]) => {
         setTransactions(txs);
         setFixedExpenses(fe);

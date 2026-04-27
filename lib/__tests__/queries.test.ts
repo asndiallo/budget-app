@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { getDb } from '../db';
 import {
   getAccountsForDetection,
   getActiveDebtPaymentsTotal,
@@ -23,7 +24,7 @@ type Row = Record<string, unknown>;
  */
 function makeDb(
   responses: { match: string; get?: Row; all?: Row[] }[],
-): ReturnType<typeof import('../db').getDb> {
+): ReturnType<typeof getDb> {
   return {
     prepare: (sql: string) => {
       const entry = responses.find((r) => sql.includes(r.match));
@@ -32,7 +33,7 @@ function makeDb(
         all: (..._args: unknown[]) => entry?.all ?? [],
       };
     },
-  } as unknown as ReturnType<typeof import('../db').getDb>;
+  } as unknown as ReturnType<typeof getDb>;
 }
 
 // ── getJoinedAt ───────────────────────────────────────────────────────────────
@@ -164,7 +165,7 @@ describe('getLiquidAssets', () => {
           return null;
         },
       }),
-    } as unknown as ReturnType<typeof import('../db').getDb>;
+    } as unknown as ReturnType<typeof getDb>;
     expect(getLiquidAssets(db, 'u1')).toBe(6500);
   });
 
@@ -177,7 +178,7 @@ describe('getLiquidAssets', () => {
           return null;
         },
       }),
-    } as unknown as ReturnType<typeof import('../db').getDb>;
+    } as unknown as ReturnType<typeof getDb>;
     expect(getLiquidAssets(db, 'u1')).toBe(0);
   });
 });

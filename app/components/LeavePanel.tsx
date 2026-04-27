@@ -149,7 +149,7 @@ export default function LeavePanel({ basePay, joinedAt }: Props) {
   const [savingLes, setSavingLes] = useState(false);
 
   useEffect(() => {
-    api.leave.get().then((data) => {
+    void api.leave.get().then((data) => {
       setEvents(data.events);
       setAnchor(data.anchor);
       setLoading(false);
@@ -304,7 +304,7 @@ export default function LeavePanel({ basePay, joinedAt }: Props) {
             Import LES leave balance
           </p>
           <p className="text-text-4 text-[11px]">
-            Find "EOM BAL" (end-of-month balance) in the Leave section of your LES.
+            Find &quot;EOM BAL&quot; (end-of-month balance) in the Leave section of your LES.
           </p>
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-0.5">

@@ -25,7 +25,7 @@ export default function ApiKeysPanel() {
   const reload = () => api.apiKeys.list().then(setKeys);
 
   useEffect(() => {
-    reload();
+    void reload();
   }, []);
 
   const handleCreate = async () => {

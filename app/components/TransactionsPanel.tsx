@@ -93,13 +93,13 @@ export default function TransactionsPanel({
   const reloadAccounts = () => api.financialAccounts.list().then(setAccounts);
 
   useEffect(() => {
-    reloadTxs();
+    void reloadTxs();
   }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    reloadSources();
-    reloadImportHistory();
-    reloadAccounts();
+    void reloadSources();
+    void reloadImportHistory();
+    void reloadAccounts();
   }, []);
 
   async function addTx() {
@@ -116,7 +116,7 @@ export default function TransactionsPanel({
     if (undoTx) clearTimeout(undoTx.timer);
     const timer = setTimeout(() => setUndoTx(null), 6000);
     setUndoTx({ id: tx.id, timer });
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
@@ -125,7 +125,7 @@ export default function TransactionsPanel({
     clearTimeout(undoTx.timer);
     setUndoTx(null);
     await api.transactions.remove(undoTx.id);
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
@@ -134,20 +134,20 @@ export default function TransactionsPanel({
     data: Partial<Pick<Transaction, 'description' | 'amount' | 'category'>>,
   ) {
     await api.transactions.update(id, data);
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
   async function deleteTx(id: number) {
     await api.transactions.remove(id);
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
@@ -163,7 +163,7 @@ export default function TransactionsPanel({
     await api.transactions.bulkDelete([...selectedIds]);
     setSelectedIds(new Set());
     setSelectMode(false);
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
@@ -172,7 +172,7 @@ export default function TransactionsPanel({
     await api.transactions.bulkRecategorize([...selectedIds], bulkCat);
     setSelectedIds(new Set());
     setSelectMode(false);
-    reloadTxs();
+    void reloadTxs();
     onUpdate();
   }
 
@@ -415,8 +415,8 @@ export default function TransactionsPanel({
     );
     setPendingRows([]);
     setCommitting(false);
-    reloadTxs();
-    reloadImportHistory();
+    void reloadTxs();
+    void reloadImportHistory();
     onUpdate();
   }
 
@@ -429,12 +429,12 @@ export default function TransactionsPanel({
     });
     setNewAcctName('');
     setNewAcctInstitution('');
-    reloadAccounts();
+    void reloadAccounts();
   }
 
   async function removeAccount(id: number) {
     await api.financialAccounts.remove(id);
-    reloadAccounts();
+    void reloadAccounts();
   }
 
   async function runBackfill() {
@@ -445,7 +445,7 @@ export default function TransactionsPanel({
         ? `✓ Linked ${updated} transaction${updated !== 1 ? 's' : ''}`
         : 'No new matches found',
     );
-    if (updated > 0) reloadTxs();
+    if (updated > 0) void reloadTxs();
   }
 
   async function bulkLinkAccount() {
@@ -454,25 +454,25 @@ export default function TransactionsPanel({
     await api.transactions.bulkLinkAccount([...selectedIds], id);
     setSelectedIds(new Set());
     setSelectMode(false);
-    reloadTxs();
+    void reloadTxs();
   }
 
   async function addCard() {
     if (!newCard.trim()) return;
     await api.paymentSources.add(newCard.trim());
     setNewCard('');
-    reloadSources();
+    void reloadSources();
   }
 
   async function removeCard(id: number) {
     await api.paymentSources.remove(id);
-    reloadSources();
+    void reloadSources();
   }
 
   async function undoImport(importId: string) {
     await api.importHistory.remove(importId);
-    reloadTxs();
-    reloadImportHistory();
+    void reloadTxs();
+    void reloadImportHistory();
     onUpdate();
   }
 
@@ -484,7 +484,7 @@ export default function TransactionsPanel({
       return;
     }
     searchRef.current = setTimeout(() => {
-      api.transactions.search(q).then(setSearchResults);
+      void api.transactions.search(q).then(setSearchResults);
     }, 300);
   }
 
@@ -1114,7 +1114,7 @@ export default function TransactionsPanel({
         accounts={accounts}
         onClose={() => setDetailTx(null)}
         onSaved={() => {
-          reloadTxs();
+          void reloadTxs();
           onUpdate();
         }}
       />

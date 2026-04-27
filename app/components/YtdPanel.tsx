@@ -12,7 +12,7 @@ export default function YtdPanel({ month }: { month: string }) {
 
   useEffect(() => {
     if (!month) return;
-    api.ytd.get(month).then(setYtd);
+    void api.ytd.get(month).then(setYtd);
   }, [month]);
 
   if (!ytd || ytd.monthsRecorded === 0) return null;

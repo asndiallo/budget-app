@@ -14,19 +14,19 @@ export default function AutoCategorizationPanel() {
   const reload = () => api.categorizationRules.list().then(setRules);
 
   useEffect(() => {
-    reload();
+    void reload();
   }, []);
 
   async function addRule() {
     if (!newKeyword.trim()) return;
     await api.categorizationRules.add(newKeyword.trim(), newCategory);
     setNewKeyword('');
-    reload();
+    void reload();
   }
 
   async function removeRule(id: number) {
     await api.categorizationRules.remove(id);
-    reload();
+    void reload();
   }
 
   return (
@@ -41,7 +41,7 @@ export default function AutoCategorizationPanel() {
       </div>
 
       <p className="text-text-4 mb-3 text-[11px]">
-        When a transaction description contains a keyword, it's automatically assigned to that
+        When a transaction description contains a keyword, it&apos;s automatically assigned to that
         category on import.
       </p>
 

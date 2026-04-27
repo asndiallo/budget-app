@@ -437,7 +437,7 @@ interface VaLoanProps {
   component: string;
 }
 
-function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
+function VaLoanPanel({ bah, grade: _grade, component }: VaLoanProps) {
   const [homePrice, setHomePrice] = useState('');
   const [downPct, setDownPct] = useState('0');
   const [rate, setRate] = useState('6.5');
@@ -459,7 +459,7 @@ function VaLoanPanel({ bah, grade, component }: VaLoanProps) {
     // Subsequent use: 3.3%
     // ≥ 5% down: 1.5%; ≥ 10% down: 1.25%
     const isReserve = component === 'Reserve' || component === 'Guard';
-    let fundingFeePct = 0;
+    let fundingFeePct: number;
     if (downFrac >= 0.1) {
       fundingFeePct = 0.0125;
     } else if (downFrac >= 0.05) {

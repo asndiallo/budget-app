@@ -39,7 +39,7 @@ export default function RecurringDetectionPanel({ onUpdate }: { onUpdate: () => 
 
   useEffect(() => {
     setDismissed(getDismissed());
-    api.recurring.list().then((data) => {
+    void api.recurring.list().then((data) => {
       setCandidates(data);
       setLoaded(true);
     });

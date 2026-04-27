@@ -11,7 +11,6 @@ import {
   inferRetirementSystem,
 } from '@/lib/brs-calc';
 import { LABEL_CLS, TSP_CONFIG } from '@/lib/config';
-import type { PayGrade } from '@/lib/pay-tables';
 import type { UserProfile } from '@/lib/types';
 
 interface Props {
@@ -108,16 +107,14 @@ export default function BrsPanel({ user, month }: Props) {
   const [returnPct, setReturnPct] = useState(6);
   const [contMult, setContMult] = useState(2.5);
   const [basePay, setBasePay] = useState(0);
-  const [loaded, setLoaded] = useState(false);
   const [showAssumptions, setShowAssumptions] = useState(false);
 
   // Fetch actual base pay and TSP rate from income config
   useEffect(() => {
-    api.income.get(month).then((data) => {
+    void api.income.get(month).then((data) => {
       setBasePay(data.base_pay ?? 0);
       const rate = data.tsp_rate ?? TSP_CONFIG.rate;
       setTspRateStr(String(Math.round(rate * 100)));
-      setLoaded(true);
     });
   }, [month]);
 
@@ -138,7 +135,6 @@ export default function BrsPanel({ user, month }: Props) {
 
   const r: BrsResult = useMemo(() => calcBrs(inputs), [inputs]);
 
-  const grade = (user?.pay_grade ?? 'E-3') as PayGrade;
   const dodPct = Math.round(dodMatchRate(inputs.tspRate) * 100);
   const memberPct = Math.round(inputs.tspRate * 100);
   const totalTspPct = memberPct + dodPct;
@@ -309,7 +305,7 @@ export default function BrsPanel({ user, month }: Props) {
             <span className="font-mono font-semibold">
               {fmtK(r.brsWealthAtRetirement - r.legacyWealthAtRetirement)}
             </span>{' '}
-            more in portable wealth. <span className="text-text-2 font-semibold">Legacy</span>'s
+            more in portable wealth. <span className="text-text-2 font-semibold">Legacy</span>&apos;s
             higher pension (
             <span className="font-mono">{formatCurrency(r.pensionShortfall)}/mo</span> more) catches
             up after <span className="text-text font-semibold">{r.breakEvenYears} years</span> of
@@ -359,8 +355,8 @@ export default function BrsPanel({ user, month }: Props) {
       {memberPct < 5 && memberPct >= 0 && system === 'brs' && (
         <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5">
           <p className="text-[11px] text-amber-400">
-            ⚠ You're contributing {memberPct}% — increase to 5% to get the full DoD match (
-            {Math.round(dodMatchRate(0.05) * 100)}% of base pay free). That's{' '}
+            ⚠ You&apos;re contributing {memberPct}% — increase to 5% to get the full DoD match (
+            {Math.round(dodMatchRate(0.05) * 100)}% of base pay free). That&apos;s{' '}
             {formatCurrency(basePay * (dodMatchRate(0.05) - dodMatchRate(inputs.tspRate)))} more per
             month from DoD.
           </p>

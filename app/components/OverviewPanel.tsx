@@ -51,7 +51,7 @@ export default function OverviewPanel({ initialYear }: { initialYear: number }) 
 
   useEffect(() => {
     setLoading(true);
-    api.overview.get(year).then((d) => {
+    void api.overview.get(year).then((d) => {
       setData(d);
       setLoading(false);
     });

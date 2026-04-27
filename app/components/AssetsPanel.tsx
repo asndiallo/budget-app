@@ -57,7 +57,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
   const reload = () => api.assets.list().then(setAssets);
 
   useEffect(() => {
-    reload();
+    void reload();
   }, []);
 
   async function addAsset() {
@@ -67,7 +67,7 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
     setNewLabel('');
     setNewBalance('');
     setNewCat('Checking');
-    reload();
+    void reload();
     onUpdate();
   }
 
@@ -78,13 +78,13 @@ export default function AssetsPanel({ onUpdate }: { onUpdate: () => void }) {
   ) {
     const value = field === 'balance' ? parseFloat(raw) || 0 : raw;
     await api.assets.update(asset.id, { [field]: value });
-    reload();
+    void reload();
     onUpdate();
   }
 
   async function removeAsset(id: number) {
     await api.assets.remove(id);
-    reload();
+    void reload();
     onUpdate();
   }
 
