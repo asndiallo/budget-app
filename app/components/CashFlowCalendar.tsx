@@ -94,13 +94,15 @@ export default function CashFlowCalendar({
   useEffect(() => {
     if (!month) return;
     setSelectedDay(null);
-    void Promise.all([api.transactions.list(month), api.fixedExpenses.list(), api.debts.list()]).then(
-      ([txs, fe, ds]) => {
-        setTransactions(txs);
-        setFixedExpenses(fe);
-        setDebts(ds);
-      },
-    );
+    void Promise.all([
+      api.transactions.list(month),
+      api.fixedExpenses.list(),
+      api.debts.list(),
+    ]).then(([txs, fe, ds]) => {
+      setTransactions(txs);
+      setFixedExpenses(fe);
+      setDebts(ds);
+    });
   }, [month]);
 
   const weeks = buildWeeks(month);

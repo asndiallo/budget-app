@@ -245,7 +245,10 @@ export default function AnalyticsPanel({
                 width={36}
                 domain={[0, 'auto']}
               />
-              <Tooltip formatter={(v) => [`${String(v)}%`, 'Savings rate']} contentStyle={tooltipStyle} />
+              <Tooltip
+                formatter={(v) => [`${String(v)}%`, 'Savings rate']}
+                contentStyle={tooltipStyle}
+              />
               <ReferenceLine
                 y={20}
                 stroke="#00d98a"

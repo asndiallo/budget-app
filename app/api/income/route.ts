@@ -4,11 +4,7 @@ import type { getDb } from '@/lib/db';
 import { withAuth } from '@/lib/route-helpers';
 import { currentMonth } from '@/lib/utils';
 
-function getIncomeForMonth(
-  db: ReturnType<typeof getDb>,
-  month: string,
-  userId: string,
-) {
+function getIncomeForMonth(db: ReturnType<typeof getDb>, month: string, userId: string) {
   const rows = db
     .prepare(
       `SELECT key, value FROM income_config i1

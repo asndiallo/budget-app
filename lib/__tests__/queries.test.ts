@@ -22,9 +22,7 @@ type Row = Record<string, unknown>;
  * Builds a fake DB that supports both .get() and .all() on a single prepare() call.
  * `responses` maps SQL fragments (substrings) to their return values.
  */
-function makeDb(
-  responses: { match: string; get?: Row; all?: Row[] }[],
-): ReturnType<typeof getDb> {
+function makeDb(responses: { match: string; get?: Row; all?: Row[] }[]): ReturnType<typeof getDb> {
   return {
     prepare: (sql: string) => {
       const entry = responses.find((r) => sql.includes(r.match));

@@ -847,12 +847,11 @@ export default function Home() {
 
       {/* ── Keyboard shortcuts overlay ── */}
       {showShortcuts && (
-         
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setShowShortcuts(false)}
         >
-          { }
+          {}
           <div
             className="bg-bg border-border w-80 rounded-2xl border p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}

@@ -305,8 +305,8 @@ export default function BrsPanel({ user, month }: Props) {
             <span className="font-mono font-semibold">
               {fmtK(r.brsWealthAtRetirement - r.legacyWealthAtRetirement)}
             </span>{' '}
-            more in portable wealth. <span className="text-text-2 font-semibold">Legacy</span>&apos;s
-            higher pension (
+            more in portable wealth. <span className="text-text-2 font-semibold">Legacy</span>
+            &apos;s higher pension (
             <span className="font-mono">{formatCurrency(r.pensionShortfall)}/mo</span> more) catches
             up after <span className="text-text font-semibold">{r.breakEvenYears} years</span> of
             retirement.

@@ -364,7 +364,9 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
               f.key === 'bah' && bahSuggested !== null
                 ? {
                     label: `Rate changed → $${Math.round(bahSuggested).toLocaleString()}`,
-                    onAction: () => { void fetchSuggestion(); },
+                    onAction: () => {
+                      void fetchSuggestion();
+                    },
                   }
                 : undefined
             }
