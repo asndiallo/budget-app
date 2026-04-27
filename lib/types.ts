@@ -431,3 +431,15 @@ export interface AnomalyResult {
   totalDays: number;
   alerts: SpendingAlert[];
 }
+
+export interface ApiKey {
+  id: number;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string;
+}

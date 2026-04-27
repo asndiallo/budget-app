@@ -232,6 +232,16 @@ function initSchema(db: Database.Database) {
       notes      TEXT,
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      TEXT    NOT NULL,
+      name         TEXT    NOT NULL,
+      key_hash     TEXT    NOT NULL UNIQUE,
+      key_prefix   TEXT    NOT NULL,
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      last_used_at TEXT
+    );
   `);
 
   migrateSchema(db);
@@ -288,6 +298,26 @@ function migrateSchema(db: Database.Database) {
   }[];
   if (!ltCols.some((c) => c.name === 'les_period')) {
     db.exec('ALTER TABLE leave_tracker ADD COLUMN les_period TEXT');
+  }
+
+  const akCols = db.prepare('PRAGMA table_info(api_keys)').all() as { name: string }[];
+  if (
+    akCols.length > 0 &&
+    akCols.some((c) => c.name === 'key') &&
+    !akCols.some((c) => c.name === 'key_hash')
+  ) {
+    db.exec(`
+      DROP TABLE api_keys;
+      CREATE TABLE api_keys (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id      TEXT    NOT NULL,
+        name         TEXT    NOT NULL,
+        key_hash     TEXT    NOT NULL UNIQUE,
+        key_prefix   TEXT    NOT NULL,
+        created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+        last_used_at TEXT
+      );
+    `);
   }
 }
 

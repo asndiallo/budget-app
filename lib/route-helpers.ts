@@ -7,9 +7,10 @@
 //     return NextResponse.json(rows);
 //   });
 
+import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';
 
-import type { RequestUser } from './auth';
+import type { RequestUser, UserRole } from './auth';
 import { requireAuth } from './auth';
 import { getDb } from './db';
 
@@ -21,17 +22,47 @@ export type AuthContext = {
 
 type AuthHandler = (req: Request, ctx: AuthContext) => Promise<Response>;
 
-/**
- * Wraps a route handler with session authentication and unified error handling.
- * - Injects { userId, user, db } into the handler.
- * - Returns 401 automatically when the session is absent (thrown by requireAuth).
- * - Returns 500 for all other unhandled errors.
- */
+async function resolveUser(req: Request, db: ReturnType<typeof getDb>): Promise<RequestUser> {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const row = db.prepare('SELECT user_id FROM api_keys WHERE key_hash = ?').get(tokenHash) as
+      | { user_id: string }
+      | undefined;
+    if (!row) {
+      throw new Response(JSON.stringify({ error: 'Invalid API key' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    db.prepare("UPDATE api_keys SET last_used_at = datetime('now') WHERE key_hash = ?").run(
+      tokenHash,
+    );
+    const u = db
+      .prepare('SELECT id, email, role, name FROM users WHERE id = ?')
+      .get(row.user_id) as { id: string; email: string; role: string; name: string } | undefined;
+    if (!u) {
+      throw new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return {
+      userId: u.id,
+      email: u.email,
+      role: (u.role as UserRole) ?? 'user',
+      displayName: u.name ?? '',
+    };
+  }
+  return requireAuth(req);
+}
+
 export function withAuth(handler: AuthHandler): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     try {
-      const user = await requireAuth(req);
       const db = getDb();
+      const user = await resolveUser(req, db);
       return await handler(req, { userId: user.userId, user, db });
     } catch (err) {
       if (err instanceof Response) return err;

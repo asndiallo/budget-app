@@ -5,6 +5,8 @@ import type {
   AccountType,
   Allotment,
   AnomalyResult,
+  ApiKey,
+  ApiKeyCreated,
   Asset,
   AssetCategory,
   BillPayment,
@@ -399,5 +401,11 @@ export const api = {
 
   anomalies: {
     get: (month: string) => fetch(`/api/anomalies?month=${month}`).then(asJson<AnomalyResult>),
+  },
+
+  apiKeys: {
+    list: () => fetch('/api/api-keys').then(asJson<ApiKey[]>),
+    create: (name: string) => send('POST', '/api/api-keys', { name }).then(asJson<ApiKeyCreated>),
+    remove: (id: number) => send('DELETE', '/api/api-keys', { id }).then(asJson<{ ok: boolean }>),
   },
 };

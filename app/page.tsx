@@ -33,6 +33,7 @@ import {
 } from '@/lib/utils';
 
 import AnalyticsPanel from './components/AnalyticsPanel';
+import ApiKeysPanel from './components/ApiKeysPanel';
 import AssetsPanel from './components/AssetsPanel';
 import AutoCategorizationPanel from './components/AutoCategorizationPanel';
 import BrsPanel from './components/BrsPanel';
@@ -72,7 +73,7 @@ type PaySub = 'pay' | 'tax' | 'leave';
 type SpendingSub = 'transactions' | 'bills' | 'budget' | 'calendar';
 type WealthSub = 'net-worth' | 'goals' | 'analytics';
 type AssetsSub = 'assets' | 'debts';
-type PlanSub = 'overview' | 'projections' | 'pcs';
+type PlanSub = 'overview' | 'projections' | 'pcs' | 'integrations';
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -816,6 +817,7 @@ export default function Home() {
                     { key: 'overview', label: 'Annual overview' },
                     { key: 'projections', label: 'Projections' },
                     { key: 'pcs', label: 'PCS' },
+                    { key: 'integrations', label: 'Integrations' },
                   ]}
                   active={planSub}
                   onChange={(k) => setPlanSub(k as PlanSub)}
@@ -836,6 +838,7 @@ export default function Home() {
                   </div>
                 )}
                 {planSub === 'pcs' && <PcsPanel user={user} />}
+                {planSub === 'integrations' && <ApiKeysPanel />}
               </div>
             )}
           </div>
