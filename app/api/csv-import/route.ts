@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 
 import { autoMatchBills } from '@/lib/bill-match';
-import { categorizeTransaction, detectAccountId } from '@/lib/categorization';
+import { categorizeTransaction, detectAccountId, isDebtServicePayment } from '@/lib/categorization';
 import { parseDate } from '@/lib/csv-utils';
-import { getAccountsForDetection, getUserCategorizationRules } from '@/lib/queries';
+import {
+  getAccountsForDetection,
+  getDebtsForDetection,
+  getUserCategorizationRules,
+} from '@/lib/queries';
 import { withAuth } from '@/lib/route-helpers';
 import type { CsvRow, DetectedIncomeRow } from '@/lib/types';
 
@@ -22,6 +26,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
 
   const userRules = getUserCategorizationRules(db, userId);
   const userAccounts = getAccountsForDetection(db, userId);
+  const userDebts = getDebtsForDetection(db, userId);
 
   const importId = crypto.randomUUID();
   const insert = db.prepare(
@@ -29,10 +34,15 @@ export const POST = withAuth(async (req, { userId, db }) => {
   );
 
   const months = new Set<string>();
+  let debtServiceSkipped = 0;
   const count = db.transaction(() => {
     let n = 0;
     for (const row of rows) {
       if (!row.description || !row.amount) continue;
+      if (isDebtServicePayment(row.description, userDebts)) {
+        debtServiceSkipped++;
+        continue;
+      }
       const parsed = parseDate(row.date);
       const month = parsed?.month ?? fallbackMonth;
       const date = parsed?.date ?? null;
@@ -95,5 +105,6 @@ export const POST = withAuth(async (req, { userId, db }) => {
     months: [...months],
     billsMatched,
     incomeImported,
+    debtServiceSkipped,
   });
 });

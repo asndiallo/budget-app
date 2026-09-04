@@ -97,7 +97,8 @@ function initSchema(db: Database.Database) {
       balance         REAL    NOT NULL DEFAULT 0,
       monthly_payment REAL    NOT NULL DEFAULT 0,
       interest_rate   REAL    NOT NULL DEFAULT 0,
-      day_of_month    INTEGER
+      day_of_month    INTEGER,
+      match_keywords  TEXT
     );
 
     CREATE TABLE IF NOT EXISTS income_entries (
@@ -289,6 +290,9 @@ function migrateSchema(db: Database.Database) {
   const debtCols = db.prepare('PRAGMA table_info(debts)').all() as { name: string }[];
   if (!debtCols.some((c) => c.name === 'day_of_month')) {
     db.exec('ALTER TABLE debts ADD COLUMN day_of_month INTEGER');
+  }
+  if (!debtCols.some((c) => c.name === 'match_keywords')) {
+    db.exec('ALTER TABLE debts ADD COLUMN match_keywords TEXT');
   }
 
   const feCols = db.prepare('PRAGMA table_info(fixed_expenses)').all() as {

@@ -155,13 +155,15 @@ describe('mapCategory', () => {
     it('maps "subscriptions" → Subscriptions', () => {
       expect(mapCategory('Subscriptions')).toBe('Subscriptions');
     });
+  });
 
-    it('maps "utilities" → Subscriptions', () => {
-      expect(mapCategory('Utilities')).toBe('Subscriptions');
+  describe('Utilities mappings', () => {
+    it('maps "utilities" → Utilities', () => {
+      expect(mapCategory('Utilities')).toBe('Utilities');
     });
 
-    it('maps "bills & utilities" → Subscriptions', () => {
-      expect(mapCategory('Bills & Utilities')).toBe('Subscriptions');
+    it('maps "bills & utilities" → Utilities', () => {
+      expect(mapCategory('Bills & Utilities')).toBe('Utilities');
     });
   });
 

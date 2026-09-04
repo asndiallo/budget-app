@@ -5,6 +5,7 @@ import {
   getAccountsForDetection,
   getActiveDebtPaymentsTotal,
   getCategoryTotalByMonth,
+  getDebtsForDetection,
   getInvestmentExpenses,
   getJoinedAt,
   getLiquidAssets,
@@ -220,6 +221,24 @@ describe('getAccountsForDetection', () => {
   it('returns an empty array when there are no active accounts', () => {
     const db = makeDb([{ match: 'financial_accounts', all: [] }]);
     expect(getAccountsForDetection(db, 'u1')).toEqual([]);
+  });
+});
+
+// ── getDebtsForDetection ──────────────────────────────────────────────────────
+
+describe('getDebtsForDetection', () => {
+  it('returns debts with match_keywords set', () => {
+    const rows = [
+      { match_keywords: 'westlake, wf payment' },
+      { match_keywords: 'nfcu mort debit' },
+    ];
+    const db = makeDb([{ match: 'debts', all: rows }]);
+    expect(getDebtsForDetection(db, 'u1')).toEqual(rows);
+  });
+
+  it('returns an empty array when no debts have match_keywords set', () => {
+    const db = makeDb([{ match: 'debts', all: [] }]);
+    expect(getDebtsForDetection(db, 'u1')).toEqual([]);
   });
 });
 

@@ -188,6 +188,10 @@ export interface Debt {
   monthly_payment: number;
   interest_rate: number;
   day_of_month?: number | null;
+  /** Comma-separated keywords matched (case-insensitive) against CSV transaction
+   * descriptions during import — a match means the row is debt service already
+   * tracked here, so csv-import skips inserting it as a spending transaction. */
+  match_keywords?: string | null;
 }
 
 export interface CategoryBudget {

@@ -115,6 +115,19 @@ export function getActiveDebtPaymentsTotal(db: Db, userId: string): number {
   ).total;
 }
 
+/**
+ * Debts with a match_keywords pattern set — used by isDebtServicePayment()
+ * to skip importing a CSV row as spending when it's really a payment
+ * already tracked here.
+ */
+export function getDebtsForDetection(db: Db, userId: string): { match_keywords: string | null }[] {
+  return db
+    .prepare(
+      "SELECT match_keywords FROM debts WHERE user_id = ? AND match_keywords IS NOT NULL AND match_keywords != ''",
+    )
+    .all(userId) as { match_keywords: string | null }[];
+}
+
 // ── Transactions ──────────────────────────────────────────────────────────────
 
 /**

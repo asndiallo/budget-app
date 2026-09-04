@@ -9,13 +9,23 @@ export const GET = withAuth(async (_req, { userId, db }) => {
 });
 
 export const POST = withAuth(async (req, { userId, db }) => {
-  const { label, lender, balance, monthly_payment, interest_rate, day_of_month } = await req.json();
+  const { label, lender, balance, monthly_payment, interest_rate, day_of_month, match_keywords } =
+    await req.json();
   const dom = day_of_month ? Number(day_of_month) : null;
   const result = db
     .prepare(
-      'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate, day_of_month) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO debts (user_id, label, lender, balance, monthly_payment, interest_rate, day_of_month, match_keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     )
-    .run(userId, label, lender ?? '', balance ?? 0, monthly_payment ?? 0, interest_rate ?? 0, dom);
+    .run(
+      userId,
+      label,
+      lender ?? '',
+      balance ?? 0,
+      monthly_payment ?? 0,
+      interest_rate ?? 0,
+      dom,
+      match_keywords ?? null,
+    );
   takeNetWorthSnapshot(db, userId);
   return NextResponse.json({
     id: result.lastInsertRowid,
@@ -25,6 +35,7 @@ export const POST = withAuth(async (req, { userId, db }) => {
     monthly_payment: monthly_payment ?? 0,
     interest_rate: interest_rate ?? 0,
     day_of_month: dom,
+    match_keywords: match_keywords ?? null,
   });
 });
 
@@ -53,7 +64,16 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
     return NextResponse.json({ ok: true });
   }
 
-  const { id, label, lender, balance, monthly_payment, interest_rate, day_of_month } = body;
+  const {
+    id,
+    label,
+    lender,
+    balance,
+    monthly_payment,
+    interest_rate,
+    day_of_month,
+    match_keywords,
+  } = body;
   db.prepare(
     `UPDATE debts SET
        label           = ?,
@@ -61,7 +81,8 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
        balance         = ?,
        monthly_payment = ?,
        interest_rate   = ?,
-       day_of_month    = ?
+       day_of_month    = ?,
+       match_keywords  = ?
      WHERE id = ? AND user_id = ?`,
   ).run(
     label,
@@ -70,6 +91,7 @@ export const PATCH = withAuth(async (req, { userId, db }) => {
     monthly_payment,
     interest_rate,
     day_of_month ? Number(day_of_month) : null,
+    match_keywords ?? null,
     id,
     userId,
   );

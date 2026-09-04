@@ -177,6 +177,7 @@ export const api = {
           months: string[];
           billsMatched: number;
           incomeImported: number;
+          debtServiceSkipped: number;
         }>,
       ),
   },

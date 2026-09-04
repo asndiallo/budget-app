@@ -220,11 +220,16 @@ export default function TransactionsPanel({
       data.incomeImported > 0
         ? ` · ${data.incomeImported} income deposit${data.incomeImported !== 1 ? 's' : ''} added`
         : '';
+    const debtMsg =
+      data.debtServiceSkipped > 0
+        ? ` · ${data.debtServiceSkipped} debt payment${data.debtServiceSkipped !== 1 ? 's' : ''} skipped (already tracked in Debts)`
+        : '';
     setImportMsg(
       `Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}` +
         (monthLabels ? ` · ${monthLabels}` : '') +
         billsMsg +
-        incomeMsg,
+        incomeMsg +
+        debtMsg,
     );
     setPendingRows([]);
     setPendingIncome([]);

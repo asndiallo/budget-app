@@ -172,6 +172,7 @@ export const CATEGORIES = [
   'Transport',
   'Shopping',
   'Subscriptions',
+  'Utilities',
   'Personal care',
   'Entertainment',
   'Wedding',
@@ -204,6 +205,7 @@ export const CHART_CAT_COLORS: Record<string, string> = {
   Transport: '#3b82f6',
   Shopping: '#a855f7',
   Subscriptions: '#0ea5e9',
+  Utilities: '#eab308',
   'Personal care': '#ec4899',
   Entertainment: '#6366f1',
   Wedding: '#f43f5e',
@@ -219,6 +221,7 @@ export const CAT_COLORS: Record<string, string> = {
   Transport: 'bg-blue-500/10 text-blue-400',
   Shopping: 'bg-purple-500/10 text-purple-400',
   Subscriptions: 'bg-sky-500/10 text-sky-400',
+  Utilities: 'bg-yellow-500/10 text-yellow-400',
   'Personal care': 'bg-pink-500/10 text-pink-400',
   Entertainment: 'bg-indigo-500/10 text-indigo-400',
   Wedding: 'bg-rose-500/10 text-rose-400',
@@ -255,8 +258,8 @@ export const CSV_CATEGORY_MAP: Record<string, string> = {
   'health & wellness': 'Personal care',
   // Subscriptions
   subscriptions: 'Subscriptions',
-  utilities: 'Subscriptions',
-  'bills & utilities': 'Subscriptions',
+  utilities: 'Utilities',
+  'bills & utilities': 'Utilities',
   // Family
   family: 'Family',
   // Education

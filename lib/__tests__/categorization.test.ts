@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { categorizeTransaction, detectAccountId } from '../categorization';
+import { categorizeTransaction, detectAccountId, isDebtServicePayment } from '../categorization';
 
 // ── categorizeTransaction ─────────────────────────────────────────────────────
 
@@ -146,5 +146,54 @@ describe('detectAccountId', () => {
     // "bank of america" should not match "bank" if institution is "bank"
     const accs = [{ id: 1, institution: 'bank' }];
     expect(detectAccountId('bank of america transfer', accs)).toBe(1);
+  });
+});
+
+// ── isDebtServicePayment ─────────────────────────────────────────────────────
+
+describe('isDebtServicePayment', () => {
+  it('returns false when the user has no debts with match_keywords set', () => {
+    expect(isDebtServicePayment('Payment to Westlake Financial', [])).toBe(false);
+    expect(isDebtServicePayment('Payment to Westlake Financial', [{ match_keywords: null }])).toBe(
+      false,
+    );
+  });
+
+  it('matches a single keyword against a debt', () => {
+    const debts = [{ match_keywords: 'westlake' }];
+    expect(isDebtServicePayment('Payment to Westlake Financial', debts)).toBe(true);
+    expect(isDebtServicePayment('WAL-MART #3391', debts)).toBe(false);
+  });
+
+  it('matches any of several comma-separated keywords on one debt', () => {
+    // real case: bank abbreviations don't share substrings with the formal lender name
+    const debts = [{ match_keywords: 'westlake, wf payment' }];
+    expect(isDebtServicePayment('Withdrawal from WF PAYMENT', debts)).toBe(true);
+    expect(isDebtServicePayment('Payment to Westlake Financial', debts)).toBe(true);
+  });
+
+  it('checks keywords across multiple debts', () => {
+    const debts = [
+      { match_keywords: 'westlake, wf payment' },
+      { match_keywords: 'nfcu mort debit' },
+    ];
+    expect(isDebtServicePayment('Withdrawal from NFCU MORT DEBIT', debts)).toBe(true);
+    expect(isDebtServicePayment('Withdrawal from WF PAYMENT', debts)).toBe(true);
+    expect(isDebtServicePayment('WAL-MART #3391', debts)).toBe(false);
+  });
+
+  it('is case-insensitive', () => {
+    const debts = [{ match_keywords: 'Westlake' }];
+    expect(isDebtServicePayment('PAYMENT TO WESTLAKE FINANCIAL', debts)).toBe(true);
+  });
+
+  it('trims whitespace around comma-separated keywords', () => {
+    const debts = [{ match_keywords: ' westlake , wf payment ' }];
+    expect(isDebtServicePayment('Withdrawal from WF PAYMENT', debts)).toBe(true);
+  });
+
+  it('ignores a debt with an empty-string match_keywords', () => {
+    const debts = [{ match_keywords: '' }];
+    expect(isDebtServicePayment('Payment to Westlake Financial', debts)).toBe(false);
   });
 });

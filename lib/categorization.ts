@@ -76,3 +76,30 @@ export function detectAccountId(
   );
   return matches.length === 1 ? matches[0].id : null;
 }
+
+// ── Debt-service detection ───────────────────────────────────────────────────────
+
+/**
+ * True when a CSV row is a debt-service payment (mortgage, car loan, etc.)
+ * already tracked via a debts row's balance/monthly_payment — matching
+ * against each debt's match_keywords (comma-separated, case-insensitive
+ * substring match, same pattern as detectAccountId's institution matching).
+ *
+ * Used to skip inserting the row as a spending transaction during CSV
+ * import: counting it there too would double-count the same cash flow
+ * against both `transactions` and `debts`, inflating "spending" and
+ * understating net/savings rate.
+ */
+export function isDebtServicePayment(
+  description: string,
+  debts: { match_keywords: string | null }[],
+): boolean {
+  const lower = description.toLowerCase();
+  return debts.some((d) =>
+    (d.match_keywords ?? '')
+      .split(',')
+      .map((k) => k.trim().toLowerCase())
+      .filter(Boolean)
+      .some((kw) => lower.includes(kw)),
+  );
+}
