@@ -63,11 +63,24 @@ const FIELD_MATCHERS: FieldMatcher[] = [
   },
   { pattern: /\bfica[\s-]medicare\b/i, key: 'fica_medicare', label: 'FICA-Medicare' },
   { pattern: /\bmedicare\b(?!.*part)/i, key: 'fica_medicare', label: 'FICA-Medicare' },
+  // SGLI Family/Spouse coverage is a distinct deduction line from base SGLI —
+  // must come first, or the generic \bsgli\b pattern below claims the 'sgli'
+  // key on this line first and the real SGLI amount never gets matched.
+  {
+    pattern: /\bsgli\s+fam(?:ily)?\s*\/?\s*spouse\b/i,
+    key: 'sgli_family',
+    label: 'SGLI Family/Spouse',
+  },
   { pattern: /\bsgli\b/i, key: 'sgli', label: 'SGLI' },
   { pattern: /\bafrh\b/i, key: 'afrh', label: 'AFRH' },
   { pattern: /\bmeal\s+deduct/i, key: 'meal_deduction', label: 'Meal deduction' },
   { pattern: /\bmeal\s+ded\b/i, key: 'meal_deduction', label: 'Meal deduction' },
   { pattern: /\bsubsistence\s+deduct/i, key: 'meal_deduction', label: 'Meal deduction' },
+  // Indebtedness repayment — an amortizing payroll deduction toward an overpayment
+  // or other debt owed to the government. Anchored to the start of the line (not
+  // just \bdebt\b) since "debt" is common enough elsewhere that a bare word-boundary
+  // match risks false positives on unrelated LES lines.
+  { pattern: /^debt\b/i, key: 'debt_repayment', label: 'Debt repayment' },
   // ── Special & incentive pays ─────────────────────────────────────────────
   { pattern: /\baviation\s+career\s+incentive\b/i, key: 'flight_pay', label: 'Flight pay (ACIP)' },
   { pattern: /\bacip\b/i, key: 'flight_pay', label: 'Flight pay (ACIP)' },
@@ -188,7 +201,9 @@ function extractLeaveBalance(text: string): number | null {
 
 // ── Amount extraction ────────────────────────────────────────────────────────
 
-const AMOUNT_RE = /\$?([\d,]+\.\d{2})/g;
+// [\d,]* (not +) — DFAS prints small amounts with no leading zero (e.g. "AFRH   .50"),
+// and requiring a leading digit silently dropped every such line.
+const AMOUNT_RE = /\$?([\d,]*\.\d{2})/g;
 
 function extractAmounts(line: string): number[] {
   const amounts: number[] = [];
@@ -291,8 +306,10 @@ export function parseLes(text: string): LesParseResult {
     'fica_soc_security',
     'fica_medicare',
     'sgli',
+    'sgli_family',
     'afrh',
     'meal_deduction',
+    'debt_repayment',
   ];
   const preview = FIELD_ORDER.filter((k) => k in fields).map((k) => ({
     key: k,

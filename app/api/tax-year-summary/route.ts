@@ -56,8 +56,10 @@ export const GET = withAuth(async (req, { userId, db }) => {
     // Roth TSP — post-tax, does NOT reduce taxable income
     rothTspContributions += base * tspRate;
 
-    // Pre-tax deductions (SGLI, AFRH, meal deduction only — not TSP since it's Roth)
-    sgli += fields['sgli'] ?? 0;
+    // Pre-tax deductions (SGLI incl. family/spouse coverage, AFRH, meal deduction —
+    // not TSP since it's Roth, and not debt_repayment, which repays already-taxed
+    // income rather than reducing taxable income)
+    sgli += (fields['sgli'] ?? 0) + (fields['sgli_family'] ?? 0);
     afrh += fields['afrh'] ?? 0;
     mealDeductions += fields['meal_deduction'] ?? 0;
 

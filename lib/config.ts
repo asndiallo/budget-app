@@ -109,8 +109,10 @@ export const DEDUCTION_FIELDS: FieldConfig[] = [
   { key: 'fica_soc_security', label: 'FICA-Soc Security' },
   { key: 'fica_medicare', label: 'FICA-Medicare' },
   { key: 'sgli', label: 'SGLI' },
+  { key: 'sgli_family', label: 'SGLI Family/Spouse' },
   { key: 'afrh', label: 'AFRH' },
   { key: 'meal_deduction', label: 'Meal deduction' },
+  { key: 'debt_repayment', label: 'Debt repayment' },
 ];
 
 // ─── Transaction categories ───────────────────────────────────────────────────

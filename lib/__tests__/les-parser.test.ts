@@ -628,3 +628,46 @@ describe('parseLes — amounts without decimals are ignored', () => {
     expect(fields.base_pay).toBeUndefined();
   });
 });
+
+describe('parseLes — amounts printed with no leading digit', () => {
+  it('captures a small deduction DFAS prints without a leading zero (e.g. "AFRH   .50")', () => {
+    // Regression: AMOUNT_RE used to require a digit before the decimal point,
+    // which silently dropped every line whose value was under $1.
+    const { fields } = parseLes(les(['BASE PAY 2836.80', 'AFRH   .50']));
+    expect(fields.afrh).toBe(0.5);
+  });
+
+  it('still takes the rightmost amount on a line with both leading-zero and bare-decimal values', () => {
+    const { fields } = parseLes(les(['BASE PAY 2836.80', 'SGLI FAM/SPOUSE   .50   4.00']));
+    expect(fields.sgli_family).toBe(4.0);
+  });
+});
+
+describe('parseLes — SGLI Family/Spouse is distinct from base SGLI', () => {
+  it('captures both SGLI and SGLI FAM/SPOUSE as separate fields', () => {
+    const { fields } = parseLes(les(['SGLI   26.00', 'SGLI FAM/SPOUSE   4.00']));
+    expect(fields.sgli).toBe(26.0);
+    expect(fields.sgli_family).toBe(4.0);
+  });
+
+  it('does not let SGLI FAM/SPOUSE claim the base sgli key first', () => {
+    // Regression: the generic \bsgli\b pattern used to match this line before the
+    // family/spouse pattern got a chance, silently dropping the base SGLI amount
+    // whenever the family/spouse line appeared first.
+    const { fields } = parseLes(les(['SGLI FAM/SPOUSE   4.00', 'SGLI   26.00']));
+    expect(fields.sgli).toBe(26.0);
+    expect(fields.sgli_family).toBe(4.0);
+  });
+});
+
+describe('parseLes — debt repayment', () => {
+  it('captures an indebtedness repayment line', () => {
+    const { fields } = parseLes(les(['DEBT   364.66']));
+    expect(fields.debt_repayment).toBe(364.66);
+  });
+
+  it('does not match "debt" appearing mid-line (anchored to line start)', () => {
+    const { fields } = parseLes(les(['STOP INDEBTEDNESS 260831(213)']));
+    expect(fields.debt_repayment).toBeUndefined();
+  });
+});
