@@ -1,0 +1,20 @@
+services:
+  fieldbook:
+    build: .
+    container_name: fieldbook
+    restart: unless-stopped
+    # Host port is overridable so it never fights a locally running `bun run
+    # dev` — e.g. `PORT=3001 docker compose up -d`. The in-container port
+    # stays 3000 regardless.
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file:
+      - .env.local
+    environment:
+      # SQLite lives under the bind-mounted /app/data instead of the default
+      # /app/budget.db, so it — and its -wal/-shm sidecar files — survive
+      # container rebuilds. lib/db.ts and lib/auth.ts both read this.
+      DB_PATH: /app/data/budget.db
+    volumes:
+      - ./data:/app/data
+      - ./import:/app/import

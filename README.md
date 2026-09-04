@@ -471,6 +471,22 @@ WantedBy=multi-user.target
 
 Then: `sudo systemctl enable --now fieldbook`.
 
+**Or with Docker** — no Bun/Node install needed on the host, just Docker:
+
+```bash
+docker compose up -d --build
+```
+
+This builds the image (`Dockerfile`) and starts it per `docker-compose.yml`, which:
+
+- Publishes the app on host port 3000 — override with `PORT=3001 docker compose up -d` if 3000 is taken (e.g. by a local `bun run dev`)
+- Reads secrets/config from `.env.local` (same file the local dev server uses)
+- Bind-mounts `./data` for the SQLite database (`budget.db` + its `-wal`/`-shm` files) and `./import` for CSV/balance auto-import, so both survive `docker compose down` / image rebuilds. This works via a `DB_PATH` env var (`lib/db.ts`, `lib/auth.ts`) that overrides the default `./budget.db` path — set it yourself if you want the same relocation outside Docker
+
+Logs: `docker compose logs -f`. Update after pulling new code: `docker compose up -d --build`.
+
+The existing backup script (`scripts/backup-db.cjs`) isn't run automatically inside the container — point it at `./data/budget.db` from the host (cron or launchd, as today) if you want backups.
+
 ---
 
 ## Configuration

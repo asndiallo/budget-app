@@ -3,14 +3,11 @@
 
 import { betterAuth } from 'better-auth';
 import Database from 'better-sqlite3';
-import path from 'path';
 
 import { SEED_DEBTS, SEED_FIXED_EXPENSES, SEED_GOALS, SEED_PAYMENT_SOURCES } from './config';
-import { getDb } from './db';
+import { DB_PATH, getDb } from './db';
 import type { PayGrade } from './pay-tables';
 import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
-
-const DB_PATH = path.join(process.cwd(), 'budget.db');
 
 export const auth = betterAuth({
   database: new Database(DB_PATH),

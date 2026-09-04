@@ -5,7 +5,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-const DB_PATH = path.join(process.cwd(), 'budget.db');
+export const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'budget.db');
 
 let _db: Database.Database | null = null;
 
