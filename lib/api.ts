@@ -15,6 +15,7 @@ import type {
   ContributionLimits,
   CsvRow,
   Debt,
+  DetectedIncomeRow,
   FinancialAccount,
   FixedExpense,
   Goal,
@@ -23,6 +24,8 @@ import type {
   IncomeConfig,
   IncomeEntry,
   IncomeProfile,
+  IncomeStream,
+  IncomeStreamFrequency,
   LeaveEvent,
   NetWorthSnapshot,
   PaymentSource,
@@ -108,6 +111,38 @@ export const api = {
     }) => send('PATCH', '/api/fixed-expenses', data).then(asJson<{ ok: boolean }>),
   },
 
+  incomeStreams: {
+    list: () => fetch('/api/income-streams').then(asJson<IncomeStream[]>),
+    add: (data: {
+      label: string;
+      amount: number;
+      frequency?: IncomeStreamFrequency;
+      day_of_month?: number | null;
+      category?: string;
+      variable?: boolean;
+      start_date?: string | null;
+      end_date?: string | null;
+      notes?: string | null;
+    }) =>
+      send('POST', '/api/income-streams', { frequency: 'monthly', ...data }).then(
+        asJson<IncomeStream>,
+      ),
+    remove: (id: number) =>
+      send('DELETE', '/api/income-streams', { id }).then(asJson<{ ok: boolean }>),
+    update: (data: {
+      id: number;
+      label: string;
+      amount: number;
+      frequency?: IncomeStreamFrequency;
+      day_of_month?: number | null;
+      category?: string;
+      variable?: boolean;
+      start_date?: string | null;
+      end_date?: string | null;
+      notes?: string | null;
+    }) => send('PATCH', '/api/income-streams', data).then(asJson<{ ok: boolean }>),
+  },
+
   transactions: {
     list: (month: string) => fetch(`/api/transactions?month=${month}`).then(asJson<Transaction[]>),
     search: (q: string) =>
@@ -129,9 +164,20 @@ export const api = {
       send('PATCH', '/api/transactions', { ids, category }).then(asJson<{ ok: boolean }>),
     bulkLinkAccount: (ids: number[], account_id: number | null) =>
       send('PATCH', '/api/transactions', { ids, account_id }).then(asJson<{ ok: boolean }>),
-    importCsv: (rows: CsvRow[], month: string, source: string) =>
-      send('POST', '/api/csv-import', { rows, month, source }).then(
-        asJson<{ ok: boolean; imported: number; months: string[]; billsMatched: number }>,
+    importCsv: (
+      rows: CsvRow[],
+      month: string,
+      source: string,
+      incomeEntries?: DetectedIncomeRow[],
+    ) =>
+      send('POST', '/api/csv-import', { rows, incomeEntries, month, source }).then(
+        asJson<{
+          ok: boolean;
+          imported: number;
+          months: string[];
+          billsMatched: number;
+          incomeImported: number;
+        }>,
       ),
   },
 

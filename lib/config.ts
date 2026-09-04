@@ -141,6 +141,17 @@ export const INVESTMENT_KEYWORDS = [
   'roth contribution',
 ] as const;
 
+/**
+ * Gig-economy payout platforms — a CSV credit/deposit whose description matches
+ * one of these is recognized as ad-hoc income (routed to income_entries) during
+ * CSV import, instead of being silently dropped like other deposits.
+ */
+export const GIG_INCOME_PLATFORMS: { keyword: string; source: string }[] = [
+  { keyword: 'doordash', source: 'DoorDash' },
+  { keyword: 'uber', source: 'Uber' },
+  { keyword: 'spark driver', source: 'Walmart Spark' },
+];
+
 /** Human-readable labels for FinancialAccount types. */
 export const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   roth_ira: 'Roth IRA',
@@ -170,6 +181,18 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+/** Categories for recurring non-military income streams (rent, Airbnb, side work). */
+export const INCOME_STREAM_CATEGORIES = ['Rental', 'Airbnb', 'Side work', 'Other'] as const;
+
+export type IncomeStreamCategory = (typeof INCOME_STREAM_CATEGORIES)[number];
+
+export const INCOME_STREAM_CAT_COLORS: Record<string, string> = {
+  Rental: '#00d98a',
+  Airbnb: '#ec4899',
+  'Side work': '#4a8cff',
+  Other: '#9ca3af',
+};
 
 export const DEFAULT_CATEGORY: Category = 'Other';
 

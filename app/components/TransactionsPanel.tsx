@@ -13,8 +13,8 @@ import {
   INVESTMENT_CATEGORY,
   LABEL_CLS,
 } from '@/lib/config';
-import type { FinancialAccount, PaymentSource, Transaction } from '@/lib/types';
-import { parseCSVLine } from '@/lib/utils';
+import { parseBankCsv } from '@/lib/csv-utils';
+import type { DetectedIncomeRow, FinancialAccount, PaymentSource, Transaction } from '@/lib/types';
 
 import TransactionDetailDrawer from './TransactionDetailDrawer';
 
@@ -71,6 +71,7 @@ export default function TransactionsPanel({
   const [pendingRows, setPendingRows] = useState<
     { description: string; amount: number; category: string; date: string }[]
   >([]);
+  const [pendingIncome, setPendingIncome] = useState<DetectedIncomeRow[]>([]);
   const [committing, setCommitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
@@ -189,212 +190,18 @@ export default function TransactionsPanel({
     setImportMsg('');
 
     const text = await file.text();
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map((h) => h.replace(/"/g, '').trim().toLowerCase());
-
-    const creditDebitIdx = headers.findIndex((h) => h === 'credit debit indicator');
-    const typeGroupIdx = headers.findIndex((h) => h === 'type group');
-    const isNavyFed = creditDebitIdx >= 0 && typeGroupIdx >= 0;
-    const debitIdx = headers.findIndex((h) => h === 'debit');
-    const creditIdx = headers.findIndex((h) => h === 'credit');
-    const isCapitalOne = debitIdx >= 0 && creditIdx >= 0 && !isNavyFed;
-    // Capital One Checking: Account Number, Transaction Description, Transaction Date, Transaction Type, Transaction Amount, Balance
-    const acctNumIdx = headers.findIndex((h) => h === 'account number');
-    const txTypeIdx = headers.findIndex((h) => h === 'transaction type');
-    const txAmtIdx = headers.findIndex((h) => h === 'transaction amount');
-    const isCapOneChecking = acctNumIdx >= 0 && txTypeIdx >= 0 && txAmtIdx >= 0;
-    // USAA: has 'original description' and 'status' columns
-    const origDescIdx = headers.findIndex((h) => h === 'original description');
-    const statusIdx = headers.findIndex((h) => h === 'status');
-    const isUsaa = origDescIdx >= 0 && statusIdx >= 0;
-    // BofA bank: has 'running bal.' column
-    const runningBalIdx = headers.findIndex((h) => h.includes('running bal'));
-    const isBofaBank = runningBalIdx >= 0;
-    // BofA credit: has 'reference number' and 'payee' columns
-    const refNumIdx = headers.findIndex((h) => h === 'reference number');
-    const payeeIdx = headers.findIndex((h) => h === 'payee');
-    const isBofaCredit = refNumIdx >= 0 && payeeIdx >= 0;
-
-    const dateIdx = headers.findIndex((h) => h.includes('transaction date') || h === 'date');
-    const merchantIdx = headers.findIndex((h) => h === 'merchant');
-    const descIdx = headers.findIndex((h) => h === 'description');
-    const catIdx = headers.findIndex((h) => h === 'category');
-    const typeIdx = headers.findIndex((h) => h === 'type');
-    const amtIdx = headers.findIndex(
-      (h) => h.includes('amount') && !h.includes('transaction amount'),
-    );
-
-    // Normalize MM/DD/YY → YYYY-MM-DD (Capital One Checking uses 2-digit year)
-    function normalizeDate(d: string): string {
-      const twoDigit = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-      if (twoDigit)
-        return `${2000 + parseInt(twoDigit[3])}-${twoDigit[1].padStart(2, '0')}-${twoDigit[2].padStart(2, '0')}`;
-      return d;
-    }
-
-    // Payment services — transfers to these go to real people, not own accounts
-    const PAYMENT_SERVICES = ['zelle', 'taptap', 'venmo', 'paypal', 'cash app', 'cashapp'];
-
-    const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const vals = parseCSVLine(lines[i]);
-      if (vals.length < 2) continue;
-
-      const description =
-        vals[merchantIdx >= 0 ? merchantIdx : descIdx >= 0 ? descIdx : 2] || 'Unknown';
-      const isTaptap = description.toLowerCase().includes('taptap');
-
-      if (isUsaa) {
-        // USAA: negative amounts = debits (expenses), positive = credits
-        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 2] || '0').replace(
-          /[^0-9.-]/g,
-          '',
-        );
-        const rawNum = parseFloat(rawAmt);
-        if (rawNum >= 0) continue; // skip credits/deposits
-        const amount = Math.abs(rawNum);
-        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
-        const category = isTaptap ? 'Family' : vals[catIdx >= 0 ? catIdx : 3] || DEFAULT_CATEGORY;
-        if (amount > 0) rows.push({ description, amount, category, date });
-        continue;
-      }
-
-      if (isBofaBank) {
-        // BofA bank: Date, Description, Amount, Running Bal.
-        // negative Amount = withdrawal (expense)
-        const rawAmt = (vals[2] || '0').replace(/[^0-9.-]/g, '');
-        const rawNum = parseFloat(rawAmt);
-        if (rawNum >= 0) continue; // skip deposits
-        const amount = Math.abs(rawNum);
-        const date = vals[0] || '';
-        if (amount > 0)
-          rows.push({
-            description: vals[1] || 'Unknown',
-            amount,
-            category: DEFAULT_CATEGORY,
-            date,
-          });
-        continue;
-      }
-
-      if (isBofaCredit) {
-        // BofA credit: Transaction Date, Posted Date, Reference Number, Payee, Address, Amount
-        // negative Amount = charge (expense)
-        const rawAmt = (vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(
-          /[^0-9.-]/g,
-          '',
-        );
-        const rawNum = parseFloat(rawAmt);
-        if (rawNum >= 0) continue; // skip payments/credits
-        const amount = Math.abs(rawNum);
-        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
-        const desc = vals[payeeIdx] || 'Unknown';
-        if (amount > 0) rows.push({ description: desc, amount, category: DEFAULT_CATEGORY, date });
-        continue;
-      }
-
-      if (isCapOneChecking) {
-        // Skip credits (deposits, transfers in)
-        const txType = (vals[txTypeIdx] || '').trim().toLowerCase();
-        if (txType !== 'debit') continue;
-        const desc = vals[1] || 'Unknown';
-        const descLower = desc.toLowerCase();
-        // Skip internal savings/account transfers
-        if (
-          descLower.includes('autopilot transfer') ||
-          descLower.includes('paycheck percentage transfer')
-        )
-          continue;
-        // Skip withdrawals to own accounts (savings, other banks) unless going to a payment service
-        if (
-          (descLower.includes('withdrawal from') ||
-            descLower.includes('withdrawal to') ||
-            descLower.includes('preauthorized withdrawal')) &&
-          !PAYMENT_SERVICES.some((svc) => descLower.includes(svc))
-        )
-          continue;
-        const amount = Math.abs(parseFloat((vals[txAmtIdx] || '0').replace(/[^0-9.-]/g, '')));
-        if (!amount) continue;
-        const date = normalizeDate(vals[dateIdx >= 0 ? dateIdx : 2] || '');
-        rows.push({ description: desc, amount, category: DEFAULT_CATEGORY, date });
-        continue;
-      }
-
-      if (isCapitalOne) {
-        // Skip credits/payments — only keep rows with a debit value
-        const debitVal = vals[debitIdx]?.trim();
-        if (!debitVal) continue;
-        const capCat = (vals[catIdx] || '').toLowerCase();
-        if (capCat === 'payment/credit') continue;
-        const amount = Math.abs(parseFloat(debitVal.replace(/[^0-9.-]/g, '')));
-        const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
-        const category = isTaptap ? 'Family' : vals[catIdx] || DEFAULT_CATEGORY;
-        if (amount > 0) rows.push({ description, amount, category, date });
-        continue;
-      }
-
-      if (isNavyFed) {
-        // Skip credits (income, deposits, transfers in)
-        const indicator = (vals[creditDebitIdx] || '').toLowerCase();
-        if (indicator === 'credit') continue;
-        // Skip payroll (tracked in income config) and investment income (dividends)
-        const typeGroup = (vals[typeGroupIdx] || '').toLowerCase();
-        if (typeGroup === 'paychecks/salary' || typeGroup === 'investment income') continue;
-        // Skip credit card payments — spending already tracked via card CSV imports
-        const nfCategory = (vals[catIdx >= 0 ? catIdx : 11] || '').toLowerCase();
-        if (nfCategory === 'credit card payments') continue;
-        // Skip own-account transfers ("Transfer to Apple", "Transfer to Capital One", etc.)
-        // but keep transfers to payment services (Zelle, Taptap) — those go to real people
-        const descLower = description.toLowerCase();
-        if (
-          descLower.startsWith('transfer to ') &&
-          !PAYMENT_SERVICES.some((svc) => descLower.includes(svc))
-        )
-          continue;
-        const amount = Math.abs(
-          parseFloat((vals[amtIdx >= 0 ? amtIdx : 2] || '0').replace(/[^0-9.-]/g, '')),
-        );
-        if (!amount) continue;
-        const date = vals[dateIdx >= 0 ? dateIdx : 1] || '';
-        let category: string;
-        if (isTaptap) {
-          category = 'Family';
-        } else if (typeGroup === 'securities trades') {
-          category = INVESTMENT_CATEGORY;
-        } else {
-          category = DEFAULT_CATEGORY;
-        }
-        rows.push({ description, amount, category, date });
-        continue;
-      } else {
-        const type = (vals[typeIdx] || '').toLowerCase();
-        if (['payment', 'return', 'reversal', 'adjustment'].includes(type)) continue;
-      }
-
-      const amount = Math.abs(
-        parseFloat((vals[amtIdx >= 0 ? amtIdx : vals.length - 1] || '0').replace(/[^0-9.-]/g, '')),
-      );
-      const date = vals[dateIdx >= 0 ? dateIdx : 0] || '';
-
-      let category: string;
-      if (isTaptap) {
-        category = 'Family';
-      } else {
-        category = vals[catIdx >= 0 ? catIdx : 4] || DEFAULT_CATEGORY;
-      }
-
-      if (amount > 0) rows.push({ description, amount, category, date });
-    }
+    const { transactions, income } = parseBankCsv(text);
 
     setImporting(false);
-    setPendingRows(rows);
+    setPendingRows(transactions);
+    setPendingIncome(income);
     if (fileRef.current) fileRef.current.value = '';
   }
 
   async function applyPendingImport() {
-    if (!pendingRows.length) return;
+    if (!pendingRows.length && !pendingIncome.length) return;
     setCommitting(true);
-    const data = await api.transactions.importCsv(pendingRows, month, csvSource);
+    const data = await api.transactions.importCsv(pendingRows, month, csvSource, pendingIncome);
     const monthLabels = (data.months ?? [])
       .sort()
       .map((m) => {
@@ -409,12 +216,18 @@ export default function TransactionsPanel({
       data.billsMatched > 0
         ? ` · ${data.billsMatched} bill${data.billsMatched !== 1 ? 's' : ''} auto-matched`
         : '';
+    const incomeMsg =
+      data.incomeImported > 0
+        ? ` · ${data.incomeImported} income deposit${data.incomeImported !== 1 ? 's' : ''} added`
+        : '';
     setImportMsg(
       `Imported ${data.imported} transaction${data.imported !== 1 ? 's' : ''}` +
         (monthLabels ? ` · ${monthLabels}` : '') +
-        billsMsg,
+        billsMsg +
+        incomeMsg,
     );
     setPendingRows([]);
+    setPendingIncome([]);
     setCommitting(false);
     void reloadTxs();
     void reloadImportHistory();
@@ -615,27 +428,44 @@ export default function TransactionsPanel({
       </div>
 
       {/* CSV review grid */}
-      {pendingRows.length > 0 && (
+      {(pendingRows.length > 0 || pendingIncome.length > 0) && (
         <div className="bg-bg border-border overflow-hidden rounded-xl border">
           <div className="border-border flex items-center justify-between border-b px-4 py-3">
             <div>
               <p className="text-text text-sm font-semibold">Review import</p>
               <p className="text-text-3 mt-0.5 text-xs">
                 {pendingRows.length} transaction
-                {pendingRows.length !== 1 ? 's' : ''} ·{' '}
-                <span className="text-amber-400">
-                  {
-                    pendingRows.filter(
-                      (r) => r.category === DEFAULT_CATEGORY || r.category === 'Other',
-                    ).length
-                  }{' '}
-                  uncategorized
-                </span>
+                {pendingRows.length !== 1 ? 's' : ''}
+                {pendingRows.length > 0 && (
+                  <>
+                    {' · '}
+                    <span className="text-amber-400">
+                      {
+                        pendingRows.filter(
+                          (r) => r.category === DEFAULT_CATEGORY || r.category === 'Other',
+                        ).length
+                      }{' '}
+                      uncategorized
+                    </span>
+                  </>
+                )}
+                {pendingIncome.length > 0 && (
+                  <>
+                    {' · '}
+                    <span className="text-[#00d98a]">
+                      {pendingIncome.length} income deposit{pendingIncome.length !== 1 ? 's' : ''}{' '}
+                      detected
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setPendingRows([])}
+                onClick={() => {
+                  setPendingRows([]);
+                  setPendingIncome([]);
+                }}
                 className="border-border text-text-3 hover:text-text-2 rounded-lg border px-3 py-1.5 text-xs transition-colors"
               >
                 Cancel
@@ -645,34 +475,16 @@ export default function TransactionsPanel({
                 disabled={committing}
                 className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
               >
-                {committing ? 'Importing…' : `Import ${pendingRows.length}`}
+                {committing ? 'Importing…' : `Import ${pendingRows.length + pendingIncome.length}`}
               </button>
             </div>
           </div>
-          {/* Column headers */}
-          <div className="bg-surface-raised border-border-dim grid grid-cols-[90px_1fr_80px_140px] gap-2 border-b px-4 py-2">
-            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
-              Date
-            </span>
-            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
-              Description
-            </span>
-            <span className="text-text-4 text-right text-[10px] font-semibold tracking-wider uppercase">
-              Amount
-            </span>
-            <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
-              Category
-            </span>
-          </div>
-          <div className="divide-border-dim max-h-80 divide-y overflow-y-auto">
-            {pendingRows.map((row, i) => {
-              const isUncategorized = row.category === DEFAULT_CATEGORY || row.category === 'Other';
-              return (
+          {pendingIncome.length > 0 && (
+            <div className="border-border-dim divide-border-dim divide-y border-b">
+              {pendingIncome.map((row, i) => (
                 <div
                   key={i}
-                  className={`grid grid-cols-[90px_1fr_80px_140px] items-center gap-2 px-4 py-2 transition-colors ${
-                    isUncategorized ? 'bg-amber-500/5' : 'hover:bg-surface/40'
-                  }`}
+                  className="grid grid-cols-[90px_1fr_80px_100px_28px] items-center gap-2 bg-[#00d98a]/5 px-4 py-2"
                 >
                   <span className="text-text-4 truncate font-mono text-[11px]">
                     {row.date || '—'}
@@ -680,33 +492,84 @@ export default function TransactionsPanel({
                   <span className="text-text truncate text-xs" title={row.description}>
                     {row.description}
                   </span>
-                  <span className="text-text text-right font-mono text-xs">
-                    ${row.amount.toFixed(2)}
+                  <span className="text-right font-mono text-xs text-[#00d98a]">
+                    +${row.amount.toFixed(2)}
                   </span>
-                  <select
-                    value={row.category}
-                    onChange={(e) => {
-                      const cat = e.target.value;
-                      setPendingRows((prev) =>
-                        prev.map((r, j) => (j === i ? { ...r, category: cat } : r)),
-                      );
-                    }}
-                    className={`bg-surface cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-500 focus:outline-none ${
-                      isUncategorized
-                        ? 'border-amber-500/40 text-amber-400'
-                        : 'border-border text-text'
-                    }`}
+                  <span className="text-text-3 truncate text-xs">{row.source}</span>
+                  <button
+                    onClick={() => setPendingIncome((prev) => prev.filter((_, j) => j !== i))}
+                    title="Not income — remove"
+                    className="text-text-4 hover:text-[#ff4560]"
                   >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    ×
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+          {pendingRows.length > 0 && (
+            <>
+              {/* Column headers */}
+              <div className="bg-surface-raised border-border-dim grid grid-cols-[90px_1fr_80px_140px] gap-2 border-b px-4 py-2">
+                <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
+                  Date
+                </span>
+                <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
+                  Description
+                </span>
+                <span className="text-text-4 text-right text-[10px] font-semibold tracking-wider uppercase">
+                  Amount
+                </span>
+                <span className="text-text-4 text-[10px] font-semibold tracking-wider uppercase">
+                  Category
+                </span>
+              </div>
+              <div className="divide-border-dim max-h-80 divide-y overflow-y-auto">
+                {pendingRows.map((row, i) => {
+                  const isUncategorized =
+                    row.category === DEFAULT_CATEGORY || row.category === 'Other';
+                  return (
+                    <div
+                      key={i}
+                      className={`grid grid-cols-[90px_1fr_80px_140px] items-center gap-2 px-4 py-2 transition-colors ${
+                        isUncategorized ? 'bg-amber-500/5' : 'hover:bg-surface/40'
+                      }`}
+                    >
+                      <span className="text-text-4 truncate font-mono text-[11px]">
+                        {row.date || '—'}
+                      </span>
+                      <span className="text-text truncate text-xs" title={row.description}>
+                        {row.description}
+                      </span>
+                      <span className="text-text text-right font-mono text-xs">
+                        ${row.amount.toFixed(2)}
+                      </span>
+                      <select
+                        value={row.category}
+                        onChange={(e) => {
+                          const cat = e.target.value;
+                          setPendingRows((prev) =>
+                            prev.map((r, j) => (j === i ? { ...r, category: cat } : r)),
+                          );
+                        }}
+                        className={`bg-surface cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors focus:border-blue-500 focus:outline-none ${
+                          isUncategorized
+                            ? 'border-amber-500/40 text-amber-400'
+                            : 'border-border text-text'
+                        }`}
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 

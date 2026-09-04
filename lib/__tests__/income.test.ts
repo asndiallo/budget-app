@@ -5,12 +5,27 @@ import type { getDb } from '../db';
 import { computeMonthlyFinancials, incomeForMonth } from '../income';
 
 // ── Mock DB helper ────────────────────────────────────────────────────────────
-// Builds a minimal fake DB object whose .prepare().all() returns the provided rows.
+// Builds a minimal fake DB object that dispatches on the SQL text, so the
+// income_config, users, income_streams, and income_entries reads made by
+// computeMonthlyFinancials each get their own rows instead of all sharing one stub.
 
-function makeDb(rows: { key: string; value: number }[]) {
+function makeDb(
+  rows: { key: string; value: number }[],
+  opts: {
+    joinedAt?: string | null;
+    streams?: Record<string, unknown>[];
+    entriesTotal?: number;
+  } = {},
+) {
   return {
-    prepare: () => ({
-      all: () => rows,
+    prepare: (sql: string) => ({
+      all: () => (sql.includes('income_streams') ? (opts.streams ?? []) : rows),
+      get: () =>
+        sql.includes('joined_at')
+          ? { joined_at: opts.joinedAt ?? null }
+          : sql.includes('income_entries')
+            ? { total: opts.entriesTotal ?? 0 }
+            : rows[0],
     }),
   } as unknown as ReturnType<typeof getDb>;
 }

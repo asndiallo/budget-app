@@ -2,6 +2,7 @@
 
 import { INCOME_FIELDS, SPECIAL_PAY_FIELDS, TSP_CONFIG } from './config';
 import { type getDb } from './db';
+import { getActiveIncomeStreamsTotal, getIncomeEntriesTotal } from './queries';
 
 type Db = ReturnType<typeof getDb>;
 
@@ -20,21 +21,30 @@ export function incomeForMonth(db: Db, month: string, userId: string): Record<st
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
-/** Returns total income, TSP, and non-taxable allowances (BAS + BAH) for a given month. */
+/**
+ * Returns total income, TSP, and non-taxable allowances (BAS + BAH) for a given month.
+ *
+ * `totalIncome` covers military pay from income_config plus recurring non-military
+ * income from income_streams plus ad-hoc income from income_entries (manual entries
+ * and detected gig-income CSV deposits). `streams` and `entries` are broken out
+ * separately so callers can show the split without re-querying.
+ */
 export function computeMonthlyFinancials(
   db: Db,
   month: string,
   userId: string,
-): { totalIncome: number; tsp: number; allowances: number } {
+): { totalIncome: number; tsp: number; allowances: number; streams: number; entries: number } {
   const config = incomeForMonth(db, month, userId);
   const tspRate = config.tsp_rate ?? TSP_CONFIG.rate;
-  const totalIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
+  const militaryIncome = [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce(
     (s, f) => s + (config[f.key] ?? 0),
     0,
   );
+  const streams = getActiveIncomeStreamsTotal(db, userId, month);
+  const entries = getIncomeEntriesTotal(db, userId, month);
   const tsp = Math.round((config.base_pay ?? 0) * tspRate);
   const allowances = (config.bas ?? 0) + (config.bah ?? 0);
-  return { totalIncome, tsp, allowances };
+  return { totalIncome: militaryIncome + streams + entries, tsp, allowances, streams, entries };
 }
 
 /**

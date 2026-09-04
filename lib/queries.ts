@@ -10,6 +10,7 @@
 import type Database from 'better-sqlite3';
 
 import type { InvestmentExpense } from './utils';
+import { investmentForMonth, isBeforeMonth } from './utils';
 
 type Db = Database.Database;
 
@@ -36,6 +37,69 @@ export function getInvestmentExpenses(db: Db, userId: string): InvestmentExpense
        FROM fixed_expenses WHERE user_id = ? AND active = 1 AND is_investment = 1`,
     )
     .all(userId) as InvestmentExpense[];
+}
+
+// ── Income streams ────────────────────────────────────────────────────────────
+
+/**
+ * Total recurring non-military income credited to a given month.
+ *
+ * Streams are stored per-occurrence (like fixed_expenses), so biweekly streams
+ * are counted by occurrence within the month via investmentForMonth() rather
+ * than treated as a flat monthly amount. A stream contributes nothing to months
+ * before its start_date, after its end_date, or before the user's joined_at.
+ *
+ * Called from computeMonthlyFinancials() so every route that reports income
+ * picks streams up automatically.
+ */
+export function getActiveIncomeStreamsTotal(db: Db, userId: string, month: string): number {
+  const joinedAt = getJoinedAt(db, userId);
+  if (joinedAt && isBeforeMonth(month, joinedAt)) return 0;
+
+  const rows = db
+    .prepare(
+      `SELECT amount, frequency, start_date, end_date
+       FROM income_streams WHERE user_id = ? AND active = 1`,
+    )
+    .all(userId) as {
+    amount: number;
+    frequency: string | null;
+    start_date: string | null;
+    end_date: string | null;
+  }[];
+
+  const live = rows.filter((r) => !r.start_date || !isBeforeMonth(month, r.start_date));
+  return investmentForMonth(
+    live.map((r) => ({
+      amount: r.amount,
+      period: 'monthly',
+      recurrence: r.frequency,
+      recurrence_anchor: r.start_date,
+      end_date: r.end_date,
+    })),
+    month,
+  );
+}
+
+/**
+ * Total ad-hoc income logged for a given month via income_entries — manual
+ * one-off entries and gig-income deposits (DoorDash, Uber, etc.) detected
+ * during CSV import (see GIG_INCOME_PLATFORMS).
+ *
+ * Called from computeMonthlyFinancials() so every route that reports income
+ * picks these up automatically, the same as income_streams.
+ */
+export function getIncomeEntriesTotal(db: Db, userId: string, month: string): number {
+  const joinedAt = getJoinedAt(db, userId);
+  if (joinedAt && isBeforeMonth(month, joinedAt)) return 0;
+
+  return (
+    db
+      .prepare(
+        'SELECT COALESCE(SUM(amount), 0) AS total FROM income_entries WHERE user_id = ? AND month = ?',
+      )
+      .get(userId, month) as { total: number }
+  ).total;
 }
 
 // ── Debts ─────────────────────────────────────────────────────────────────────

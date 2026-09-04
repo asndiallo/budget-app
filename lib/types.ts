@@ -130,6 +130,25 @@ export interface IncomeEntry {
   source: string;
 }
 
+export type IncomeStreamFrequency = 'monthly' | 'biweekly';
+
+export interface IncomeStream {
+  id: number;
+  label: string;
+  amount: number;
+  frequency: IncomeStreamFrequency;
+  day_of_month?: number | null;
+  category: string;
+  /** 1 = amount is expected to be edited each month (e.g. dynamic-priced Airbnb) */
+  variable: number;
+  /** First occurrence date (YYYY-MM-DD); also serves as the biweekly phase anchor */
+  start_date?: string | null;
+  /** Last occurrence date (YYYY-MM-DD, optional) */
+  end_date?: string | null;
+  notes?: string | null;
+  active?: number | null;
+}
+
 export interface Receivable {
   id: number;
   name: string;
@@ -146,6 +165,14 @@ export interface CsvRow {
   amount: number;
   category: string;
   date: string;
+}
+
+/** A CSV credit/deposit recognized as ad-hoc gig income (see GIG_INCOME_PLATFORMS). */
+export interface DetectedIncomeRow {
+  description: string;
+  amount: number;
+  date: string;
+  source: string;
 }
 
 export interface PaymentSource {

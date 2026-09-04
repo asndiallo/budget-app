@@ -17,6 +17,7 @@ import type { Allotment, IncomeConfig, IncomeEntry, IncomeProfile } from '@/lib/
 
 import AllotementsManager from './AllotementsManager';
 import IncomeProfilesManager from './IncomeProfilesManager';
+import IncomeStreamsPanel from './IncomeStreamsPanel';
 import LesImportButton from './LesImportButton';
 
 interface PaySuggestion {
@@ -519,6 +520,10 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
             <AllotementsManager allotments={allotments} onRefresh={reloadAllotments} />
           </div>
         )}
+      </Section>
+
+      <Section title="Recurring income">
+        <IncomeStreamsPanel onUpdate={onUpdate} />
       </Section>
 
       <Section

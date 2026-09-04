@@ -109,6 +109,21 @@ function initSchema(db: Database.Database) {
       source      TEXT    NOT NULL DEFAULT 'Other'
     );
 
+    CREATE TABLE IF NOT EXISTS income_streams (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      TEXT    NOT NULL,
+      label        TEXT    NOT NULL,
+      amount       REAL    NOT NULL,
+      frequency    TEXT    NOT NULL DEFAULT 'monthly',
+      day_of_month INTEGER,
+      category     TEXT    NOT NULL DEFAULT 'Other',
+      variable     INTEGER NOT NULL DEFAULT 0,
+      start_date   TEXT,
+      end_date     TEXT,
+      notes        TEXT,
+      active       INTEGER NOT NULL DEFAULT 1
+    );
+
     CREATE TABLE IF NOT EXISTS receivables (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id       TEXT    NOT NULL,
