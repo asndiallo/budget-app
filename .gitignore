@@ -40,3 +40,5 @@ next-env.d.ts
 
 # Claude AI local settings
 .claude/
+# Personal financial documents — never commit
+/import/
