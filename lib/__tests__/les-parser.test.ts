@@ -467,17 +467,20 @@ describe('parseLes — TSP rate', () => {
     expect(fields.tsp_rate).toBeUndefined();
   });
 
-  it('captures Roth TSP separately from traditional TSP', () => {
+  it('combines traditional + Roth TSP into a single tsp_rate', () => {
     const { fields } = parseLes(les(['BASE PAY 3,198.00', 'TSP 159.90', 'ROTH TSP 100.00']));
-    expect(fields.tsp_rate).toBeCloseTo(0.05, 3); // traditional
-    expect(fields.roth_ira).toBe(100.0); // roth stored separately
+    // (159.90 + 100.00) / 3198.00 = 0.0812...
+    expect(fields.tsp_rate).toBeCloseTo(0.081, 3);
+    // Roth TSP is a TSP election, not an outside Roth IRA — must not land here
+    expect(fields.roth_ira).toBeUndefined();
   });
 
-  it('captures TSP ROTH variant as roth_ira', () => {
+  it('derives tsp_rate from Roth-only TSP contribution (no traditional TSP line)', () => {
     const { fields } = parseLes(les(['BASE PAY 3,000.00', 'TSP ROTH 150.00']));
-    expect(fields.roth_ira).toBe(150.0);
-    // tsp_rate should NOT be set (Roth consumed the TSP line)
-    expect(fields.tsp_rate).toBeUndefined();
+    // 150.00 / 3000.00 = 0.05 — a Roth-only contributor still gets a real rate,
+    // not a silent fallback to the app-wide default
+    expect(fields.tsp_rate).toBeCloseTo(0.05, 3);
+    expect(fields.roth_ira).toBeUndefined();
   });
 
   it('uses rightmost amount on two-column lines', () => {

@@ -245,14 +245,16 @@ export function parseLes(text: string): LesParseResult {
 
   // ── Derived fields ────────────────────────────────────────────────────────
 
-  if (tspAmount > 0 && fields['base_pay'] > 0) {
-    const rate = tspAmount / fields['base_pay'];
+  // tsp_rate is the combined TSP contribution rate — traditional and Roth TSP
+  // both count (they're the same account, just different tax treatment), and
+  // an LES may show either or both. Note: Roth TSP is NOT a Roth IRA — the
+  // roth_ira income_config key tracks a separate outside IRA contribution
+  // (against its own $7k/yr limit) and must not be populated from this line.
+  const totalTsp = tspAmount + rothTspAmount;
+  if (totalTsp > 0 && fields['base_pay'] > 0) {
+    const rate = totalTsp / fields['base_pay'];
     fields['tsp_rate'] = Math.min(1, Math.round(rate * 1000) / 1000);
     labelMap['tsp_rate'] = `TSP (${Math.round(rate * 100)}% of base)`;
-  }
-  if (rothTspAmount > 0) {
-    fields['roth_ira'] = rothTspAmount;
-    labelMap['roth_ira'] = 'Roth TSP';
   }
 
   // ── Warnings ─────────────────────────────────────────────────────────────
