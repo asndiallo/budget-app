@@ -13,6 +13,13 @@ export function proxy(req: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
+  // API routes enforce their own auth via withAuth (session cookie OR Bearer
+  // API key — see lib/route-helpers.ts) and return a proper 401 JSON body.
+  // Redirecting them to /login here would make the Bearer-token path
+  // unreachable, since a bearer-authenticated request never carries the
+  // session cookie this check looks for.
+  if (pathname.startsWith('/api/')) return NextResponse.next();
+
   // Better Auth stores the session in this cookie
   const sessionCookie =
     req.cookies.get('better-auth.session_token') ??
