@@ -6,8 +6,15 @@ import Database from 'better-sqlite3';
 
 import { SEED_DEBTS, SEED_FIXED_EXPENSES, SEED_GOALS, SEED_PAYMENT_SOURCES } from './config';
 import { DB_PATH, getDb } from './db';
+import { getLanIp } from './get-lan-ip.js';
 import type { PayGrade } from './pay-tables';
 import { getBAH, getBAS, getBasePay, isOfficer } from './pay-tables';
+
+// Auto-detected so signing in from a phone/other device on the LAN keeps
+// working after switching networks — no manual IP updates needed. Override
+// with BETTER_AUTH_TRUSTED_ORIGINS for anything this heuristic can't find
+// (a VPN, a tunnel, multiple NICs).
+const lanIp = getLanIp();
 
 export const auth = betterAuth({
   database: new Database(DB_PATH),
@@ -16,7 +23,7 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS
     ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim())
-    : ['http://localhost:3000', 'http://172.20.10.3:3000'],
+    : ['http://localhost:3000', ...(lanIp ? [`http://${lanIp}:3000`] : [])],
 
   emailAndPassword: {
     enabled: true,

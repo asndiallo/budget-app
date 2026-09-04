@@ -434,14 +434,7 @@ bun run dev -- -H 0.0.0.0
 
 Then open `http://<your-computer-ip>:3000` on any local device. Find your IP with `ipconfig getifaddr en0` (macOS) or `ip route get 1 | awk '{print $7}'` (Linux).
 
-**To add your local IP to the allowed origins** (required for hot-reload in dev):
-
-```js
-// next.config.js
-const nextConfig = {
-  allowedDevOrigins: ['192.168.1.x'], // replace with your machine's LAN IP
-};
-```
+Your LAN IP is auto-detected on startup (`lib/get-lan-ip.js`) and used for both `next.config.js`'s `allowedDevOrigins` (dev-server hot-reload) and Better Auth's `trustedOrigins` (so signing in from your phone works) — no manual config needed, including after switching networks. If detection picks the wrong interface (a VPN, multiple NICs), override it with `BETTER_AUTH_TRUSTED_ORIGINS` in `.env.local` (see `.env.example`).
 
 **Permanent hosting** (always-on, starts on boot):
 

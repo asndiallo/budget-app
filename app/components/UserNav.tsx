@@ -43,10 +43,56 @@ export default function UserNav({ user, onProfileUpdate, onExport, onRestore }: 
   const [joinedAt, setJoinedAt] = useState(user.joined_at ?? '');
   const [reseedIncome, setReseedIncome] = useState(false);
 
+  // Set password (for accounts created via Google/GitHub that want email+password too)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ text: string; error: boolean } | null>(null);
+
   async function handleLogout() {
     await authClient.signOut();
     router.push('/login');
     router.refresh();
+  }
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordMsg(null);
+    if (newPassword.length < 6) {
+      setPasswordMsg({ text: 'Password must be at least 6 characters.', error: true });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ text: "Passwords don't match.", error: true });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const res = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        setPasswordMsg({
+          text:
+            body.code === 'PASSWORD_ALREADY_SET'
+              ? 'A password is already set — sign out and use "Forgot password" to change it.'
+              : (body.error ?? 'Could not set password.'),
+          error: true,
+        });
+      } else {
+        setPasswordMsg({
+          text: 'Password set — you can now log in with email + password.',
+          error: false,
+        });
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   async function handleSaveProfile(e: React.FormEvent) {
@@ -258,6 +304,43 @@ export default function UserNav({ user, onProfileUpdate, onExport, onRestore }: 
               </button>
             </div>
           </form>
+
+          {/* Security */}
+          <div className="border-border-dim mt-4 border-t pt-3">
+            <p className="text-text-4 mb-2 text-[10px] tracking-widest uppercase">Password login</p>
+            <form onSubmit={handleSetPassword} className="space-y-2">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password"
+                autoComplete="new-password"
+                className={inputCls}
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                className={inputCls}
+              />
+              <button
+                type="submit"
+                disabled={passwordSaving || !newPassword}
+                className="border-border text-text-3 hover:text-text-2 hover:bg-surface-raised w-full rounded-lg border px-3 py-1.5 text-xs transition-colors disabled:opacity-50"
+              >
+                {passwordSaving ? 'Setting…' : 'Set password'}
+              </button>
+              {passwordMsg && (
+                <p
+                  className={`text-[11px] ${passwordMsg.error ? 'text-[#ff4560]' : 'text-[#00d98a]'}`}
+                >
+                  {passwordMsg.text}
+                </p>
+              )}
+            </form>
+          </div>
 
           {/* Data actions */}
           <div className="border-border-dim mt-4 border-t pt-3">

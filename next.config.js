@@ -1,6 +1,12 @@
+import { getLanIp } from './lib/get-lan-ip.js';
+
+const lanIp = getLanIp();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['172.20.10.3'],
+  // Auto-detected so accessing the dev server from your phone/other devices
+  // keeps working after switching networks — no manual IP updates needed.
+  allowedDevOrigins: lanIp ? [lanIp] : [],
   // Keep pdfjs-dist as an external so Next.js doesn't bundle it — the legacy
   // build requires Node.js APIs that can't run in the browser bundle.
   serverExternalPackages: ['pdfjs-dist'],
@@ -14,4 +20,4 @@ const nextConfig = {
   // },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
