@@ -12,6 +12,7 @@ import {
   SPECIAL_PAY_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
+import { computeMilitaryNetPay, computeSavingsRatePct } from '@/lib/financials';
 import type {
   Allotment,
   Asset,
@@ -21,6 +22,7 @@ import type {
   HealthScore,
   IncomeConfig,
   IncomeEntry,
+  IncomeStream,
   Summary,
   UserProfile,
 } from '@/lib/types';
@@ -28,6 +30,7 @@ import {
   currentMonth,
   formatCurrency,
   investmentForMonth,
+  isBeforeMonth,
   nextMonth,
   prevMonth,
 } from '@/lib/utils';
@@ -116,6 +119,7 @@ function calcSummary(
   joinedAt?: string,
   month?: string,
   allotmentList?: Allotment[],
+  incomeStreams: IncomeStream[] = [],
 ): Summary {
   const base = income.base_pay || 0;
   const tspRate = income.tsp_rate ?? TSP_CONFIG.rate;
@@ -124,8 +128,25 @@ function calcSummary(
   const militaryIncome = beforeService
     ? 0
     : [...INCOME_FIELDS, ...SPECIAL_PAY_FIELDS].reduce((s, f) => s + (income[f.key] || 0), 0);
+  // Same start_date gating as getActiveIncomeStreamsTotal (server-side) — a stream
+  // contributes nothing before it started or before the user's joined_at.
+  const streamsTotal =
+    beforeService || !month
+      ? 0
+      : investmentForMonth(
+          incomeStreams
+            .filter((s) => !s.start_date || !isBeforeMonth(month, s.start_date))
+            .map((s) => ({
+              amount: s.amount,
+              period: 'monthly',
+              recurrence: s.frequency,
+              recurrence_anchor: s.start_date,
+              end_date: s.end_date,
+            })),
+          month,
+        );
   const extraIncome = incomeEntries.reduce((s, e) => s + e.amount, 0);
-  const totalIncome = militaryIncome + extraIncome;
+  const totalIncome = militaryIncome + streamsTotal + extraIncome;
   const investmentFixed = month
     ? investmentForMonth(
         fixed.filter((f) => f.is_investment),
@@ -142,6 +163,9 @@ function calcSummary(
   const debtPayments = debts
     .filter((d) => d.balance > 0)
     .reduce((s, d) => s + d.monthly_payment, 0);
+  // Display-only — fixed bills and debt service already show up in their own
+  // panels, and (per the canonical savings-rate formula used everywhere else
+  // in the app) don't factor into net/savingsRate below.
   const committed = fixedExpenses + debtPayments;
   const investmentTxs = txs
     .filter((t) => t.category === INVESTMENT_CATEGORY)
@@ -149,27 +173,39 @@ function calcSummary(
   const spending = txs
     .filter((t) => t.category !== INVESTMENT_CATEGORY)
     .reduce((s, t) => s + t.amount, 0);
-  const combatZone = !!income.combat_zone;
-  const deductions =
-    tsp +
-    DEDUCTION_FIELDS.reduce(
-      (s, f) => s + (combatZone && f.key === 'taxes' ? 0 : income[f.key] || 0),
-      0,
-    );
   const allotments =
     month && allotmentList
       ? allotmentList
           .filter((a) => a.start_date <= month && (!a.end_date || a.end_date >= month))
           .reduce((s, a) => s + a.amount, 0)
       : 0;
+  // investmentFixed (the Summary field) deliberately excludes tsp — callers
+  // that need the full invested total add it back themselves (summary.tsp +
+  // summary.investmentFixed), matching the app's existing display convention.
   const totalInvested = investmentFixed + investmentTxs;
-  const net = totalIncome - deductions - allotments - committed - spending - investmentTxs;
-  const savingsRate =
-    totalIncome > 0
-      ? Math.round(((tsp + totalInvested + Math.max(0, net)) / totalIncome) * 100)
-      : 0;
+  // Canonical formula (lib/financials.ts): net = income − invested − spending,
+  // where invested = tsp + totalInvested. Deliberately gross-based, per
+  // lib/financials.ts's documented rationale — do not substitute takeHome here.
+  const invested = tsp + totalInvested;
+  const net = totalIncome - invested - spending;
+  const savingsRate = computeSavingsRatePct(totalIncome, invested, spending);
+  // Take-home pay: what actually lands in the bank. Military entitlements minus
+  // real deductions and TSP (computeMilitaryNetPay), minus allotments (which
+  // aren't part of IncomeConfig so aren't in that helper), plus income that
+  // arrives without payroll withholding (streams, entries).
+  const milNetPay = beforeService
+    ? 0
+    : computeMilitaryNetPay(
+        income,
+        INCOME_FIELDS,
+        SPECIAL_PAY_FIELDS,
+        DEDUCTION_FIELDS,
+        TSP_CONFIG.rate,
+      );
+  const takeHome = milNetPay - allotments + streamsTotal + extraIncome;
   return {
     totalIncome,
+    takeHome,
     tsp,
     investmentFixed: totalInvested,
     committed,
@@ -317,7 +353,7 @@ export default function Home() {
     if (!month) return;
     const pm = prevMonth(month);
     try {
-      const [income, fixed, txs, debts, entries, allotmentList, pIncome, pTxs, pEntries] =
+      const [income, fixed, txs, debts, entries, allotmentList, streams, pIncome, pTxs, pEntries] =
         await Promise.all([
           api.income.get(month).then((d) => {
             setCurrentIncome(d);
@@ -328,14 +364,17 @@ export default function Home() {
           api.debts.list(),
           api.incomeEntries.list(month),
           api.allotments.list(),
+          api.incomeStreams.list(),
           api.income.get(pm),
           api.transactions.list(pm),
           api.incomeEntries.list(pm),
         ]);
       const joinedAt = user?.joined_at || undefined;
-      setSummary(calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList));
+      setSummary(
+        calcSummary(income, fixed, txs, debts, entries, joinedAt, month, allotmentList, streams),
+      );
       setPrevSummary(
-        calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList),
+        calcSummary(pIncome, fixed, pTxs, debts, pEntries, joinedAt, pm, allotmentList, streams),
       );
       void api.streak.get().then((r) => setStreak(r.streak));
       void api.assets.list().then(setAssets);
@@ -543,10 +582,11 @@ export default function Home() {
                     {/* Metric cards */}
                     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
                       <MetricCard
-                        label="Total income"
-                        value={formatCurrency(summary.totalIncome)}
-                        delta={delta(summary.totalIncome, prevSummary?.totalIncome, true)}
-                        tooltip="All base pay, allowances, and additional income for the month"
+                        label="Take-home pay"
+                        value={formatCurrency(summary.takeHome)}
+                        sub={`${formatCurrency(summary.totalIncome)} gross`}
+                        delta={delta(summary.takeHome, prevSummary?.takeHome, true)}
+                        tooltip="What actually lands in the bank — gross pay minus taxes, FICA, SGLI, TSP, and allotments, plus rental/gig income. See Pay & deductions for the full breakdown."
                         onClick={() => {
                           setTab('pay');
                           setPaySub('pay');
@@ -595,7 +635,7 @@ export default function Home() {
                         value={(summary.net >= 0 ? '+' : '') + formatCurrency(summary.net)}
                         accent={summary.net >= 0 ? 'green' : 'red'}
                         delta={delta(summary.net, prevSummary?.net, true)}
-                        tooltip="Income − invested − committed − spending"
+                        tooltip="Gross income − invested − spending (the canonical savings-rate formula; does not subtract committed bills/debt service)"
                       />
                       <MetricCard
                         label="Savings rate"
@@ -668,7 +708,7 @@ export default function Home() {
                           Manage budgets →
                         </button>
                       </div>
-                      <BudgetActualPanel month={month} monthlyIncome={summary.totalIncome} />
+                      <BudgetActualPanel month={month} monthlyIncome={summary.takeHome} />
                     </div>
                   </>
                 )}
@@ -742,13 +782,24 @@ export default function Home() {
                   </div>
                 )}
                 {spendingSub === 'budget' && (
-                  <BudgetActualPanel month={month} monthlyIncome={summary?.totalIncome} />
+                  <BudgetActualPanel month={month} monthlyIncome={summary?.takeHome} />
                 )}
                 {spendingSub === 'calendar' && (
                   <CashFlowCalendar
                     month={month}
+                    // Military-only net pay (halved for the 1st/15th pay-day markers) —
+                    // deliberately not summary.totalIncome, which also includes rental/
+                    // gig income that doesn't arrive on the DFAS pay schedule.
                     netMonthlyIncome={
-                      summary ? summary.net + summary.committed + summary.spending : undefined
+                      currentIncome
+                        ? computeMilitaryNetPay(
+                            currentIncome,
+                            INCOME_FIELDS,
+                            SPECIAL_PAY_FIELDS,
+                            DEDUCTION_FIELDS,
+                            TSP_CONFIG.rate,
+                          )
+                        : undefined
                     }
                   />
                 )}

@@ -380,7 +380,16 @@ export interface HealthScore {
 // ── Dashboard summary (computed client-side from income + fixed + transactions) ─
 
 export interface Summary {
+  /** Gross income — military entitlements + income streams + income entries, before deductions. */
   totalIncome: number;
+  /**
+   * Take-home pay — gross military entitlements minus real deductions (taxes, FICA,
+   * SGLI, AFRH, meal deduction, debt repayment, allotments) and TSP, plus income
+   * streams and income entries (which arrive without payroll withholding). This is
+   * what actually lands in the bank, and is the headline figure on the dashboard —
+   * budgeting happens against take-home, not gross.
+   */
+  takeHome: number;
   tsp: number;
   investmentFixed: number;
   committed: number;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSavingsRate, computeSavingsRatePct } from '../financials';
+import { computeMilitaryNetPay, computeSavingsRate, computeSavingsRatePct } from '../financials';
 
 describe('computeSavingsRate', () => {
   it('returns 0 when income is zero', () => {
@@ -87,5 +87,101 @@ describe('computeSavingsRatePct', () => {
     // invested > income is theoretically impossible but let's verify the math
     // if income=1000, invested=500, spending=0 → net=500 → rate=1000/1000=1.0=100%
     expect(computeSavingsRatePct(1000, 500, 0)).toBe(100);
+  });
+});
+
+// ── computeMilitaryNetPay ────────────────────────────────────────────────────
+
+describe('computeMilitaryNetPay', () => {
+  const INCOME_FIELDS = [{ key: 'base_pay' }, { key: 'bas' }, { key: 'bah' }, { key: 'other' }];
+  const SPECIAL_PAY_FIELDS = [{ key: 'flight_pay' }];
+  const DEDUCTION_FIELDS = [
+    { key: 'taxes' },
+    { key: 'fica_soc_security' },
+    { key: 'fica_medicare' },
+    { key: 'sgli' },
+    { key: 'sgli_family' },
+    { key: 'afrh' },
+    { key: 'meal_deduction' },
+    { key: 'debt_repayment' },
+  ];
+  const TSP_DEFAULT_RATE = 0.05;
+
+  it('matches a real August 2026 LES to within TSP-rounding', () => {
+    // Real LES: TOT ENT 5041.75, real deductions (excl. mid-month-pay) 1194.91,
+    // full-month net 3846.84 — confirmed against MID-MONTH-PAY 1923.68 + EOM PAY 1923.16.
+    // computeMilitaryNetPay rounds TSP to the nearest dollar (567 vs the LES's exact
+    // 567.36) for consistency with how TSP is displayed everywhere else in the app,
+    // so the expected result is 0.36 higher than the LES's own unrounded figure.
+    const config = {
+      base_pay: 2836.8,
+      bas: 476.95,
+      bah: 1728.0,
+      taxes: 15.38,
+      fica_soc_security: 175.88,
+      fica_medicare: 41.13,
+      sgli: 26.0,
+      sgli_family: 4.0,
+      afrh: 0.5,
+      debt_repayment: 364.66,
+      tsp_rate: 0.2,
+    };
+    const net = computeMilitaryNetPay(
+      config,
+      INCOME_FIELDS,
+      SPECIAL_PAY_FIELDS,
+      DEDUCTION_FIELDS,
+      TSP_DEFAULT_RATE,
+    );
+    expect(net).toBeCloseTo(3847.2, 2);
+  });
+
+  it('falls back to tspDefaultRate when tsp_rate is absent', () => {
+    const config = { base_pay: 3000 };
+    const net = computeMilitaryNetPay(
+      config,
+      INCOME_FIELDS,
+      SPECIAL_PAY_FIELDS,
+      DEDUCTION_FIELDS,
+      TSP_DEFAULT_RATE,
+    );
+    // gross=3000, deductions=0, tsp=round(3000*0.05)=150 → net=2850
+    expect(net).toBe(2850);
+  });
+
+  it('treats missing fields as 0 rather than throwing', () => {
+    expect(
+      computeMilitaryNetPay({}, INCOME_FIELDS, SPECIAL_PAY_FIELDS, DEDUCTION_FIELDS, 0.05),
+    ).toBe(0);
+  });
+
+  it('includes special pay fields in gross', () => {
+    const config = { base_pay: 3000, flight_pay: 250 };
+    const net = computeMilitaryNetPay(
+      config,
+      INCOME_FIELDS,
+      SPECIAL_PAY_FIELDS,
+      DEDUCTION_FIELDS,
+      0,
+    );
+    // gross=3000+250=3250, deductions=0, tsp=0 → net=3250
+    expect(net).toBe(3250);
+  });
+
+  it('subtracts every deduction field, including debt_repayment and sgli_family', () => {
+    const config = {
+      base_pay: 3000,
+      debt_repayment: 100,
+      sgli_family: 4,
+    };
+    const net = computeMilitaryNetPay(
+      config,
+      INCOME_FIELDS,
+      SPECIAL_PAY_FIELDS,
+      DEDUCTION_FIELDS,
+      0,
+    );
+    // gross=3000, deductions=104, tsp=0 → net=2896
+    expect(net).toBe(2896);
   });
 });

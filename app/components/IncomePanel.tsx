@@ -14,6 +14,7 @@ import {
   TSP_CONFIG,
 } from '@/lib/config';
 import type { Allotment, IncomeConfig, IncomeEntry, IncomeProfile } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 import AllotementsManager from './AllotementsManager';
 import IncomeProfilesManager from './IncomeProfilesManager';
@@ -199,6 +200,13 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
 
   const taxSavings = combatZone ? income.taxes || 0 : 0;
 
+  // Military take-home pay: gross entitlements minus every real deduction (taxes,
+  // FICA, SGLI, AFRH, meal deduction, debt repayment), TSP, and allotments. Doesn't
+  // include rental/gig income — those are shown separately below, and are blended
+  // into the dashboard's headline take-home figure since they arrive without
+  // payroll withholding.
+  const netMilitaryPay = militaryTotal + specialPayTotal - deductionTotal;
+
   // Profiles active for the current month
   const activeProfiles = profiles.filter(
     (p) => p.start_date <= month && (!p.end_date || p.end_date >= month),
@@ -206,6 +214,21 @@ export default function IncomePanel({ month, onUpdate }: { month: string; onUpda
 
   return (
     <div className="space-y-6">
+      {/* Take-home pay summary */}
+      <div className="border-border bg-surface flex items-center justify-between rounded-xl border px-4 py-3.5">
+        <div>
+          <p className={LABEL_CLS}>Military take-home pay</p>
+          <p className="text-text-3 mt-0.5 text-[11px]">
+            {formatCurrency(militaryTotal + specialPayTotal)} gross −{' '}
+            {formatCurrency(deductionTotal)} deductions & TSP
+          </p>
+        </div>
+        <p
+          className={`font-mono text-xl font-semibold ${netMilitaryPay >= 0 ? 'text-[#00d98a]' : 'text-[#ff4560]'}`}
+        >
+          {formatCurrency(netMilitaryPay)}
+        </p>
+      </div>
       {/* Active profile banners */}
       {activeProfiles.map((p) => {
         const cfg = INCOME_PROFILE_TYPES[p.type] ?? INCOME_PROFILE_TYPES.custom;
