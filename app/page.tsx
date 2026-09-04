@@ -12,7 +12,7 @@ import {
   SPECIAL_PAY_FIELDS,
   TSP_CONFIG,
 } from '@/lib/config';
-import { computeMilitaryNetPay, computeSavingsRatePct } from '@/lib/financials';
+import { computeMilitaryNetPay, computeSavingsRatePct, computeTakeHomePay } from '@/lib/financials';
 import type {
   Allotment,
   Asset,
@@ -189,10 +189,6 @@ function calcSummary(
   const invested = tsp + totalInvested;
   const net = totalIncome - invested - spending;
   const savingsRate = computeSavingsRatePct(totalIncome, invested, spending);
-  // Take-home pay: what actually lands in the bank. Military entitlements minus
-  // real deductions and TSP (computeMilitaryNetPay), minus allotments (which
-  // aren't part of IncomeConfig so aren't in that helper), plus income that
-  // arrives without payroll withholding (streams, entries).
   const milNetPay = beforeService
     ? 0
     : computeMilitaryNetPay(
@@ -202,7 +198,7 @@ function calcSummary(
         DEDUCTION_FIELDS,
         TSP_CONFIG.rate,
       );
-  const takeHome = milNetPay - allotments + streamsTotal + extraIncome;
+  const takeHome = computeTakeHomePay(milNetPay, allotments, streamsTotal, extraIncome);
   return {
     totalIncome,
     takeHome,

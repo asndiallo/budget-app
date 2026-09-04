@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '@/lib/api';
-import { INPUT_CLS, LABEL_CLS } from '@/lib/config';
+import { DUE_SOON_WINDOW, INPUT_CLS, LABEL_CLS } from '@/lib/config';
 import type { BillPayment, FixedExpense, Goal } from '@/lib/types';
-
-const DUE_SOON_WINDOW = 5;
 
 function monthlyAmount(f: FixedExpense) {
   return f.period === 'annual' ? f.amount / 12 : f.amount;

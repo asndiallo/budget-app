@@ -36,6 +36,9 @@ A self-hosted personal finance command center built for U.S. military service me
       - [PCS](#pcs)
   - [Importing your LES](#importing-your-les)
   - [Importing credit card transactions](#importing-credit-card-transactions)
+  - [Auto-import \& daily alerts](#auto-import--daily-alerts)
+    - [Auto-import](#auto-import)
+    - [Daily digest](#daily-digest)
   - [Deployment \& income profiles](#deployment--income-profiles)
   - [Allotments](#allotments)
   - [Tax year summary](#tax-year-summary)
@@ -292,6 +295,32 @@ Two more things happen automatically during import:
 
 - **Gig-income deposits** (DoorDash, Uber, Walmart Spark) are recognized and routed to your additional income entries instead of being dropped as an unrecognized credit — see `GIG_INCOME_PLATFORMS` in `lib/config.ts` to add more.
 - **Debt-service payments** (a mortgage or loan payment matching a debt's configured keywords) are skipped rather than imported as spending — they're already tracked via that debt's balance and monthly payment, and double-counting them would inflate spending and understate your savings rate. Set a debt's match keywords via the API (`PATCH /api/debts`, `match_keywords` field) if a payment isn't being caught.
+
+---
+
+## Auto-import & daily alerts
+
+The app runs two background jobs while it's up (started from `instrumentation.ts`, see `lib/background-jobs.ts`): a folder watcher that auto-imports CSVs without the manual upload step, and a daily email digest that surfaces things you'd otherwise only see by opening the dashboard.
+
+### Auto-import
+
+Drop CSVs straight into these folders instead of using **Upload CSV** — they're scanned every 5 minutes and on startup:
+
+- `import/csv/` — bank/card transaction exports, same formats as manual upload. Each file is matched to a `source` label using your existing payment sources and transaction history (so a re-dropped file dedupes correctly instead of double-importing under a new label), imported, then moved to `import/csv/processed/` (or `failed/` if something went wrong).
+- `import/balances/` — account balance updates, one CSV row per account: `label,balance` or `label,category,balance`. A label matching an existing asset (case-insensitive) updates its balance; an unmatched label creates a new asset. Either way a net worth snapshot is taken automatically. Processed files move to `import/balances/processed/`.
+
+For best results, add your bank/card names under **Spending → Transactions → Manage cards** — filenames are matched against those labels first.
+
+### Daily digest
+
+Once a day (after 7am local time), if there's anything to report, an email goes out covering:
+
+- Bills due within the next 5 days that aren't marked paid
+- A spending category tracking well over its trailing 3-month average
+- A month-over-month savings rate drop
+- A drop in the financial health score since the last check
+
+Configure via env vars: `RESEND_API_KEY`, `ALERTS_FROM_EMAIL`, `ALERTS_TO_EMAIL` (see `.env.example`). No email is sent on a quiet day — the check still runs so tomorrow's comparisons stay accurate, it just has nothing worth flagging.
 
 ---
 

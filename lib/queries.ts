@@ -102,6 +102,18 @@ export function getIncomeEntriesTotal(db: Db, userId: string, month: string): nu
   ).total;
 }
 
+/** Total of allotments active for a given month (start_date <= month <= end_date, end_date NULL = ongoing). */
+export function getActiveAllotmentsTotal(db: Db, userId: string, month: string): number {
+  return (
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(amount), 0) AS total FROM allotments
+         WHERE user_id = ? AND start_date <= ? AND (end_date IS NULL OR end_date >= ?)`,
+      )
+      .get(userId, month, month) as { total: number }
+  ).total;
+}
+
 // ── Debts ─────────────────────────────────────────────────────────────────────
 
 /** Sum of monthly_payment for all debts with a positive balance. */

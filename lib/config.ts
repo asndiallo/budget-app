@@ -78,6 +78,9 @@ export const TSP_CONFIG = {
   note: 'C:70 · S:20 · I:10',
 } as const;
 
+/** A monthly fixed bill counts as "due soon" this many days before its due date. */
+export const DUE_SOON_WINDOW = 5;
+
 /**
  * IRS annual contribution limits by calendar year.
  * Update each January when the IRS announces new limits.

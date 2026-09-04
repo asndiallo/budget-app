@@ -17,7 +17,7 @@ export function getDb(): Database.Database {
   return _db;
 }
 
-function initSchema(db: Database.Database) {
+export function initSchema(db: Database.Database) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key   TEXT PRIMARY KEY,

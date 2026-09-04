@@ -57,3 +57,18 @@ export function computeMilitaryNetPay(
   const tsp = Math.round((config.base_pay ?? 0) * tspRate);
   return gross - deductions - tsp;
 }
+
+/**
+ * Take-home pay: what actually lands in the bank. Military net pay
+ * (computeMilitaryNetPay) minus allotments (a gross-pay deduction outside
+ * IncomeConfig) plus income that arrives without payroll withholding
+ * (recurring streams, one-off entries). Matches the dashboard's headline figure.
+ */
+export function computeTakeHomePay(
+  militaryNetPay: number,
+  allotments: number,
+  streamsTotal: number,
+  extraIncome: number,
+): number {
+  return militaryNetPay - allotments + streamsTotal + extraIncome;
+}

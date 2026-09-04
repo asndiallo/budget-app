@@ -3,6 +3,7 @@
  *
  * Seeds a default admin account if no users exist yet, so the app is
  * immediately usable for testing without going through /register first.
+ * Also starts the background jobs (CSV/balance auto-import, daily alert digest).
  *
  * Default credentials: admin@example.com / admin123
  * (Change via SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD env vars)
@@ -19,6 +20,9 @@ export async function register() {
     // on every startup.
     const ctx = await auth.$context;
     await ctx.runMigrations();
+
+    const { startBackgroundJobs } = await import('@/lib/background-jobs');
+    startBackgroundJobs();
 
     const db = getDb();
     const { n } = db.prepare('SELECT count(*) as n FROM users').get() as {
