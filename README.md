@@ -129,7 +129,7 @@ The summary dashboard is now live.
 
 The default landing view. Shows everything at a glance for the selected month:
 
-- **6 metric cards** — total income, invested, committed (fixed + debt payments), spending, net remaining, savings rate — each with a month-over-month delta
+- **6 metric cards** — take-home pay (with gross shown underneath), invested, committed (fixed + debt payments), spending, net remaining, savings rate — each with a month-over-month delta. Take-home is what actually lands in the bank (gross minus taxes/FICA/SGLI/TSP/allotments, plus rental/gig income) — budget against this number, not gross
 - **Budget allocation bar** — visual breakdown of where your income goes
 - **Net worth card** — assets minus liabilities (updates live as you add/edit)
 - **Financial health score** — 0–100 composite across emergency fund coverage, savings rate, debt-to-income, and investment consistency
@@ -146,14 +146,16 @@ Everything about money coming in.
 
 #### Pay & deductions
 
+- **Military take-home pay summary**: gross entitlements → deductions & TSP → net, shown as one clear card at the top of this tab
 - **Military pay fields**: base pay, BAS, BAH, other income — inline editable, auto-saved
 - **Special & incentive pays**: flight pay (ACIP), hazardous duty pay (HDZP), jump pay, hostile fire/IDP, SDAP, SRB/bonus — shown only when non-zero
-- **Deductions**: Roth TSP (configurable % of base pay), federal taxes, FICA social security, FICA Medicare, SGLI, AFRH, meal deduction — all from your LES
+- **Deductions**: Roth TSP (configurable % of base pay), federal taxes, FICA social security, FICA Medicare, SGLI, SGLI Family/Spouse, AFRH, meal deduction, debt repayment — all from your LES
 - **Allotments**: fixed gross-pay deductions (savings allotments, loan allotments, etc.) with active date ranges — see [Allotments](#allotments)
 - **Deployment / income profiles**: one-click field overrides for combat zone, TDY, or school — see [Deployment & income profiles](#deployment--income-profiles)
 - **Combat zone flag**: when set, federal income tax withholding is zeroed (CZTE), and the base pay exclusion is applied to the tax year summary
-- **Additional income entries**: log extra pays, per diem, side income
-- **Contribution limits**: YTD progress bars for Roth TSP (elective deferral) and Roth IRA against IRS annual limits, with catch-up amounts and DoD match displayed separately
+- **Recurring income streams**: flat monthly or biweekly non-military income with a start date — rent, Airbnb, side gigs. Mark a stream "variable" to update its actual amount each month instead of tracking a fixed one. Counted in every income total, same as military pay
+- **Additional income entries**: one-off income (extra pays, per diem, side income) — also picked up automatically when a CSV import recognizes a gig-platform deposit (DoorDash, Uber, Walmart Spark)
+- **Contribution limits**: YTD progress bars for Roth TSP (elective deferral) and Roth IRA against IRS annual limits, with catch-up amounts and DoD match displayed separately. A January contribution can be tagged for the prior tax year (`tax_year` on the transaction) if it was made before the filing deadline
 
 #### Tax summary
 
@@ -263,13 +265,12 @@ PCS cost estimator and move planner:
 
 The fastest way to populate your income data.
 
-1. Go to **myPay** → open or download your LES
-2. Select all text (`Cmd+A`) and copy (`Cmd+C`), or save the `.txt` version
-3. In the app: **Pay → Pay & deductions → Import LES** → paste the text
-4. Review the extracted fields — the parser shows a warning for any field it couldn't detect
-5. Confirm the month and click **Apply**
+1. Go to **myPay** → download your LES PDF (or select all text and copy it instead)
+2. In the app: **Pay → Pay & deductions → Import LES** → drop the PDF, or paste the copied text
+3. Review the extracted fields — the parser shows a warning for any field it couldn't detect
+4. Confirm the month and click **Apply**
 
-The parser handles the standard DFAS two-column myPay format and most single-column variants. Detected fields include: base pay, BAS, BAH, TSP rate and dollar amount, federal taxes, FICA social security, FICA Medicare, SGLI, AFRH, meal deduction, and leave balance.
+The parser handles the standard DFAS two-column myPay format and most single-column variants. Detected fields include: base pay, BAS, BAH, TSP rate and dollar amount (Roth or traditional, combined into one rate), federal taxes, FICA social security, FICA Medicare, SGLI, SGLI Family/Spouse, AFRH, meal deduction, debt repayment, and leave balance.
 
 ---
 
@@ -277,7 +278,7 @@ The parser handles the standard DFAS two-column myPay format and most single-col
 
 1. Export a CSV from your card's website or app
 2. **Spending → Transactions → Upload CSV** → select your card format
-3. A review grid appears — rows with unrecognized categories are highlighted
+3. A review grid appears — rows with unrecognized categories are highlighted, and any recognized income deposit is shown separately (see below)
 4. Adjust categories using the dropdowns in the grid
 5. Click **Import** — duplicates are automatically skipped
 
@@ -286,6 +287,11 @@ The parser handles the standard DFAS two-column myPay format and most single-col
 **Apple Card export on iPhone**: Wallet → tap Apple Card → scroll down → Export Transactions → AirDrop to Mac
 
 After import, the app automatically matches transactions against your fixed bills using keyword and amount matching. Bills with confident matches are marked paid without any manual step.
+
+Two more things happen automatically during import:
+
+- **Gig-income deposits** (DoorDash, Uber, Walmart Spark) are recognized and routed to your additional income entries instead of being dropped as an unrecognized credit — see `GIG_INCOME_PLATFORMS` in `lib/config.ts` to add more.
+- **Debt-service payments** (a mortgage or loan payment matching a debt's configured keywords) are skipped rather than imported as spending — they're already tracked via that debt's balance and monthly payment, and double-counting them would inflate spending and understate your savings rate. Set a debt's match keywords via the API (`PATCH /api/debts`, `match_keywords` field) if a payment isn't being caught.
 
 ---
 
@@ -375,15 +381,16 @@ DoD automatic contributions (1%) and matching (up to 4%) are shown separately an
 
 All data is stored in `budget.db` (SQLite) in the project root. It never leaves your machine.
 
-| Task              | How                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------- |
-| Manual backup     | Copy `budget.db` to a safe location                                                   |
-| In-app backup     | UserNav (top-right) → **Export backup** — downloads a JSON snapshot                   |
-| Restore from JSON | UserNav → **Restore** → select the `.json` file                                       |
-| Start fresh       | Delete `budget.db` and restart — tables and seed data are recreated                   |
-| Multiple users    | Supported — each user has fully isolated data; admins can manage accounts at `/admin` |
+The database runs in WAL mode (`journal_mode = WAL`), so a plain `cp budget.db` can silently miss most of the recent data — anything not yet checkpointed lives in a separate `budget.db-wal` file alongside it. Back it up with `scripts/backup-db.cjs` instead, which uses `better-sqlite3`'s native `.backup()` API for a single consistent snapshot, safe to run while the app is open.
 
-**Recommended backup schedule**: export a JSON backup after each pay period so you have a recoverable point if something goes wrong.
+| Task                | How                                                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automated backup    | `node scripts/backup-db.cjs` — writes to `backups/` (gitignored) and, if present, an iCloud Drive folder; keeps the last 30 in each                            |
+| Schedule it (macOS) | Install `scripts/com.fieldbook.dbbackup.plist` as a launchd agent (`~/Library/LaunchAgents/`) — runs daily and on every login, catches up after sleep/shutdown |
+| In-app backup       | UserNav (top-right) → **Export backup** — downloads a JSON snapshot                                                                                            |
+| Restore from JSON   | UserNav → **Restore** → select the `.json` file                                                                                                                |
+| Start fresh         | Delete `budget.db` and restart — tables and seed data are recreated                                                                                            |
+| Multiple users      | Supported — each user has fully isolated data; admins can manage accounts at `/admin`                                                                          |
 
 ---
 
@@ -447,7 +454,8 @@ All constants live in **`lib/config.ts`** — edit this file to customize the ap
 | `INCOME_FIELDS`                | Income rows shown in the Pay panel — add a key here and it appears automatically |
 | `SPECIAL_PAY_FIELDS`           | Special pay rows (flight, IDP, SDAP, etc.)                                       |
 | `TSP_CONFIG`                   | Default TSP contribution rate and display note                                   |
-| `DEDUCTION_FIELDS`             | Deduction rows (taxes, FICA, SGLI, AFRH, meal)                                   |
+| `DEDUCTION_FIELDS`             | Deduction rows (taxes, FICA, SGLI + Family/Spouse, AFRH, meal, debt repayment)   |
+| `GIG_INCOME_PLATFORMS`         | Gig-platform keywords recognized as income during CSV import (DoorDash, Uber, …) |
 | `CONTRIBUTION_LIMITS`          | IRS/TSP annual limits by year — update each January                              |
 | `INCOME_PROFILE_TYPES`         | Preset profile types with default field overrides                                |
 | `INCOME_PROFILE_FIELD_OPTIONS` | Available fields in the profile override editor                                  |
@@ -539,16 +547,19 @@ lib/
   types.ts           # Shared TypeScript interfaces
   api.ts             # Typed client-side API wrappers (server-agnostic)
   queries.ts         # Shared DB query helpers — one function per query pattern
-  financials.ts      # Canonical savings rate formula (computeSavingsRate)
-  categorization.ts  # Transaction categorization + account detection
+  financials.ts      # Canonical savings rate formula + military net pay (computeMilitaryNetPay)
+  categorization.ts  # Transaction categorization + account/debt-service detection
   income.ts          # Monthly income computation, yearly config lookup
   utils.ts           # Date/month helpers, biweekly period math, formatting
   pay-tables.ts      # 2026 DoD pay table data
   les-parser.ts      # LES text parser
   bill-match.ts      # Transaction → fixed bill auto-matching
-  csv-utils.ts       # CSV date parsing and category mapping
+  csv-utils.ts       # CSV bank-format parsing (parseBankCsv), date parsing, category mapping
   brs-calc.ts        # BRS / legacy retirement calculator
   __tests__/         # Vitest test files (mirrors lib/ structure)
+scripts/
+  backup-db.cjs                    # WAL-consistent budget.db backup, local + iCloud
+  com.fieldbook.dbbackup.plist     # launchd schedule for the backup script (macOS)
 ```
 
 ---

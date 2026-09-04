@@ -37,8 +37,13 @@ next-env.d.ts
 
 # SQLite — db file is personal data, WAL files are transient
 *.db*
+# ...but not the launchd backup agent (name happens to contain ".db")
+!scripts/*.plist
 
 # Claude AI local settings
 .claude/
 # Personal financial documents — never commit
 /import/
+
+# Local DB backups (real financial data snapshots) — never commit
+/backups/

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fieldbook.dbbackup</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/asan/.local/share/mise/shims/node</string>
+    <string>/Users/asan/workspace/personnal/fieldbook/scripts/backup-db.cjs</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/asan/workspace/personnal/fieldbook</string>
+
+  <!-- Runs once a day at 09:00. If the Mac is asleep or off at that time,
+       launchd runs it as soon as possible after wake/login instead of
+       skipping it. Also runs once immediately whenever this agent loads
+       (login, or right after being installed) as an extra safety net. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/asan/workspace/personnal/fieldbook/backups/backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/asan/workspace/personnal/fieldbook/backups/backup.log</string>
+</dict>
+</plist>

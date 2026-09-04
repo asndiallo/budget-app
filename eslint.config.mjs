@@ -18,6 +18,7 @@ export default tseslint.config(
       'next-env.d.ts',
       '*.config.js', // next.config.js, postcss.config.js, tailwind.config.js
       '*.config.mjs', // eslint.config.mjs — not in tsconfig
+      'scripts/**', // standalone Node utilities (e.g. backup-db.cjs) — not in tsconfig
     ],
   },
 
